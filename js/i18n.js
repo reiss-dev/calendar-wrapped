@@ -36,7 +36,7 @@ export function pickLocale({ query, stored, languages = [] } = {}) {
 /** Load a locale's dictionary. English needs no file. */
 export async function setLocale(code) {
   code = LOCALES[code] ? code : 'en';
-  dict = code === 'en' ? {} : (await import(`./i18n/${code}.js`)).default;
+  try { dict = code === 'en' ? {} : (await import(`./i18n/${code}.js`)).default; } catch { dict = {}; } // missing file: English
   current = code;
   if (typeof document !== 'undefined') document.documentElement.lang = LOCALES[code].tag.split('-')[0];
   return code;
@@ -56,7 +56,7 @@ export function translateDom(root = document) {
   });
   root.querySelectorAll('[data-i18n-attr]').forEach((el) => {
     for (const a of el.dataset.i18nAttr.split(',')) {
-      const key = `i18n${a}`;
+      const key = `i18n${a.replace(/(^|-)([a-z])/g, (m, d, c) => c.toUpperCase())}`; // data-* keys must be camelCase
       if (!el.dataset[key]) el.dataset[key] = el.getAttribute(a) || '';
       el.setAttribute(a, t(el.dataset[key]));
     }

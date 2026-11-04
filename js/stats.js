@@ -150,7 +150,9 @@ function travelStats(all) {
   const places = new Map();
   for (const e of travelEvents) {
     const m = e.title.match(FLIGHT_TO_RE);
-    const place = m ? m[1].trim() : (e.location || '').split(',')[0].trim();
+    let place = m ? m[1].trim() : (e.location || '').split(',')[0].trim();
+    // A station or airport in the location field is where you left from, not where you went.
+    if (!m && /(airport|station|st pancras|heathrow|gatwick|stansted|schiphol|arlanda|gardermoen|kastrup|centraal|centralstation|lufthavn|flygplats|luchthaven|terminal|\([A-Z]{3}\))/i.test(place)) place = '';
     if (place && place.length > 1 && place.length < 32) places.set(place, (places.get(place) || 0) + 1);
   }
   // Drop the home city: a place that shows up in most itineraries is where you fly back to.
@@ -194,6 +196,20 @@ function weekdayBreakdown(items, valueFn) {
   const out = WEEKDAYS.map((name, i) => ({ i, day: name, short: name.slice(0, 3), count: 0, value: 0 }));
   for (const e of items) { out[e.start.getDay()].count++; out[e.start.getDay()].value += valueFn(e); }
   return out.map((d) => ({ ...d, value: round1(d.value) }));
+}
+
+/** Hours (or counts) per calendar day, keyed YYYY-MM-DD, for the year heatmap. */
+function dailyTotals(items, valueFn) {
+  const out = {};
+  for (const e of items) { const k = dayKey(e.start); out[k] = round1((out[k] || 0) + valueFn(e)); }
+  return out;
+}
+
+/** 7 × 24 matrix of starts: rows are Sunday..Saturday, columns are hours. */
+function weekGrid(items) {
+  const g = Array.from({ length: 7 }, () => Array(24).fill(0));
+  for (const e of items) g[e.start.getDay()][e.start.getHours()]++;
+  return g;
 }
 
 function hourHistogram(items) {
@@ -386,6 +402,8 @@ function workStats(all, ctx) {
     byWeekday,
     busiestWeekday,
     byHour: hourHistogram(meetings),
+    daily: dailyTotals(meetings, (e) => e.durationH),
+    grid: weekGrid(meetings),
     longestFreeStreak: st.longestFree,
     longestBusyStreak: st.longestBusy,
     travel: travelStats(all),
@@ -529,6 +547,8 @@ function personalStats(all, ctx) {
     byWeekday,
     busiestWeekday,
     byHour: hourHistogram(timed),
+    daily: dailyTotals(events, () => 1),
+    grid: weekGrid(timed),
     longestFreeStreak: st.longestFree,
     longestBusyStreak: st.longestBusy,
     earliest: earliest ? { title: earliest.title, start: earliest.start } : null,

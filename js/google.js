@@ -9,6 +9,8 @@ const API = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 const STATUS = { accepted: 'ACCEPTED', declined: 'DECLINED', tentative: 'TENTATIVE', needsAction: 'NEEDS-ACTION' };
 
 export const googleEnabled = () => !!CONFIG.google?.clientId;
+/** Load Google's script early so the sign-in popup opens straight from the click. */
+export const preloadGoogle = () => { if (googleEnabled()) loadGis().catch(() => {}); };
 
 function loadGis() {
   if (window.google?.accounts?.oauth2) return Promise.resolve();
@@ -42,7 +44,7 @@ async function fetchAll(token, { timeMin, timeMax, onProgress }) {
     const url = new URL(API);
     url.search = new URLSearchParams({ singleEvents: 'true', orderBy: 'startTime', maxResults: '2500', timeMin: timeMin.toISOString(), timeMax: timeMax.toISOString(), showDeleted: 'false', ...(pageToken ? { pageToken } : {}) });
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error(res.status === 403 ? 'Google refused access to the calendar.' : `Google Calendar returned ${res.status}.`);
+    if (!res.ok) throw new Error(res.status === 403 ? 'Google sign-in: access to the calendar was refused.' : `Google Calendar returned ${res.status}.`);
     const page = await res.json();
     summary = summary || page.summary || null;
     items.push(...(page.items || []));

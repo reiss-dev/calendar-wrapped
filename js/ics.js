@@ -3,6 +3,9 @@
 import ICAL from '../vendor/ical.js';
 
 const MAX_OCCURRENCES_PER_SERIES = 20000;
+// ical.js scans every sibling VEVENT for exceptions in each Event constructor, which is
+// quadratic. We relate exceptions ourselves below, so give it an empty list instead.
+const NO_SCAN = { exceptions: [] };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Outlook's cancelled prefix in English, Dutch, Swedish, Norwegian and Danish.
 const CANCELLED_PREFIX = /^(cancell?ed|canceled|geannuleerd|inställt|inställd|avlyst|aflyst)\s*:\s*/i;
@@ -63,7 +66,7 @@ export function parseICS(text, { rangeStart, rangeEnd } = {}) {
   for (const v of vevents) {
     const uid = v.getFirstPropertyValue('uid') || `anon-${bases.size}-${exceptions.length}`;
     if (v.hasProperty('recurrence-id')) exceptions.push(v);
-    else bases.set(uid, new ICAL.Event(v));
+    else bases.set(uid, new ICAL.Event(v, NO_SCAN));
   }
   for (const ex of exceptions) {
     const base = bases.get(ex.getFirstPropertyValue('uid'));
@@ -71,7 +74,7 @@ export function parseICS(text, { rangeStart, rangeEnd } = {}) {
       try { base.relateException(ex); } catch { /* malformed exception; skip */ }
     } else {
       // Orphan exception: treat it as a one-off event.
-      bases.set(`${ex.getFirstPropertyValue('uid')}#${exceptions.indexOf(ex)}`, new ICAL.Event(ex));
+      bases.set(`${ex.getFirstPropertyValue('uid')}#${exceptions.indexOf(ex)}`, new ICAL.Event(ex, NO_SCAN));
     }
   }
 

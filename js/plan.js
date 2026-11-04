@@ -1,22 +1,24 @@
 // Plain-text version of the reclaim plan, for copying or emailing.
 import { CONFIG } from './config.js';
+import { t } from './i18n.js';
 import { fmt } from './ui.js';
+import { suggestion } from './copy.js';
 
-export function planText(s) {
+export function planText(s, list = s.reclaim.suggestions) {
   const rec = s.reclaim;
   const lines = [];
-  lines.push(`Your ${s.year} ${s.mode === 'work' ? 'reclaim plan' : 'nudges'}, from ${CONFIG.brand.name}`);
+  lines.push(s.mode === 'work' ? t('Your {year} reclaim plan, from {brand}', { year: s.year, brand: CONFIG.brand.name }) : t('Your {year} nudges, from {brand}', { year: s.year, brand: CONFIG.brand.name }));
   lines.push('');
   lines.push(s.mode === 'work'
-    ? `${fmt.int(s.meetings)} meetings, ${fmt.hours(s.totalHours)} hours, ${s.shareOfWork}% of working time.`
-    : `${fmt.int(s.events)} plans, ${fmt.hours(s.totalHours)} hours of planned life.`);
-  if (rec.totalHours > 0 && s.mode === 'work') lines.push(`Up to ${fmt.int(rec.totalHours)} hours a year back, about ${fmt.num(rec.workingDays)} working days.`);
+    ? t('{m} meetings, {h} hours, {s}% of working time.', { m: fmt.int(s.meetings), h: fmt.hours(s.totalHours), s: s.shareOfWork })
+    : t('{e} plans, {h} hours of planned life.', { e: fmt.int(s.events), h: fmt.hours(s.totalHours) }));
+  if (rec.totalHours > 0 && s.mode === 'work') lines.push(t('Up to {h} hours a year back, about {d} working days.', { h: fmt.int(rec.totalHours), d: fmt.num(rec.workingDays) }));
   lines.push('');
-  rec.suggestions.forEach((x, i) => {
-    lines.push(`${i + 1}. ${x.title}${x.hoursPerYear > 0 ? ` (${fmt.int(x.hoursPerYear)} hrs a year)` : ''}`);
+  list.map(suggestion).forEach((x, i) => {
+    lines.push(`${i + 1}. ${x.title}${x.hoursPerYear > 0 ? ` (${t('{h} hours a year', { h: fmt.int(x.hoursPerYear) })})` : ''}`);
     lines.push(`   ${x.detail}`);
   });
   lines.push('');
-  lines.push(`Made with ${CONFIG.brand.name}, ${CONFIG.brand.domain}`);
+  lines.push(t('Made with {brand}, {domain}', { brand: CONFIG.brand.name, domain: CONFIG.brand.domain }));
   return lines.join('\n');
 }

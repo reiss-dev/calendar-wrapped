@@ -2,6 +2,7 @@
 // per-slide sharing, sound and haptics, and screen-reader narration.
 import { h, stagger, countUp, toast } from './ui.js';
 import { CONFIG } from './config.js';
+import { t } from './i18n.js';
 import { sound } from './sound.js';
 import { renderSlideCard, canvasToBlob } from './card.js';
 import { track } from './analytics.js';
@@ -34,31 +35,31 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
   host.classList.add('story');
   host.setAttribute('role', 'region');
   host.setAttribute('aria-roledescription', 'story');
-  host.setAttribute('aria-label', `${CONFIG.brand.name}, ${slides.length} slides`);
+  host.setAttribute('aria-label', t('{brand}, {n} slides', { brand: CONFIG.brand.name, n: slides.length }));
   host.tabIndex = -1;
 
   const progress = h('div', { class: 'story-progress', 'aria-hidden': 'true' }, slides.map(() => h('i')));
-  const soundBtn = h('button', { class: 'story-icon', 'aria-label': sound.on ? 'Turn sound off' : 'Turn sound on', 'aria-pressed': String(sound.on), html: sound.on ? ICONS.on : ICONS.off });
+  const soundBtn = h('button', { class: 'story-icon', 'aria-label': sound.on ? t('Turn sound off') : t('Turn sound on'), 'aria-pressed': String(sound.on), html: sound.on ? ICONS.on : ICONS.off });
   soundBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     const on = sound.toggle();
     soundBtn.innerHTML = on ? ICONS.on : ICONS.off;
     soundBtn.setAttribute('aria-pressed', String(on));
-    soundBtn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+    soundBtn.setAttribute('aria-label', on ? t('Turn sound off') : t('Turn sound on'));
     if (on) sound.pop();
   });
-  const shareBtn = h('button', { class: 'story-icon', 'aria-label': 'Share this slide', html: ICONS.share });
+  const shareBtn = h('button', { class: 'story-icon', 'aria-label': t('Share this slide'), html: ICONS.share });
   shareBtn.addEventListener('click', (e) => { e.stopPropagation(); shareSlide(); });
   const top = h('div', { class: 'story-top' },
     h('span', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }), CONFIG.brand.name),
-    h('div', { class: 'story-actions' }, shareBtn, soundBtn, h('button', { class: 'story-icon story-close', 'aria-label': 'Close story', onClick: (e) => { e.stopPropagation(); exit(); } }, '×')),
+    h('div', { class: 'story-actions' }, shareBtn, soundBtn, h('button', { class: 'story-icon story-close', 'aria-label': t('Close story'), onClick: (e) => { e.stopPropagation(); exit(); } }, '×')),
   );
   const stage = h('div', { class: 'story-stage' });
-  const hint = h('div', { class: 'story-hint', 'aria-hidden': 'true' }, 'Tap to continue');
+  const hint = h('div', { class: 'story-hint', 'aria-hidden': 'true' }, t('Tap to continue'));
   const live = h('div', { class: 'sr-only', 'aria-live': 'polite', 'aria-atomic': 'true' });
   const srNav = h('div', { class: 'sr-only' },
-    h('button', { onClick: (e) => { e.stopPropagation(); back(); } }, 'Previous slide'),
-    h('button', { onClick: (e) => { e.stopPropagation(); next(); } }, 'Next slide'));
+    h('button', { onClick: (e) => { e.stopPropagation(); back(); } }, t('Previous slide')),
+    h('button', { onClick: (e) => { e.stopPropagation(); next(); } }, t('Next slide')));
   host.append(progress, top, stage, hint, live, srNav);
 
   const rendered = new Map();
@@ -77,7 +78,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
   }
 
   function enter(el) {
-    el.querySelectorAll('[data-reveal], .bar i, .bar-rect, .heatstrip i, .ring .fill').forEach((n) => { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; });
+    el.querySelectorAll('[data-reveal], .bar i, .bar-rect, .heatstrip i, .ring .fill, .cell, .petal, .bubble, .tile-g, .picto, .arc, .dest, .dest-label, .dot').forEach((n) => { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; });
     stagger(el);
     el.querySelectorAll('[data-count]').forEach((n) => {
       countUp(n, Number(n.dataset.count), { decimals: Number(n.dataset.decimals || 0), suffix: n.dataset.suffix || '', prefix: n.dataset.prefix || '', delay: 320 });
@@ -88,7 +89,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
     const spec = specFromSlide(el, year);
     const parts = [spec.cap, spec.big && `${spec.big}${spec.unit ? ` ${spec.unit}` : ''}`, spec.line, el.querySelector('.note')?.textContent.trim()].filter(Boolean);
     const extra = [...el.querySelectorAll('.rows li, .equiv li, .tile, .chips span')].map((n) => n.textContent.replace(/\s+/g, ' ').trim()).slice(0, 6);
-    live.textContent = `Slide ${i + 1} of ${slides.length}. ${[...parts, ...extra].map((p) => p.replace(/[.:\s]+$/, '')).join('. ')}.`;
+    live.textContent = `${t('Slide {i} of {n}', { i: i + 1, n: slides.length })}. ${[...parts, ...extra].map((p) => p.replace(/[.:\s]+$/, '')).join('. ')}.`;
   }
 
   function go(i) {
@@ -107,6 +108,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
     host.className = `story ${slides[i].theme || 'c-black'}`;
     enter(cur);
     narrate(cur, i);
+    slides[i].onEnter?.(cur);
     [...progress.children].forEach((seg, k) => { seg.classList.toggle('done', k < i); seg.classList.toggle('cur', k === i); });
     hint.style.opacity = i === 0 ? '1' : '0';
     if (i > 0) {
@@ -127,11 +129,11 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
     const file = new File([blob], `calendar-wrapped-${year}-${index + 1}.png`, { type: 'image/png' });
     track('slide_shared');
     try {
-      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text: `Made with ${CONFIG.brand.name}` }); return; }
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text: t('Made with {brand}', { brand: CONFIG.brand.name }) }); return; }
     } catch { return; /* cancelled */ }
     const a = h('a', { href: URL.createObjectURL(blob), download: file.name });
     document.body.append(a); a.click(); a.remove();
-    toast('Slide saved as an image.');
+    toast(t('Slide saved as an image.'));
   }
 
   // Tap zones: left third goes back, the rest forward. Buttons and links are left alone.

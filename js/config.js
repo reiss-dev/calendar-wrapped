@@ -6,12 +6,14 @@ export const CONFIG = {
     domain: 'calendarwrapped.app',
     tagline: 'Your year, in meetings.',
   },
+  // Prices per currency. The currency follows the visitor's language. In Stripe, create one
+  // one-off price and one monthly price, each with these amounts as currency options.
   pricing: {
-    currency: 'GBP',
-    symbol: '£',
-    amount: 4,
-    label: 'one-off',
-    teamAmount: 29,
+    GBP: { personal: 4, team: 15 },
+    EUR: { personal: 5, team: 18 },
+    SEK: { personal: 49, team: 179 },
+    NOK: { personal: 49, team: 179 },
+    DKK: { personal: 39, team: 129 },
   },
   // Google Calendar connect. Leave clientId empty to hide the button.
   // Create an OAuth client (type: Web) in Google Cloud and add your domain as an
@@ -32,8 +34,6 @@ export const CONFIG = {
   share: {
     hideNamesByDefault: true,
   },
-  // Default working week used for the "share of your time" stat.
-  workHoursPerWeek: 40,
   // When the /api/checkout endpoint is missing (local preview, static host without
   // functions), clicking Unlock shows a preview unlock instead of failing.
   allowPreviewUnlock: true,
