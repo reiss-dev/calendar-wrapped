@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Help us test · Calendar Wrapped</title>
+  <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .diag { max-width: 680px; margin: 0 auto; padding: 48px var(--gutter) 100px; display: grid; gap: 20px; }
+    .diag h1 { font-size: clamp(34px, 5vw, 48px); }
+    .diag p { color: var(--ink-2); font-size: 17px; line-height: 1.5; }
+    #diag-report { white-space: pre-wrap; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--card); border: 1px solid var(--line-soft); border-radius: var(--r-sm); padding: 18px; color: var(--ink); }
+    .diag-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <main class="diag">
+    <p><a href="./">‹ <span data-brand-name>Calendar Wrapped</span></a></p>
+    <h1 data-i18n>Help us test with your calendar</h1>
+    <p data-i18n>Calendars vary a lot, especially from Outlook. This page checks how well yours is understood. It runs in your browser: nothing is uploaded unless you choose to send us something.</p>
+    <p data-i18n>You get two things to send back if you’re happy to: a short report with counts only, and an anonymised copy of your file where every title, name, email and place is replaced, keeping only times and structure.</p>
+    <div class="diag-actions">
+      <input type="file" id="diag-file" accept=".ics,text/calendar" hidden />
+      <button class="btn" id="diag-choose" data-i18n>Choose calendar file</button>
+    </div>
+    <div id="diag-out" hidden>
+      <pre id="diag-report"></pre>
+      <div class="diag-actions" style="margin-top:14px">
+        <button class="btn" id="diag-copy" data-i18n>Copy report</button>
+        <button class="btn btn-secondary" id="diag-anon" data-i18n>Download anonymised file</button>
+      </div>
+      <p class="caption" style="margin-top:12px" data-i18n>Have a look at the anonymised file before sending it. Open it in any text editor.</p>
+    </div>
+  </main>
+  <script type="module">
+    import { setLocale, pickLocale, translateDom, t } from './js/i18n.js';
+    import { CONFIG } from './js/config.js';
+    import { parseICS, guessSelfEmail } from './js/ics.js';
+    import { computeStats } from './js/stats.js';
+    import { anonymiseIcs, diagnosticReport } from './js/anonymise.js';
+    await setLocale(pickLocale({ query: new URLSearchParams(location.search).get('lang'), languages: navigator.languages || [] }));
+    translateDom();
+    document.querySelectorAll('[data-brand-name]').forEach((n) => { n.textContent = CONFIG.brand.name; });
+    const input = document.getElementById('diag-file');
+    let text = '';
+    document.getElementById('diag-choose').onclick = () => input.click();
+    input.onchange = async () => {
+      const f = input.files[0]; if (!f) return;
+      text = await f.text();
+      document.getElementById('diag-report').textContent = diagnosticReport(text, { parseICS, guessSelfEmail, computeStats });
+      document.getElementById('diag-out').hidden = false;
+    };
+    document.getElementById('diag-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(document.getElementById('diag-report').textContent); document.getElementById('diag-copy').textContent = t('Copied'); } catch { /* ignore */ }
+    };
+    document.getElementById('diag-anon').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([anonymiseIcs(text)], { type: 'text/calendar' }));
+      a.download = 'calendar-anonymised.ics';
+      document.body.append(a); a.click(); a.remove();
+    };
+  </script>
+</body>
+</html>

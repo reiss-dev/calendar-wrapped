@@ -80,7 +80,7 @@ await scenario('work demo: story with visuals, summary, actions, formats, link',
     for (const sel of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', '.viz-arcs']) if (await cur.locator(sel).count()) seen.add(sel);
     if (await cur.locator('.cap', { hasText: 'Compared with' }).count()) seen.add('yoy');
     if (await cur.locator('.persona-emoji').count()) { await page.waitForTimeout(500); if (await cur.locator('canvas.confetti').count()) seen.add('confetti'); }
-    if (SHOTS && [1, 2, 3, 8, 9, 13, 15].includes(i)) { await page.waitForTimeout(1300); await shot(page, `02-slide-${String(i + 1).padStart(2, '0')}`, false); }
+    if (SHOTS && [0, 1, 3, 6, 7, 17].includes(i)) { await page.waitForTimeout(1300); await shot(page, `02-slide-${String(i + 1).padStart(2, '0')}`, false); }
   });
   for (const k of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', '.viz-arcs', 'yoy', 'confetti']) assert.ok(seen.has(k), `story should include ${k}`);
   assert.ok(total >= 18, `slides: ${total}`);

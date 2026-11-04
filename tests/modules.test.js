@@ -82,3 +82,23 @@ test('engine core loads, computes with year over year, and builds teams', () => 
   core.removeMember({ id: a.id });
   assert.equal(core.team().size, 1);
 });
+
+test('anonymiser strips everything personal but keeps what the engine needs', async () => {
+  const { anonymiseIcs, diagnosticReport } = await import('../js/anonymise.js');
+  const range2 = { rangeStart: new Date(Y, 0, 1), rangeEnd: new Date(Y + 1, 0, 1) };
+  for (const file of ['sample/work.ics', 'sample/outlook-desktop.ics', 'sample/outlook-web.ics']) {
+    const original = read(file);
+    const anon = anonymiseIcs(original);
+    assert.ok(!/Priya|Ingrid|northwindlabs|contoso|Weekly Sync|Stockholm|Daily standup/.test(anon), `${file} leaks`);
+    const a = parseICS(original, range2), b = parseICS(anon, range2);
+    assert.equal(b.events.length, a.events.length, `${file}: same occurrences`);
+    const sa = computeStats(a.events, { ...range2, selfEmail: guessSelfEmail(a.events, a.meta), now: NOW });
+    const sb = computeStats(b.events, { ...range2, selfEmail: guessSelfEmail(b.events, b.meta), now: NOW });
+    assert.equal(sb.mode, sa.mode);
+    if (sa.mode === 'work') { assert.equal(sb.meetings, sa.meetings, `${file}: same meetings`); assert.equal(sb.travel.daysOff, sa.travel.daysOff); }
+  }
+  const report = diagnosticReport(read('sample/outlook-desktop.ics'), { parseICS, guessSelfEmail, computeStats, now: NOW });
+  assert.match(report, /Detected source: outlook/);
+  assert.ok(!/Ingrid|contoso|Weekly Sync|sam\.patel/.test(report));
+  assert.match(diagnosticReport('not a calendar', { parseICS, guessSelfEmail, computeStats, now: NOW }), /^Error: /m);
+});

@@ -637,3 +637,27 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .compare-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 820px; margin: 32px auto 0; }
 .compare .hero-actions { margin-top: 32px; }
 @media (max-width: 640px) { .compare-cards { gap: 10px; } }
+
+/* ---------- more visuals ---------- */
+.viz-note { font-size: 13px; color: var(--viz-text); margin: 8px 0 0; }
+.viz-dots { max-width: 600px; }
+.viz-dots .m-dot { fill: var(--viz-ink); transform-box: fill-box; transform-origin: center; animation: pop-in 0.35s var(--spring) both; animation-delay: calc(var(--d) + 250ms); }
+.viz-weeks .wk-base { fill: var(--viz-base); }
+.viz-weeks .wk-fill { fill: var(--viz-ink); transform-box: fill-box; transform-origin: bottom; animation: grow-y 0.5s var(--spring) both; animation-delay: calc(var(--i) * 45ms + 300ms); }
+.viz-chain .link { fill: var(--viz-ink); transform-box: fill-box; transform-origin: left center; animation: grow 0.45s var(--spring) both; animation-delay: calc(var(--i) * 110ms + 300ms); }
+.viz-chain .joint { fill: var(--viz-on); opacity: 0.6; animation: reveal 0.3s both; animation-delay: calc(var(--i) * 110ms + 400ms); }
+.bar-race { display: grid; gap: 8px; margin-top: 26px; }
+.race { position: relative; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; overflow: hidden; }
+.race-fill { position: absolute; inset: 0; width: calc(var(--v) * 100%); background: color-mix(in srgb, var(--viz-ink) 18%, transparent); border-radius: inherit; transform-origin: left; animation: grow 1s var(--spring) both; animation-delay: calc(var(--i) * 110ms + 350ms); }
+.race.first .race-fill { background: var(--viz-ink); }
+.race-label, .race-val { position: relative; font-weight: 600; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.race-val { color: var(--viz-text); font-variant-numeric: tabular-nums; flex: none; }
+.race.first .race-label, .race.first .race-val { color: var(--viz-on); }
+.viz-blocks { max-width: 600px; }
+.viz-blocks .blk { fill: var(--viz-base); transform-box: fill-box; transform-origin: center; animation: pop-in 0.4s var(--spring) both; animation-delay: calc(var(--i) * 8ms + 250ms); }
+.viz-blocks .blk.back { fill: var(--viz-ink); animation: pop-in 0.4s var(--spring) both, glow 1.8s ease-in-out 1.6s infinite alternate; animation-delay: calc(var(--i) * 8ms + 250ms), calc(var(--i) * 8ms + 1600ms); }
+@keyframes glow { to { opacity: 0.65; } }
+.reading-wrap { width: min(420px, 90vw); height: auto; border: 0; animation: none; border-radius: 0; }
+.viz-reading .rd { fill: color-mix(in srgb, var(--blue) calc(var(--v) * 100%), var(--fill)); opacity: 0; animation: read-in 2.4s ease-in-out infinite; animation-delay: calc(var(--c) * 40ms); }
+@keyframes read-in { 0% { opacity: 0; } 20%, 70% { opacity: 1; } 100% { opacity: 0.15; } }
+@media (prefers-reduced-motion: reduce) { .viz-reading .rd { opacity: 1; } }

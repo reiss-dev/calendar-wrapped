@@ -5,7 +5,7 @@ import { CONFIG } from './config.js';
 import { t, tn, monthName, weekdayName } from './i18n.js';
 import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js';
 import { yoyChange } from './stats.js';
-import { yearHeatmap, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti } from './viz.js';
+import { yearHeatmap, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti, dotMatrix, weeksBar, chain, barRace, hourBlocks } from './viz.js';
 
 const R = (attrs = {}) => ({ 'data-reveal': '', ...attrs });
 const narrow = (i) => monthName(i, 'narrow');
@@ -122,11 +122,11 @@ function workSlides(s) {
   const P = personaOf(s.persona);
   out.push(intro(s.year, t('in meetings.'), t('{n} calendar entries, read on your device. Nothing uploaded. Tap to begin.', { n: fmt.int(s.totalEventsInRange) })));
 
-  out.push({ theme: 'c-blue', render: () => h('div', {}, cap(t('The headline')), big(s.meetings), line(s.isPartialYear ? t('meetings this year, so far.') : t('meetings this year.')), note(...rich(t('About **{n}** a working day, averaging **{m} minutes** each.', { n: fmt.num(s.avgPerWorkingDay), m: fmt.int(s.avgLengthMin) })))) });
+  out.push({ theme: 'c-blue', render: () => h('div', {}, cap(t('The headline')), big(s.meetings), line(s.isPartialYear ? t('meetings this year, so far.') : t('meetings this year.')), note(...rich(t('About **{n}** a working day, averaging **{m} minutes** each.', { n: fmt.num(s.avgPerWorkingDay), m: fmt.int(s.avgLengthMin) }))), h('div', { class: 'viz-wrap', ...R() }, dotMatrix(s.meetings))) });
 
   out.push(heatSlide(s));
 
-  out.push({ theme: 'c-indigo', render: () => h('div', {}, cap(t('Time spent')), big(Math.round(s.totalHours), { suffix: hrs() }), line(t('in a room, or on a call, with other people.')), note(...rich(t('Roughly **{n} full working weeks** of talking.', { n: fmt.num(s.workingWeeksEquivalent) })))) });
+  out.push({ theme: 'c-indigo', render: () => h('div', {}, cap(t('Time spent')), big(Math.round(s.totalHours), { suffix: hrs() }), line(t('in a room, or on a call, with other people.')), note(...rich(t('Roughly **{n} full working weeks** of talking.', { n: fmt.num(s.workingWeeksEquivalent) }))), h('div', { class: 'viz-wrap', ...R() }, weeksBar(s.workingWeeksEquivalent))) });
 
   const yoy = yoySlide(s);
   if (yoy) out.push(yoy);
@@ -141,12 +141,12 @@ function workSlides(s) {
     out.push({ theme: 'c-pink', render: () => h('div', {}, cap(t('The worst week')), h('h2', { class: 'line lg', ...R() }, fmt.weekRange(s.worstWeek.start)), big(Math.round(s.worstWeek.hours), { suffix: hrs() }), note(...rich(t('**{n} meetings** in five days. Every other week, for scale:', { n: fmt.int(s.worstWeek.count) }))), h('div', R(), weekStrip(s.weekly, s.worstWeek))) });
   }
 
-  out.push({ theme: 'c-orange', render: () => h('div', {}, cap(t('No breathing room')), big(s.backToBack), line(t('times you went straight into the next one.')), h('div', { class: 'duo' }, tile(s.longestChain.length, t('longest chain'), s.longestChain.date ? fmt.dateLong(s.longestChain.date) : ''), tile(s.backToBackDays, t('wall-to-wall days'), t('three or more in a row')))) });
+  out.push({ theme: 'c-orange', render: () => h('div', {}, cap(t('No breathing room')), big(s.backToBack), line(t('times you went straight into the next one.')), s.longestChain.length > 1 ? h('div', { class: 'viz-wrap', ...R() }, chain(s.longestChain.length)) : null, h('div', { class: 'duo' }, tile(s.longestChain.length, t('longest chain'), s.longestChain.date ? fmt.dateLong(s.longestChain.date) : ''), tile(s.backToBackDays, t('wall-to-wall days'), t('three or more in a row')))) });
 
   if (s.topTitles.length) {
     const top = s.topTitles[0];
     const quip = /sync|catch ?up|check ?in|touch ?base|overleg|afstemming|avstämning|møte|møde/i.test(top.key) ? t('Of course it was.') : /stand ?up|daily/i.test(top.key) ? t('Every. Single. Day.') : /1:1|1-1|one.to.one/i.test(top.key) ? t('At least it was personal.') : t('A classic.');
-    out.push({ theme: 'c-graphite', render: () => h('div', {}, cap(t('Most common title')), h('h2', { class: 'line lg', ...R() }, `“${top.key}”`), note(quip, ' ', ...rich(t('**{n} times**.', { n: fmt.int(top.count) }))), rows(s.topTitles.slice(0, 5), (x) => `${fmt.int(x.count)}×`)) });
+    out.push({ theme: 'c-graphite', render: () => h('div', {}, cap(t('Most common title')), h('h2', { class: 'line lg', ...R() }, `“${top.key}”`), note(quip, ' ', ...rich(t('**{n} times**.', { n: fmt.int(top.count) }))), h('div', R(), barRace(s.topTitles.map((x) => ({ label: x.key, value: x.count, sub: `${fmt.int(x.count)}×` }))))) });
   }
 
   if (s.collaborators.length) {
@@ -186,7 +186,7 @@ function workSlides(s) {
   out.push({ theme: 'c-pink', onEnter: (el) => setTimeout(() => confetti(el), 350), render: () => h('div', {}, h('div', { class: 'persona-emoji', ...R() }, P.emoji), cap(t('Your calendar persona')), line(P.name, true), note(P.blurb)) });
 
   const rec = s.reclaim;
-  out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Next year')), big(Math.round(rec.totalHours), { suffix: hrs() }), line(t('you could realistically get back.')), note(...(rec.totalHours > 0 ? rich(t('That’s **{d} working days** from {n} specific changes, drawn from your own calendar.', { d: fmt.num(rec.workingDays), n: fmt.int(rec.suggestions.length) })) : [t('Your calendar is already in good shape. The details are on your summary.')]))), cta: ({ finish }) => h('button', { class: 'btn btn-lg', onClick: finish }, t('See my card')) });
+  out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Next year')), big(Math.round(rec.totalHours), { suffix: hrs() }), line(t('you could realistically get back.')), note(...(rec.totalHours > 0 ? rich(t('That’s **{d} working days** from {n} specific changes, drawn from your own calendar.', { d: fmt.num(rec.workingDays), n: fmt.int(rec.suggestions.length) })) : [t('Your calendar is already in good shape. The details are on your summary.')])), rec.totalHours > 0 ? h('div', { class: 'viz-wrap', ...R() }, hourBlocks(s.totalHours * (s.daysCovered ? 365 / Math.max(30, s.daysCovered) : 1), rec.totalHours)) : null), cta: ({ finish }) => h('button', { class: 'btn btn-lg', onClick: finish }, t('See my card')) });
 
   return out;
 }

@@ -17,7 +17,7 @@ import { addFiles, renderTeamSetup, renderTeamReport, savedTeam, clearTeam } fro
 import { isUnlocked, getUnlock, openUnlockModal, handleReturnFromCheckout, price } from './pay.js';
 import { persona as personaOf } from './copy.js';
 import { reclaimList } from './reclaim-ui.js';
-import { yearHeatmap, heatLegend, weekGridViz } from './viz.js';
+import { yearHeatmap, heatLegend, weekGridViz, readingGrid } from './viz.js';
 import { compareWithOthers, alreadyShared, MIN_SAMPLE } from './bench.js';
 import { yoyChange } from './stats.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
@@ -168,7 +168,7 @@ function loadMicrosoft() {
 async function runPrep(label, loader) {
   show('prep');
   const log = h('div', { class: 'prep-log' });
-  const inner = h('div', { class: 'prep-inner' }, h('div', { class: 'spinner', 'aria-hidden': 'true' }), h('h2', {}, t('Reading your year')), log);
+  const inner = h('div', { class: 'prep-inner' }, h('div', { class: 'spinner reading-wrap', 'aria-hidden': 'true' }, readingGrid()), h('h2', {}, t('Reading your year')), log);
   views.prep.className = 'view is-active prep';
   views.prep.innerHTML = '';
   views.prep.append(inner);

@@ -235,3 +235,75 @@ export function confetti(host, { colours = ['#ffffff', '#ffd60a', '#34c759', '#0
   };
   requestAnimationFrame(frame);
 }
+
+// ---------------------------------------------------------------- dot matrix
+/** One dot per meeting (or per few, for big numbers), filling in like a crowd. */
+export function dotMatrix(n, { cap = 900, cols = 40 } = {}) {
+  const per = Math.max(1, Math.ceil(n / cap));
+  const dots = Math.ceil(n / per);
+  const rows = Math.ceil(dots / cols), step = 15;
+  const s = svg('svg', { class: 'viz viz-dots', viewBox: `0 0 ${cols * step} ${rows * step}`, 'aria-hidden': 'true' });
+  for (let i = 0; i < dots; i++) {
+    s.append(svg('circle', { cx: (i % cols) * step + step / 2, cy: Math.floor(i / cols) * step + step / 2, r: 5, class: 'm-dot', style: `--i:${i}; --d:${Math.min(1600, i * 1.6).toFixed(0)}ms` }));
+  }
+  return h('div', {}, s, per > 1 ? h('p', { class: 'viz-note' }, t('Each dot is {n} meetings.', { n: per })) : null);
+}
+
+// ---------------------------------------------------------------- year of weeks
+/** 52 weeks in a row; the first N (fractional) fill in: the weeks that went on meetings. */
+export function weeksBar(weeks) {
+  const total = 52, w = 600 / total;
+  const s = svg('svg', { class: 'viz viz-weeks', viewBox: `0 0 600 70`, 'aria-hidden': 'true' });
+  for (let i = 0; i < total; i++) {
+    const fill = Math.max(0, Math.min(1, weeks - i));
+    s.append(svg('rect', { x: i * w + 1, y: 0, width: w - 2, height: 52, rx: 3, class: 'wk-base' }));
+    if (fill > 0) s.append(svg('rect', { x: i * w + 1, y: 0, width: (w - 2) * fill, height: 52, rx: 3, class: 'wk-fill', style: `--i:${i}` }));
+  }
+  s.append(svg('text', { x: 0, y: 68, class: 'viz-label' }, t('Jan')), svg('text', { x: 600, y: 68, 'text-anchor': 'end', class: 'viz-label' }, t('Dec')));
+  return s;
+}
+
+// ---------------------------------------------------------------- chain
+/** The longest run of back-to-back meetings, drawn as linked blocks. */
+export function chain(length) {
+  const n = Math.max(1, Math.min(14, length));
+  const bw = 600 / n;
+  const s = svg('svg', { class: 'viz viz-chain', viewBox: `0 0 600 64`, 'aria-hidden': 'true' });
+  for (let i = 0; i < n; i++) {
+    s.append(svg('rect', { x: i * bw + (i ? 3 : 0), y: 8, width: bw - (i ? 6 : 3), height: 48, rx: 10, class: 'link', style: `--i:${i}` }));
+    if (i) s.append(svg('rect', { x: i * bw - 7, y: 28, width: 14, height: 8, rx: 4, class: 'joint', style: `--i:${i}` }));
+  }
+  return s;
+}
+
+// ---------------------------------------------------------------- bar race
+/** Horizontal bars that race out to their values. items: [{ label, value, sub }] */
+export function barRace(items, { max = 5 } = {}) {
+  const list = items.slice(0, max);
+  const top = Math.max(1, ...list.map((x) => x.value));
+  return h('div', { class: 'bar-race' }, list.map((x, i) => h('div', { class: `race${i === 0 ? ' first' : ''}`, style: `--v:${(x.value / top).toFixed(3)}; --i:${i}` },
+    h('div', { class: 'race-fill' }), h('span', { class: 'race-label' }, x.label), h('span', { class: 'race-val' }, x.sub ?? fmt.int(x.value)))));
+}
+
+// ---------------------------------------------------------------- hour blocks
+/** A year's meeting hours as blocks; the reclaimable ones light up. */
+export function hourBlocks(total, reclaim, { cap = 160 } = {}) {
+  const per = Math.max(1, Math.ceil(total / cap / 5) * 5);
+  const n = Math.max(1, Math.round(total / per)), k = Math.min(n, Math.round(reclaim / per));
+  const cols = 20, step = 30;
+  const s = svg('svg', { class: 'viz viz-blocks', viewBox: `0 0 ${cols * step} ${Math.ceil(n / cols) * step}`, 'aria-hidden': 'true' });
+  for (let i = 0; i < n; i++) {
+    s.append(svg('rect', { x: (i % cols) * step + 2, y: Math.floor(i / cols) * step + 2, width: step - 4, height: step - 4, rx: 6, class: i < k ? 'blk back' : 'blk', style: `--i:${i}` }));
+  }
+  return h('div', {}, s, h('p', { class: 'viz-note' }, t('Each block is {n} hours. The bright ones are yours again.', { n: per })));
+}
+
+/** Loading animation: a year grid that lights up as the file is read. */
+export function readingGrid() {
+  const s = svg('svg', { class: 'viz viz-reading', viewBox: '0 0 371 55', 'aria-hidden': 'true' });
+  let seed = 7; const r = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let c = 0; c < 53; c++) for (let d = 0; d < 7; d++) {
+    s.append(svg('rect', { x: c * 7, y: d * 7 + 3, width: 5.5, height: 5.5, rx: 1.2, class: 'rd', style: `--c:${c}; --v:${d > 4 ? 0.1 : (0.25 + r() * 0.75).toFixed(2)}` }));
+  }
+  return s;
+}
