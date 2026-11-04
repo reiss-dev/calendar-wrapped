@@ -1,0 +1,482 @@
+{
+  "kind": "calendar#events",
+  "summary": "alex.morgan@northwindlabs.com",
+  "timeZone": "Europe/London",
+  "items": [
+    {
+      "id": "weekly_0",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-01-06T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-01-06T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_1",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-01-13T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-01-13T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_2",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-01-20T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-01-20T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_3",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-01-27T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-01-27T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_4",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-02-03T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-02-03T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_5",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-02-10T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-02-10T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_6",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-02-17T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-02-17T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_7",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-02-24T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-02-24T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_8",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-03-03T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-03-03T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "weekly_9",
+      "iCalUID": "weekly@google.com",
+      "recurringEventId": "weekly",
+      "status": "confirmed",
+      "summary": "Weekly Sync",
+      "start": {
+        "dateTime": "2026-03-10T14:00:00.000Z",
+        "timeZone": "Europe/London"
+      },
+      "end": {
+        "dateTime": "2026-03-10T15:00:00.000Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com",
+        "displayName": "Priya Shah"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "accepted",
+          "displayName": "Alex Morgan"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        },
+        {
+          "email": "room@resource.calendar.google.com",
+          "resource": true,
+          "responseStatus": "accepted"
+        }
+      ],
+      "eventType": "default"
+    },
+    {
+      "id": "declined1",
+      "iCalUID": "d1@google.com",
+      "status": "confirmed",
+      "summary": "Optional townhall",
+      "start": {
+        "dateTime": "2026-02-03T10:00:00Z"
+      },
+      "end": {
+        "dateTime": "2026-02-03T11:00:00Z"
+      },
+      "organizer": {
+        "email": "priya.shah@northwindlabs.com"
+      },
+      "attendees": [
+        {
+          "email": "alex.morgan@northwindlabs.com",
+          "self": true,
+          "responseStatus": "declined"
+        },
+        {
+          "email": "priya.shah@northwindlabs.com",
+          "displayName": "Priya Shah",
+          "responseStatus": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "cancel1",
+      "status": "cancelled",
+      "recurringEventId": "weekly",
+      "originalStartTime": {
+        "dateTime": "2026-03-17T14:00:00Z"
+      }
+    },
+    {
+      "id": "focus1",
+      "iCalUID": "f1@google.com",
+      "status": "confirmed",
+      "summary": "Focus time",
+      "eventType": "focusTime",
+      "start": {
+        "dateTime": "2026-02-04T09:00:00Z"
+      },
+      "end": {
+        "dateTime": "2026-02-04T11:00:00Z"
+      },
+      "organizer": {
+        "email": "alex.morgan@northwindlabs.com",
+        "self": true
+      },
+      "transparency": "opaque"
+    },
+    {
+      "id": "wl1",
+      "iCalUID": "wl1@google.com",
+      "status": "confirmed",
+      "summary": "Home",
+      "eventType": "workingLocation",
+      "start": {
+        "date": "2026-02-05"
+      },
+      "end": {
+        "date": "2026-02-06"
+      },
+      "organizer": {
+        "email": "alex.morgan@northwindlabs.com",
+        "self": true
+      },
+      "transparency": "transparent"
+    },
+    {
+      "id": "ooo1",
+      "iCalUID": "o1@google.com",
+      "status": "confirmed",
+      "summary": "Away",
+      "eventType": "outOfOffice",
+      "start": {
+        "dateTime": "2026-04-06T00:00:00+01:00"
+      },
+      "end": {
+        "dateTime": "2026-04-11T00:00:00+01:00"
+      },
+      "organizer": {
+        "email": "alex.morgan@northwindlabs.com",
+        "self": true
+      }
+    },
+    {
+      "id": "allday1",
+      "iCalUID": "a1@google.com",
+      "status": "confirmed",
+      "summary": "Hotel: Scandic Oslo",
+      "start": {
+        "date": "2026-06-17"
+      },
+      "end": {
+        "date": "2026-06-19"
+      },
+      "organizer": {
+        "email": "alex.morgan@northwindlabs.com",
+        "self": true
+      },
+      "transparency": "transparent"
+    }
+  ]
+}
