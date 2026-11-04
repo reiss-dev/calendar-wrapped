@@ -143,9 +143,31 @@ function googleApi() {
   return { kind: 'calendar#events', summary: self, timeZone: 'Europe/London', items };
 }
 
+
+// ---------------------------------------------------------------- Microsoft Graph
+function graphApi() {
+  const me = { displayName: 'Sam Patel', mail: 'sam.patel@contoso.com', userPrincipalName: 'sam.patel@contoso.com' };
+  const ingrid = { emailAddress: { name: 'Ingrid Olsen', address: 'ingrid.olsen@contoso.com' }, type: 'required', status: { response: 'accepted' } };
+  const room = { emailAddress: { name: 'Room 4.01', address: 'room401@contoso.com' }, type: 'resource', status: { response: 'accepted' } };
+  const value = [];
+  for (let w = 0; w < 8; w++) {
+    const d = new Date(Date.UTC(YEAR, 0, 6 + w * 7, 14));
+    value.push({ id: `occ${w}`, type: 'occurrence', seriesMasterId: 'master-weekly', iCalUId: 'ical-weekly', subject: 'Weekly Sync', isAllDay: false, isCancelled: false, showAs: 'busy', isOrganizer: false, isOnlineMeeting: true,
+      start: { dateTime: d.toISOString().replace('Z', '0000').replace(/\.\d+0000$/, '.0000000'), timeZone: 'UTC' }, end: { dateTime: new Date(d.getTime() + 3600e3).toISOString().replace(/\.\d+Z$/, '.0000000'), timeZone: 'UTC' },
+      organizer: { emailAddress: { name: 'Ingrid Olsen', address: 'ingrid.olsen@contoso.com' } }, attendees: [ingrid, room], responseStatus: { response: 'accepted' }, location: { displayName: 'Microsoft Teams Meeting' }, bodyPreview: '' });
+  }
+  value.push({ id: 'dec1', type: 'singleInstance', iCalUId: 'ical-dec', subject: 'Optional townhall', isAllDay: false, isCancelled: false, showAs: 'busy', isOrganizer: false, start: { dateTime: `${YEAR}-02-03T10:00:00.0000000`, timeZone: 'UTC' }, end: { dateTime: `${YEAR}-02-03T11:00:00.0000000`, timeZone: 'UTC' }, organizer: ingrid, attendees: [ingrid], responseStatus: { response: 'declined' } });
+  value.push({ id: 'cxl1', type: 'singleInstance', iCalUId: 'ical-cxl', subject: 'Canceled: Vendor demo', isAllDay: false, isCancelled: true, showAs: 'free', isOrganizer: false, start: { dateTime: `${YEAR}-02-05T10:00:00.0000000`, timeZone: 'UTC' }, end: { dateTime: `${YEAR}-02-05T11:00:00.0000000`, timeZone: 'UTC' }, organizer: ingrid, attendees: [ingrid], responseStatus: { response: 'accepted' } });
+  value.push({ id: 'own1', type: 'singleInstance', iCalUId: 'ical-own', subject: 'Hiring panel', isAllDay: false, isCancelled: false, showAs: 'busy', isOrganizer: true, start: { dateTime: `${YEAR}-02-06T09:00:00.0000000`, timeZone: 'UTC' }, end: { dateTime: `${YEAR}-02-06T10:00:00.0000000`, timeZone: 'UTC' }, organizer: { emailAddress: { name: 'Sam Patel', address: 'sam.patel@contoso.com' } }, attendees: [ingrid], responseStatus: { response: 'organizer' } });
+  value.push({ id: 'oof1', type: 'singleInstance', iCalUId: 'ical-oof', subject: 'Skiing', isAllDay: true, isCancelled: false, showAs: 'oof', isOrganizer: true, start: { dateTime: `${YEAR}-02-16T00:00:00.0000000`, timeZone: 'UTC' }, end: { dateTime: `${YEAR}-02-21T00:00:00.0000000`, timeZone: 'UTC' }, organizer: { emailAddress: { name: 'Sam Patel', address: 'sam.patel@contoso.com' } }, attendees: [], responseStatus: { response: 'organizer' } });
+  value.push({ id: 'focus1', type: 'singleInstance', iCalUId: 'ical-focus', subject: 'Focus time', isAllDay: false, isCancelled: false, showAs: 'free', isOrganizer: true, start: { dateTime: `${YEAR}-02-04T08:00:00.0000000`, timeZone: 'UTC' }, end: { dateTime: `${YEAR}-02-04T10:00:00.0000000`, timeZone: 'UTC' }, organizer: { emailAddress: { name: 'Sam Patel', address: 'sam.patel@contoso.com' } }, attendees: [], responseStatus: { response: 'organizer' } });
+  return { me, value };
+}
+
 write('sample/outlook-web.ics', outlook({ withAttendees: false }));
 write('sample/outlook-desktop.ics', outlook({ withAttendees: true }));
 TEAM.forEach((m) => write(`sample/team/${m[0].split(' ')[0].toLowerCase()}.ics`, teamCalendar(m)));
 write('tests/fixtures/edge.ics', edge());
 write('tests/fixtures/google-events.json', JSON.stringify(googleApi(), null, 2));
+write('tests/fixtures/graph-events.json', JSON.stringify(graphApi(), null, 2));
 console.log(`Fixtures written for ${YEAR}: outlook-web, outlook-desktop, team/*4, edge, google-events`);

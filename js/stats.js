@@ -1,30 +1,36 @@
 // Stats engine. Pure functions over the event list produced by ics.js.
 // Everything here is deterministic and DOM-free so it can be unit-tested.
+// Wording comes from copy.js; the engine stores ids and numbers so text can be re-rendered in any language.
+import { personaCopy, suggestionCopy, categoryLabel } from './copy.js';
 
 const HOUR = 3600000;
 const DAY = 86400000;
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const NON_MEETING_TITLE = /^(focus( time)?|lunch|break|busy|hold|block(ed)?|no meetings?|commute|gym|ooo|out of office|do not book|dnd|heads? down|deep work|admin|travel time)\b/i;
-const WORKING_LOCATION = /^(home|office|working (from|at) .*|wfh|remote|in office|working location)$/i;
+// Keywords cover English, Dutch, Swedish, Norwegian and Danish titles.
+// JavaScript's \b doesn't treat å, ä, ö, ø or æ as letters, so word edges are spelled out with \p{L}.
+const W = (words) => new RegExp(`(?:^|[^\\p{L}])(?:${words})(?=$|[^\\p{L}])`, 'iu');
+const WSTART = (words) => new RegExp(`^(?:${words})(?=$|[^\\p{L}])`, 'iu');
+const NON_MEETING_TITLE = WSTART('focus(?: time)?|lunch|break|busy|hold|block(?:ed)?|no meetings?|commute|gym|ooo|out of office|do not book|dnd|heads? down|deep work|admin|travel time|focustijd|pauze|bezet|reistijd|fokustid|fokus|lunsj|frokost|middag|upptagen|opptatt|optaget|rejsetid|reisetid|restid');
+const WORKING_LOCATION = /^(home|office|working (from|at) .*|wfh|remote|in office|working location|thuis|kantoor|thuiswerken|hemma|kontoret|hjemme|kontor|hjemmekontor|distans)$/iu;
 const CALL_LINK = /(teams\.microsoft|microsoft teams|zoom\.us|zoom meeting|meet\.google|google meet|webex|whereby|around\.co)/i;
 const MAX_PEOPLE_PER_MEETING = 25; // bigger than this is a broadcast, not a collaboration
-const OOO_TITLE = /\b(ooo|out of office|annual leave|holiday|vacation|pto|time off|sick|bank holiday|leave)\b/i;
-const FLIGHT_RE = /(\bflight\b|✈|\b[A-Z]{2}\s?\d{2,4}\b.*\b(to|->|→)\b|\bdeparts?\b|\barrives?\b)/i;
-const HOTEL_RE = /(\bhotel\b|\bstay at\b|\bcheck[- ]?in\b|\bairbnb\b|\baccommodation\b)/i;
-const TRAIN_RE = /(\btrain\b|\beurostar\b|\brail\b)/i;
-const FLIGHT_TO_RE = /(?:flight|fly|flying|train)\s+(?:to|→|->)\s+([A-Z][\w .'-]{1,30}?)(?:\s*[(\[-]|\s*$|,)/i;
+const OOO_TITLE = W('ooo|out of office|annual leave|holiday|vacation|pto|time off|sick|bank holiday|leave|afwezig|vakantie|verlof|vrij|ziek|feestdag|semester|ledig|ledighet|sjuk|sjukskriven|ferie|syk|sykemeldt|helligdag|fridag|afspadsering');
+const FLIGHT_RE = /(\bflight\b|✈|\b[A-Z]{2}\s?\d{2,4}\b.*\b(to|->|→|naar|till|til)\b|\bdeparts?\b|\barrives?\b|\bvlucht\b|\bflyg\b|\bfly\b|\bflyreise\b)/iu;
+const HOTEL_RE = /(\bhotel\b|\bhotell\b|\bstay at\b|\bcheck[- ]?in\b|\bairbnb\b|\baccommodation\b|\boverachting\b|\bövernattning\b|\bovernatting\b|\bovernatning\b)/iu;
+const TRAIN_RE = /(\btrain\b|\beurostar\b|\brail\b|\btrein\b|\btåg\b|\btog\b|\bdsb\b)/iu;
+const FLIGHT_TO_RE = /(?:flight|fly|flying|train|vlucht|trein|flyg|tåg|tog)\s+(?:to|→|->|naar|till|til)\s+([A-ZÅÄÖØÆ][\p{L} .'-]{1,30}?)(?:\s*[(\[-]|\s*$|,)/iu;
 
 const PERSONAL_CATEGORIES = [
-  { key: 'fitness', label: 'Fitness', re: /\b(gym|workout|run|running|yoga|pilates|swim|cycling|ride|crossfit|climb|football|tennis|padel|hiit|boxing|hike|5k|10k|parkrun|training)\b/i },
-  { key: 'food', label: 'Food & drinks', re: /\b(dinner|lunch|brunch|drinks|pub|coffee|restaurant|bbq|supper|breakfast|cocktails|beers?|wine)\b/i },
-  { key: 'birthday', label: 'Birthdays', re: /\b(birthday|bday|b-day|turns \d+)\b/i },
-  { key: 'health', label: 'Health & appointments', re: /\b(doctor|dentist|gp|physio|optician|hospital|clinic|appointment|therapy|vet)\b/i },
-  { key: 'travel', label: 'Travel', re: /\b(flight|hotel|trip|holiday|airbnb|train|eurostar|weekend away|vacation)\b/i },
-  { key: 'family', label: 'Family & kids', re: /\b(school|nursery|kids?|parents|mum|dad|family|pickup|pick up|drop off|nanny|grandma|grandad)\b/i },
-  { key: 'culture', label: 'Culture & events', re: /\b(cinema|film|movie|theatre|gig|concert|show|festival|museum|gallery|match|game|comedy|exhibition)\b/i },
-  { key: 'home', label: 'Home & errands', re: /\b(plumber|delivery|cleaner|haircut|barber|mot|car|dry cleaning|shopping|ikea|diy|garden)\b/i },
+  { key: 'fitness', re: W('gym|workout|run|running|yoga|pilates|swim|cycling|ride|crossfit|climb|football|tennis|padel|hiit|boxing|hike|5k|10k|parkrun|training|sporten|hardlopen|fitness|voetbal|zwemmen|wielrennen|löpning|springa|simning|träning|fotboll|innebandy|gymmet|løping|trening|svømming|fotball|langrenn|løb|løbetur|svømning|fodbold|cykling|spinning')},
+  { key: 'food', re: W('dinner|lunch|brunch|drinks|pub|coffee|restaurant|bbq|supper|breakfast|cocktails|beers?|wine|diner|etentje|borrel|koffie|ontbijt|middag|fika|kaffe|frukost|afterwork|øl|vin|frokost|aftensmad|kaffe|restaurang')},
+  { key: 'birthday', re: W('birthday|bday|b-day|turns \\d+|verjaardag|jarig|födelsedag|fyller|bursdag|fødselsdag|fylder')},
+  { key: 'health', re: W('doctor|dentist|gp|physio|optician|hospital|clinic|appointment|therapy|vet|huisarts|tandarts|fysio|ziekenhuis|afspraak|dierenarts|läkare|tandläkare|vårdcentral|sjukhus|tannlege|lege|legevakt|sykehus|tandlæge|læge|hospital|fysioterapi')},
+  { key: 'travel', re: W('flight|hotel|hotell|trip|holiday|airbnb|train|eurostar|weekend away|vacation|vlucht|vakantie|reis|semester|resa|ferie|reise|rejse|tur')},
+  { key: 'family', re: W('school|nursery|kids?|parents|mum|dad|family|pickup|pick up|drop off|nanny|grandma|grandad|school|kinderopvang|ophalen|brengen|oma|opa|familie|förskola|skola|hämta|lämna|mormor|morfar|farmor|farfar|familj|barnehage|skole|hente|levere|bestemor|bestefar|børnehave|vuggestue|aflevering|afhentning|mormor|farmor')},
+  { key: 'culture', re: W('cinema|film|movie|theatre|gig|concert|show|festival|museum|gallery|match|game|comedy|exhibition|bioscoop|theater|concert|voorstelling|tentoonstelling|bio|teater|konsert|utställning|föreställning|kino|forestilling|utstilling|koncert|udstilling')},
+  { key: 'home', re: W('plumber|delivery|cleaner|haircut|barber|mot|car|dry cleaning|shopping|ikea|diy|garden|loodgieter|bezorging|schoonmaak|kapper|apk|boodschappen|tuin|rörmokare|leverans|städning|frisör|besiktning|handla|trädgård|rørlegger|levering|vask|frisør|eu-kontroll|handle|hage|vvs|rengøring|syn|indkøb|have')},
 ];
 
 // ---------- helpers ----------
@@ -54,7 +60,7 @@ function weekStartDate(d) {
 function normTitle(t) {
   return t
     .replace(/\s+/g, ' ')
-    .replace(/^(fw|fwd|re|invitation|updated invitation|accepted|declined|canceled|cancelled):\s*/i, '')
+    .replace(/^(fw|fwd|re|invitation|updated invitation|accepted|declined|canceled|cancelled|uitnodiging|bijgewerkte uitnodiging|geaccepteerd|geweigerd|inbjudan|uppdaterad inbjudan|accepterad|avböjd|invitasjon|oppdatert invitasjon|godtatt|avslått|invitation|opdateret invitation|accepteret|afvist|sv|vs|aw|vb|vs|fs):\s*/i, '')
     .replace(/\s*[-–|:]\s*(weekly|daily|monthly|biweekly|fortnightly)\s*$/i, '')
     .replace(/\s*@\s*.*$/, '')
     .trim();
@@ -179,13 +185,13 @@ function monthlyBreakdown(items, rangeStart, rangeEnd, valueFn) {
   for (let m = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1); m < rangeEnd; m.setMonth(m.getMonth() + 1)) {
     const next = new Date(m.getFullYear(), m.getMonth() + 1, 1);
     const inMonth = items.filter((e) => e.start >= m && e.start < next);
-    out.push({ month: MONTHS[m.getMonth()], short: MONTHS[m.getMonth()].slice(0, 3), year: m.getFullYear(), count: inMonth.length, value: round1(inMonth.reduce((s, e) => s + valueFn(e), 0)) });
+    out.push({ i: m.getMonth(), month: MONTHS[m.getMonth()], short: MONTHS[m.getMonth()].slice(0, 3), year: m.getFullYear(), count: inMonth.length, value: round1(inMonth.reduce((s, e) => s + valueFn(e), 0)) });
   }
   return out;
 }
 
 function weekdayBreakdown(items, valueFn) {
-  const out = WEEKDAYS.map((name) => ({ day: name, short: name.slice(0, 3), count: 0, value: 0 }));
+  const out = WEEKDAYS.map((name, i) => ({ i, day: name, short: name.slice(0, 3), count: 0, value: 0 }));
   for (const e of items) { out[e.start.getDay()].count++; out[e.start.getDay()].value += valueFn(e); }
   return out.map((d) => ({ ...d, value: round1(d.value) }));
 }
@@ -302,7 +308,7 @@ function workStats(all, ctx) {
     const t = normTitle(e.title);
     titles.set(t, (titles.get(t) || 0) + 1);
     if (e.isRecurring) {
-      const cur = series.get(e.uid) || { uid: e.uid, title: t, count: 0, hours: 0, attendees: e.others.length, organizedBySelf: e.organizedBySelf, durationMin: Math.round(e.durationH * 60) };
+      const cur = series.get(e.uid) || { uid: e.uid, title: t, count: 0, hours: 0, attendees: e.others.length, organizedBySelf: e.organizedBySelf, durationMin: Math.round(e.durationH * 60), organizer: e.organizer ? { email: e.organizer.email, name: e.organizer.name } : null, weekday: e.start.getDay(), startMin: minutesOfDay(e.start) };
       cur.count++; cur.hours += e.durationH; series.set(e.uid, cur);
     }
   }
@@ -340,6 +346,7 @@ function workStats(all, ctx) {
     availableHours: Math.round(availableHours),
     shareOfWork: Math.round(shareOfWork * 100),
     workingWeeksEquivalent: round1(totalHours / workHoursPerWeek),
+    workHoursPerWeek,
     avgPerWorkingDay: round1(avgPerDay),
     avgLengthMin: Math.round(avgLengthMin),
     worstWeek,
@@ -386,32 +393,34 @@ function workStats(all, ctx) {
   };
   stats.persona = workPersona(stats);
   stats.reclaim = reclaimSuggestions(stats, 365 / Math.max(30, (rangeEnd - rangeStart) / DAY));
-  stats.equivalents = equivalents(totalHours);
+  stats.equivalents = equivalents(totalHours, ctx.workHoursPerWeek);
   return stats;
 }
 
 function workPersona(s) {
+  const pick = (id, params = {}) => personaCopy(id, params);
+  if (s.meetings === 0) return pick('ghost');
   const options = [];
-  if (s.meetings === 0) return { name: 'The Ghost', emoji: '👻', blurb: 'Not a single meeting found. Either you have achieved enlightenment or you exported the wrong calendar.' };
-  if (s.shareOfWork >= 55) options.push([s.shareOfWork, { name: 'The Calendar Tetris Champion', emoji: '🧱', blurb: `Over half of your working hours were meetings. Your calendar is less a schedule, more a wall.` }]);
-  if (s.backToBackDays >= 25) options.push([s.backToBackDays * 1.5, { name: 'The Firefighter', emoji: '🚒', blurb: `${s.backToBackDays} days of back-to-back meetings. You don't take breaks, you take hits.` }]);
-  if (s.oneToOnes >= 80 && s.oneToOnes / s.meetings > 0.35) options.push([s.oneToOnes / 2, { name: 'The People Person', emoji: '🤝', blurb: `${s.oneToOnes} one-to-ones. You run on conversation and you know everyone's dog's name.` }]);
-  if (s.earlyMeetings >= 30) options.push([s.earlyMeetings, { name: 'The Early Bird', emoji: '🌅', blurb: `${s.earlyMeetings} meetings before 8am. The worm never stood a chance.` }]);
-  if (s.lateMeetings >= 30) options.push([s.lateMeetings, { name: 'The Night Owl', emoji: '🦉', blurb: `${s.lateMeetings} meetings running past 6pm. Time zones are a construct, apparently.` }]);
-  if (s.travel.trips >= 8) options.push([s.travel.trips * 4, { name: 'The Road Warrior', emoji: '✈️', blurb: `${s.travel.trips} trips this year. Your laptop has seen more lounges than your sofa.` }]);
-  if (s.recurringShare >= 60) options.push([s.recurringShare / 2, { name: 'The Creature of Habit', emoji: '🔁', blurb: `${s.recurringShare}% of your meeting time was recurring. Same time next week?` }]);
-  if (s.organized / Math.max(1, s.meetings) >= 0.5) options.push([s.organized / 3, { name: 'The Ringleader', emoji: '🎪', blurb: `You organised ${s.organized} meetings. If there's a calendar invite, odds are you sent it.` }]);
-  if (s.shareOfWork <= 20) options.push([40 - s.shareOfWork, { name: 'The Deep Worker', emoji: '🧘', blurb: `Only ${s.shareOfWork}% of your time in meetings. Protect it. People will try to take it.` }]);
-  if (!options.length) return { name: 'The Balanced One', emoji: '⚖️', blurb: 'A respectable amount of meetings and a respectable amount of actual work. Suspicious.' };
-  return options.sort((a, b) => b[0] - a[0])[0][1];
+  if (s.shareOfWork >= 55) options.push([s.shareOfWork, 'tetris', {}]);
+  if (s.backToBackDays >= 25) options.push([s.backToBackDays * 1.5, 'firefighter', { n: s.backToBackDays }]);
+  if (s.oneToOnes >= 80 && s.oneToOnes / s.meetings > 0.35) options.push([s.oneToOnes / 2, 'people', { n: s.oneToOnes }]);
+  if (s.earlyMeetings >= 30) options.push([s.earlyMeetings, 'earlybird', { n: s.earlyMeetings }]);
+  if (s.lateMeetings >= 30) options.push([s.lateMeetings, 'nightowl', { n: s.lateMeetings }]);
+  if (s.travel.trips >= 8) options.push([s.travel.trips * 4, 'roadwarrior', { n: s.travel.trips }]);
+  if (s.recurringShare >= 60) options.push([s.recurringShare / 2, 'habit', { n: s.recurringShare }]);
+  if (s.organized / Math.max(1, s.meetings) >= 0.5) options.push([s.organized / 3, 'ringleader', { n: s.organized }]);
+  if (s.shareOfWork <= 20) options.push([40 - s.shareOfWork, 'deepworker', { n: s.shareOfWork }]);
+  if (!options.length) return pick('balanced');
+  const [, id, params] = options.sort((a, b) => b[0] - a[0])[0];
+  return pick(id, params);
 }
 
-function equivalents(totalHours) {
+function equivalents(totalHours, weekHours = 40) {
   return [
-    { label: 'full working weeks', value: round1(totalHours / 40) },
-    { label: 'flights London to New York', value: Math.round(totalHours / 7.5) },
-    { label: 'complete watches of The Office (US)', value: round1(totalHours / 73) },
-    { label: 'marathons (at a steady 4h pace)', value: Math.round(totalHours / 4) },
+    { key: 'weeks', value: round1(totalHours / weekHours) },
+    { key: 'flights', value: Math.round(totalHours / 7.5) },
+    { key: 'office', value: round1(totalHours / 73) },
+    { key: 'marathons', value: Math.round(totalHours / 4) },
   ];
 }
 
@@ -419,31 +428,34 @@ export function reclaimSuggestions(s, annualize = 1) {
   const out = [];
   const yr = (h) => round1(h * annualize);
   const weeksLeft = 46; // working weeks in a typical year
+  const add = (kind, params, hoursPerYear, extra = {}) => out.push({ kind, params, hoursPerYear, ...extra, ...suggestionCopy(kind, params) });
+  const slot = (r) => ({ uid: r.uid, title: r.title, organizer: r.organizer, organizedBySelf: r.organizedBySelf, durationMin: r.durationMin, weekday: r.weekday, startMin: r.startMin, count: r.count });
   for (const r of s.recurringSeries.slice(0, 4)) {
     if (r.count < 8) continue;
     const perOccurrence = r.durationMin;
     const perWeek = r.count / Math.max(1, s.workingDays / 5);
     if (perWeek >= 3.5 && perOccurrence <= 30) {
-      out.push({ kind: 'async', title: `Make “${r.title}” async twice a week`, detail: `${r.count} occurrences, ${r.hours}h. Daily meetings rarely need to be daily. Two written updates a week keeps the rhythm and gives everyone the time back.`, hoursPerYear: yr(r.hours * 0.4) });
+      add('async', { title: r.title, count: r.count, hours: r.hours }, yr(r.hours * 0.4), { series: slot(r) });
       continue;
     }
-    if (perOccurrence >= 30 && perOccurrence % 30 === 0) {
-      out.push({ kind: 'shorten', title: `Trim “${r.title}” by 5 minutes`, detail: `${r.count} occurrences at ${perOccurrence} min. ${perOccurrence - 5} minute slots give everyone a breather and nobody notices the difference.`, hoursPerYear: yr(r.count * 5 / 60) });
-    }
-    if (perWeek >= 0.9 && perWeek <= 1.2 && perOccurrence >= 45) {
-      out.push({ kind: 'cadence', title: `Move “${r.title}” to every other week`, detail: `It ran ${r.count} times for ${r.hours}h. Halving the cadence is the single biggest lever you have, and most weekly meetings survive it fine.`, hoursPerYear: yr(r.hours / 2) });
-    }
+    if (perOccurrence >= 30 && perOccurrence % 30 === 0) add('shorten', { title: r.title, count: r.count, minutes: perOccurrence, shorter: perOccurrence - 5 }, yr(r.count * 5 / 60), { series: slot(r) });
+    if (perWeek >= 0.9 && perWeek <= 1.2 && perOccurrence >= 45) add('cadence', { title: r.title, count: r.count, hours: r.hours }, yr(r.hours / 2), { series: slot(r) });
   }
-  if (s.largeMeetings >= 10) out.push({ kind: 'optional', title: `Go optional on big meetings`, detail: `${s.largeMeetings} meetings had 8+ people (${s.largeMeetingHours}h). If you spoke in fewer than half, you could read the notes instead.`, hoursPerYear: yr(s.largeMeetingHours / 2) });
-  if (s.noAgenda >= 10) out.push({ kind: 'agenda', title: `Ask for an agenda`, detail: `${s.noAgenda} group meetings (${s.noAgendaHours}h) had no description at all. “No agenda, no attenda” saves roughly a quarter of them.`, hoursPerYear: yr(s.noAgendaHours / 4) });
-  if (s.backToBackDays >= 10) out.push({ kind: 'buffers', title: `Turn on speedy meetings`, detail: `${s.backToBackDays} days were wall-to-wall. Default 25 and 50 minute slots give you ${Math.round(s.backToBack * 5 / 60)} hours of breathing room back.`, hoursPerYear: yr(s.backToBack * 5 / 60) });
-  if (s.fragmentedDays >= 15) out.push({ kind: 'focus', title: `Block one no-meeting morning a week`, detail: `${s.fragmentedDays} days had no two-hour gap for real work. One protected morning restores about ${Math.round(3 * weeksLeft)} focus hours a year.`, hoursPerYear: round1(3 * weeksLeft), isFocus: true });
-  if (s.outOfHoursHours >= 20) out.push({ kind: 'hours', title: `Set working hours in your calendar`, detail: `${s.outOfHoursHours}h of meetings sat before 8am or after 6pm. Visible working hours nudge others to book inside them.`, hoursPerYear: yr(s.outOfHoursHours * 0.6) });
-  if (s.fridayPm >= 20) out.push({ kind: 'friday', title: `Protect Friday afternoons`, detail: `${s.fridayPm} meetings landed on a Friday afternoon. Nobody is at their best in them. Move the movable ones.`, hoursPerYear: yr(s.fridayPm * 0.5 * 0.5) });
-  if (s.unanswered >= 15) out.push({ kind: 'rsvp', title: `Actually reply to invites`, detail: `${s.unanswered} meetings you attended without ever responding. A "no" is free. Decline a third of them.`, hoursPerYear: yr(s.unanswered * 0.5 / 3) });
+  if (s.largeMeetings >= 10) add('optional', { count: s.largeMeetings, hours: s.largeMeetingHours }, yr(s.largeMeetingHours / 2));
+  if (s.noAgenda >= 10) add('agenda', { count: s.noAgenda, hours: s.noAgendaHours }, yr(s.noAgendaHours / 4));
+  if (s.backToBackDays >= 10) add('buffers', { days: s.backToBackDays, hours: Math.round(s.backToBack * 5 / 60) }, yr(s.backToBack * 5 / 60));
+  if (s.fragmentedDays >= 15) add('focus', { days: s.fragmentedDays, hours: Math.round(3 * weeksLeft) }, round1(3 * weeksLeft), { isFocus: true, quietestWeekday: quietestWeekday(s.byWeekday) });
+  if (s.outOfHoursHours >= 20) add('hours', { hours: s.outOfHoursHours }, yr(s.outOfHoursHours * 0.6));
+  if (s.fridayPm >= 20) add('friday', { count: s.fridayPm }, yr(s.fridayPm * 0.5 * 0.5));
+  if (s.unanswered >= 15) add('rsvp', { count: s.unanswered }, yr(s.unanswered * 0.5 / 3));
   out.sort((a, b) => b.hoursPerYear - a.hoursPerYear);
   const total = round1(out.reduce((t, x) => t + x.hoursPerYear, 0));
   return { suggestions: out, totalHours: total, workingDays: round1(total / 8), featured: pickFeatured(out, ['cadence', 'async', 'focus', 'shorten']) };
+}
+
+/** The weekday (Mon–Fri) with the fewest meeting hours, where a focus block hurts least. */
+function quietestWeekday(byWeekday) {
+  return [1, 2, 3, 4, 5].sort((a, b) => (byWeekday[a]?.value || 0) - (byWeekday[b]?.value || 0))[0];
 }
 
 // The free suggestion should be the most surprising one: a change to a meeting the
@@ -466,7 +478,7 @@ function personalStats(all, ctx) {
   const totalHours = timed.reduce((s, e) => s + e.durationH, 0);
   const cats = PERSONAL_CATEGORIES.map((c) => {
     const items = events.filter((e) => c.re.test(e.title));
-    return { key: c.key, label: c.label, count: items.length, hours: round1(items.filter((e) => !e.allDay).reduce((s, e) => s + e.durationH, 0)) };
+    return { key: c.key, label: categoryLabel(c.key), count: items.length, hours: round1(items.filter((e) => !e.allDay).reduce((s, e) => s + e.durationH, 0)) };
   }).filter((c) => c.count > 0).sort((a, b) => b.count - a.count);
   const titles = new Map();
   for (const e of events) { const t = normTitle(e.title); titles.set(t, (titles.get(t) || 0) + 1); }
@@ -533,34 +545,37 @@ function personalStats(all, ctx) {
 }
 
 function personalPersona(s) {
-  if (s.events === 0) return { name: 'The Blank Page', emoji: '📄', blurb: 'Nothing in the calendar. Either spontaneous or suspiciously organised elsewhere.' };
+  const pick = (id, params = {}) => personaCopy(id, params);
+  if (s.events === 0) return pick('blank');
   const cat = (k) => s.categories.find((c) => c.key === k)?.count || 0;
   const options = [];
-  if (cat('fitness') >= 60) options.push([cat('fitness'), { name: 'The Machine', emoji: '🏋️', blurb: `${cat('fitness')} workouts in the calendar. Rest days are for other people.` }]);
-  if (cat('food') >= 40) options.push([cat('food') * 1.2, { name: 'The Social Butterfly', emoji: '🦋', blurb: `${cat('food')} dinners, drinks and coffees. Your friends have a good year because of you.` }]);
-  if (s.travel.trips >= 6) options.push([s.travel.trips * 8, { name: 'The Globetrotter', emoji: '🌍', blurb: `${s.travel.trips} trips. Your suitcase never fully gets unpacked.` }]);
-  if (cat('family') >= 40) options.push([cat('family'), { name: 'The Family Taxi', emoji: '🚗', blurb: `${cat('family')} pickups, drop-offs and school things. Unpaid, unthanked, undefeated.` }]);
-  if (cat('culture') >= 20) options.push([cat('culture') * 2, { name: 'The Culture Vulture', emoji: '🎭', blurb: `${cat('culture')} gigs, films and shows. You have opinions about the support act.` }]);
-  if (s.freeWeekends / Math.max(1, s.totalWeekends) >= 0.6) options.push([30, { name: 'The Homebody', emoji: '🛋️', blurb: `${s.freeWeekends} weekends with nothing booked. Peace, quiet and a very good sofa.` }]);
-  if (s.events >= 300) options.push([s.events / 10, { name: 'The Planner', emoji: '📋', blurb: `${s.events} things in the calendar. If it's not written down, it didn't happen.` }]);
-  if (!options.length) return { name: 'The Easygoing One', emoji: '🌤️', blurb: 'Enough plans to have a life, not so many that it needs project management.' };
-  return options.sort((a, b) => b[0] - a[0])[0][1];
+  if (cat('fitness') >= 60) options.push([cat('fitness'), 'machine', { n: cat('fitness') }]);
+  if (cat('food') >= 40) options.push([cat('food') * 1.2, 'butterfly', { n: cat('food') }]);
+  if (s.travel.trips >= 6) options.push([s.travel.trips * 8, 'globetrotter', { n: s.travel.trips }]);
+  if (cat('family') >= 40) options.push([cat('family'), 'taxi', { n: cat('family') }]);
+  if (cat('culture') >= 20) options.push([cat('culture') * 2, 'culture', { n: cat('culture') }]);
+  if (s.freeWeekends / Math.max(1, s.totalWeekends) >= 0.6) options.push([30, 'homebody', { n: s.freeWeekends }]);
+  if (s.events >= 300) options.push([s.events / 10, 'planner', { n: s.events }]);
+  if (!options.length) return pick('easygoing');
+  const [, id, params] = options.sort((a, b) => b[0] - a[0])[0];
+  return pick(id, params);
 }
 
 function personalSuggestions(s) {
   const out = [];
+  const add = (kind, params, hoursPerYear, extra = {}) => out.push({ kind, params, hoursPerYear, ...extra, ...suggestionCopy(kind, params) });
   if (s.notSeenLately.length) {
     const p = s.notSeenLately[0];
-    out.push({ kind: 'reconnect', title: `Text ${p.name}`, detail: `You've seen them ${p.count} times this year but not since ${MONTHS[p.lastSeen.getMonth()]}. Low effort, high return.`, hoursPerYear: 0 });
+    add('reconnect', { name: p.name, count: p.count, month: p.lastSeen.getMonth() }, 0, { person: { name: p.name, email: p.email } });
   }
-  if (s.freeWeekends >= 6) out.push({ kind: 'weekends', title: `${s.freeWeekends} empty weekends`, detail: `Nothing booked on ${s.freeWeekends} of ${s.totalWeekends} weekends. Great if that was the plan. If not, book the thing you keep saying you'll do.`, hoursPerYear: 0 });
-  if (s.eveningEvents >= 60) out.push({ kind: 'evenings', title: `Protect a weeknight`, detail: `${s.eveningEvents} weekday evenings had something on. Pick one night a week that stays empty on purpose.`, hoursPerYear: round1(46 * 2) });
+  if (s.freeWeekends >= 6) add('weekends', { free: s.freeWeekends, total: s.totalWeekends }, 0);
+  if (s.eveningEvents >= 60) add('evenings', { count: s.eveningEvents }, round1(46 * 2));
   const fitnessRe = PERSONAL_CATEGORIES.find((c) => c.key === 'fitness').re;
   const familyRe = PERSONAL_CATEGORIES.find((c) => c.key === 'family').re;
   const r = s.recurringSeries.find((x) => x.count >= 20 && x.hours >= 20 && !fitnessRe.test(x.title) && !familyRe.test(x.title));
-  if (r) out.push({ kind: 'recurring', title: `Still enjoying “${r.title}”?`, detail: `${r.hours} hours across ${r.count} sessions this year. If you look forward to it, brilliant. If you dread it, it's allowed to stop.`, hoursPerYear: round1(r.hours) });
+  if (r) add('recurring', { title: r.title, hours: r.hours, count: r.count }, round1(r.hours));
   const fit = s.categories.find((c) => c.key === 'fitness');
-  if (!fit || fit.count < 20) out.push({ kind: 'move', title: `Put exercise in the calendar`, detail: `${fit ? fit.count : 0} workouts made it in. Things that are scheduled happen. Things that aren't, don't.`, hoursPerYear: 0 });
+  if (!fit || fit.count < 20) add('move', { count: fit ? fit.count : 0 }, 0);
   return { suggestions: out, totalHours: round1(out.reduce((t, x) => t + x.hoursPerYear, 0)), workingDays: 0, featured: pickFeatured(out, ['reconnect', 'recurring', 'evenings']) };
 }
 
@@ -588,6 +603,54 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   };
 }
 
+
+
+// ---------- year over year ----------
+/**
+ * The same headline numbers for the year before, when the export covers it well enough
+ * (at least 40 entries and events in nine or more months).
+ */
+export function yearOverYear(rawEvents, { year, selfEmail = null, mode, workHoursPerWeek = 40 }) {
+  const prevStart = new Date(year - 1, 0, 1), prevEnd = new Date(year, 0, 1);
+  const prev = rawEvents.filter((e) => e.start >= prevStart && e.start < prevEnd);
+  const months = new Set(prev.map((e) => e.start.getMonth()));
+  if (prev.length < 40 || months.size < 9) return null;
+  const p = computeStats(rawEvents, { rangeStart: prevStart, rangeEnd: prevEnd, selfEmail, mode, workHoursPerWeek, now: prevEnd });
+  return mode === 'work'
+    ? { year: year - 1, meetings: p.meetings, totalHours: p.totalHours, shareOfWork: p.shareOfWork, workingDays: p.workingDays }
+    : { year: year - 1, events: p.events, totalHours: p.totalHours, workingDays: p.workingDays };
+}
+
+/** Compare this year's pace with last year's full year: positive means more. */
+export function yoyChange(s) {
+  if (!s.yoy) return null;
+  // Scale this year to a full year so a November run compares fairly with a whole previous year.
+  const scale = s.isPartialYear && s.workingDays ? (s.yoy.workingDays || 1) / s.workingDays : 1;
+  const metric = s.mode === 'work' ? 'totalHours' : 'events';
+  const now = s[metric] * scale, before = s.yoy[metric];
+  if (!before) return null;
+  return { metric, pct: Math.round(((now - before) / before) * 100), before, projected: Math.round(now) };
+}
+
+// ---------- benchmarks ----------
+/** Coarse buckets only: these are the numbers sent if someone opts in to compare with others. */
+export function benchmarkBuckets(s) {
+  if (s.mode === 'work') {
+    return { m: 'w', y: s.year, share: Math.min(95, Math.floor(s.shareOfWork / 5) * 5), perDay: Math.min(10, Math.floor(s.avgPerWorkingDay * 2) / 2), b2b: Math.min(100, Math.floor(s.backToBackDays / 5) * 5) };
+  }
+  return { m: 'p', y: s.year, events: Math.min(1000, Math.floor(s.events / 25) * 25), freeWeekendShare: Math.min(95, Math.floor((s.freeWeekends / Math.max(1, s.totalWeekends)) * 20) * 5) };
+}
+
+/** Share of people below a value, from a histogram of bucket → count. */
+export function percentileFrom(hist, value) {
+  let below = 0, total = 0, equal = 0;
+  for (const [k, c] of Object.entries(hist || {})) {
+    total += c;
+    if (Number(k) < value) below += c; else if (Number(k) === value) equal += c;
+  }
+  if (!total) return null;
+  return Math.round(((below + equal / 2) / total) * 100);
+}
 
 // ---------- team mode ----------
 /** Meeting series in one person's calendar, keyed by UID so they can be matched across exports. */
@@ -657,6 +720,7 @@ export function computeTeamStats(members, { rangeStart, rangeEnd, now = new Date
   const totalHours = round1(people.reduce((t, p) => t + p.stats.totalHours, 0));
   const monthly = people[0] ? people[0].stats.monthly.map((m, i) => ({ ...m, value: round1(people.reduce((t, p) => t + (p.stats.monthly[i]?.value || 0), 0)) })) : [];
   const busiestMonth = [...monthly].sort((a, b) => b.value - a.value)[0] || null;
+  const quarters = [0, 1, 2, 3].map((q) => ({ q: q + 1, hours: round1(monthly.slice(q * 3, q * 3 + 3).reduce((t, m) => t + m.value, 0)), future: monthly[q * 3] ? new Date(monthly[q * 3].year, q * 3, 1) > now : true }));
   const sharedHours = round1(sharedSeries.reduce((t, s) => t + s.personHours, 0));
   const ranked = [...people].sort((a, b) => b.stats.shareOfWork - a.stats.shareOfWork);
 
@@ -682,8 +746,9 @@ export function computeTeamStats(members, { rangeStart, rangeEnd, now = new Date
     lever,
     monthly,
     busiestMonth,
+    quarters,
     generatedAt: new Date(),
   };
 }
 
-export const _internal = { normTitle, isMeeting, annotate, isoWeekKey, pickFeatured, MONTHS, WEEKDAYS };
+export const _internal = { normTitle, isMeeting, annotate, isoWeekKey, pickFeatured, MONTHS, WEEKDAYS, PERSONAL_CATEGORIES, OOO_TITLE, NON_MEETING_TITLE };

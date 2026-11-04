@@ -1,0 +1,630 @@
+{
+  "me": {
+    "displayName": "Sam Patel",
+    "mail": "sam.patel@contoso.com",
+    "userPrincipalName": "sam.patel@contoso.com"
+  },
+  "value": [
+    {
+      "id": "occ0",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-01-06T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-01-06T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ1",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-01-13T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-01-13T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ2",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-01-20T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-01-20T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ3",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-01-27T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-01-27T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ4",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-02-03T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-03T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ5",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-02-10T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-10T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ6",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-02-17T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-17T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "occ7",
+      "type": "occurrence",
+      "seriesMasterId": "master-weekly",
+      "iCalUId": "ical-weekly",
+      "subject": "Weekly Sync",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "isOnlineMeeting": true,
+      "start": {
+        "dateTime": "2026-02-24T14:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-24T15:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        },
+        {
+          "emailAddress": {
+            "name": "Room 4.01",
+            "address": "room401@contoso.com"
+          },
+          "type": "resource",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      },
+      "location": {
+        "displayName": "Microsoft Teams Meeting"
+      },
+      "bodyPreview": ""
+    },
+    {
+      "id": "dec1",
+      "type": "singleInstance",
+      "iCalUId": "ical-dec",
+      "subject": "Optional townhall",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": false,
+      "start": {
+        "dateTime": "2026-02-03T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-03T11:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        },
+        "type": "required",
+        "status": {
+          "response": "accepted"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "declined"
+      }
+    },
+    {
+      "id": "cxl1",
+      "type": "singleInstance",
+      "iCalUId": "ical-cxl",
+      "subject": "Canceled: Vendor demo",
+      "isAllDay": false,
+      "isCancelled": true,
+      "showAs": "free",
+      "isOrganizer": false,
+      "start": {
+        "dateTime": "2026-02-05T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-05T11:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Ingrid Olsen",
+          "address": "ingrid.olsen@contoso.com"
+        },
+        "type": "required",
+        "status": {
+          "response": "accepted"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "accepted"
+      }
+    },
+    {
+      "id": "own1",
+      "type": "singleInstance",
+      "iCalUId": "ical-own",
+      "subject": "Hiring panel",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "busy",
+      "isOrganizer": true,
+      "start": {
+        "dateTime": "2026-02-06T09:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-06T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Sam Patel",
+          "address": "sam.patel@contoso.com"
+        }
+      },
+      "attendees": [
+        {
+          "emailAddress": {
+            "name": "Ingrid Olsen",
+            "address": "ingrid.olsen@contoso.com"
+          },
+          "type": "required",
+          "status": {
+            "response": "accepted"
+          }
+        }
+      ],
+      "responseStatus": {
+        "response": "organizer"
+      }
+    },
+    {
+      "id": "oof1",
+      "type": "singleInstance",
+      "iCalUId": "ical-oof",
+      "subject": "Skiing",
+      "isAllDay": true,
+      "isCancelled": false,
+      "showAs": "oof",
+      "isOrganizer": true,
+      "start": {
+        "dateTime": "2026-02-16T00:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-21T00:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Sam Patel",
+          "address": "sam.patel@contoso.com"
+        }
+      },
+      "attendees": [],
+      "responseStatus": {
+        "response": "organizer"
+      }
+    },
+    {
+      "id": "focus1",
+      "type": "singleInstance",
+      "iCalUId": "ical-focus",
+      "subject": "Focus time",
+      "isAllDay": false,
+      "isCancelled": false,
+      "showAs": "free",
+      "isOrganizer": true,
+      "start": {
+        "dateTime": "2026-02-04T08:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "end": {
+        "dateTime": "2026-02-04T10:00:00.0000000",
+        "timeZone": "UTC"
+      },
+      "organizer": {
+        "emailAddress": {
+          "name": "Sam Patel",
+          "address": "sam.patel@contoso.com"
+        }
+      },
+      "attendees": [],
+      "responseStatus": {
+        "response": "organizer"
+      }
+    }
+  ]
+}

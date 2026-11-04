@@ -19,6 +19,13 @@ export const CONFIG = {
   google: {
     clientId: '',
   },
+  // Microsoft 365 / Outlook connect. Register an app in Microsoft Entra ID with a
+  // "Single-page application" redirect URI of https://<your domain>/auth-callback.html
+  // and the delegated Graph permissions User.Read and Calendars.Read. See LAUNCH.md.
+  microsoft: {
+    clientId: '',
+    tenant: 'common',
+  },
   // Counts funnel events (no cookies, no IDs) via /api/hit. Set false to disable.
   analytics: true,
   // Shared-link and share-card defaults.

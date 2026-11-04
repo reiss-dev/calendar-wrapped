@@ -1,5 +1,7 @@
 // Tiny DOM + formatting helpers. No framework, on purpose.
 
+import { localeTag } from './i18n.js';
+
 export function h(tag, attrs = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -26,18 +28,19 @@ export function svg(tag, attrs = {}, ...children) {
 }
 
 export const fmt = {
-  int: (n) => Math.round(n).toLocaleString('en-GB'),
-  num: (n, d = 1) => Number(n).toLocaleString('en-GB', { maximumFractionDigits: d }),
+  int: (n) => Math.round(n).toLocaleString(localeTag()),
+  num: (n, d = 1) => Number(n).toLocaleString(localeTag(), { maximumFractionDigits: d }),
   hours: (n) => (n >= 100 ? fmt.int(n) : fmt.num(n, 1)),
-  date: (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-  dateLong: (d) => new Date(d).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
-  time: (d) => new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  date: (d) => new Date(d).toLocaleDateString(localeTag(), { day: 'numeric', month: 'short' }),
+  dateLong: (d) => new Date(d).toLocaleDateString(localeTag(), { weekday: 'long', day: 'numeric', month: 'long' }),
+  time: (d) => new Date(d).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit' }),
   weekRange: (start) => {
     const s = new Date(start);
     const e = new Date(s); e.setDate(e.getDate() + 4);
-    return `${s.getDate()}–${e.getDate()} ${e.toLocaleDateString('en-GB', { month: 'short' })}`;
+    return `${s.getDate()}–${e.getDate()} ${e.toLocaleDateString(localeTag(), { month: 'short' })}`;
   },
   plural: (n, one, many = `${one}s`) => `${fmt.int(n)} ${n === 1 ? one : many}`,
+  money: (amount, currency) => new Intl.NumberFormat(localeTag(), { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount),
 };
 
 const easeOut = (t) => 1 - Math.pow(1 - t, 4);
@@ -45,7 +48,7 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 4);
 /** Animate a number from 0 to `to` inside `el`. */
 export function countUp(el, to, { duration = 1400, decimals = 0, prefix = '', suffix = '', delay = 0 } = {}) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const render = (v) => { el.textContent = `${prefix}${Number(v).toLocaleString('en-GB', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${suffix}`; };
+  const render = (v) => { el.textContent = `${prefix}${Number(v).toLocaleString(localeTag(), { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${suffix}`; };
   if (reduce || to === 0) { render(to); return; }
   render(0);
   let start = null;

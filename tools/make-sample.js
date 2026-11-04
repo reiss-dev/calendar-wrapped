@@ -54,7 +54,8 @@ function vevent({ title, start, end, allDay = false, attendees = [], organizer =
   return lines.join('\r\n');
 }
 
-const at = (month, day, h = 0, m = 0) => new Date(YEAR, month - 1, day, h, m);
+let Y = YEAR; // the year at() builds dates in; switched briefly to add last year's history
+const at = (month, day, h = 0, m = 0) => new Date(Y, month - 1, day, h, m);
 const plus = (d, mins) => new Date(d.getTime() + mins * 60000);
 
 function header(name) {
@@ -116,6 +117,18 @@ function workCalendar() {
   ev.push(vevent({ title: 'OOO - holiday', start: at(8, 10), end: at(8, 22), allDay: true }));
   ev.push(vevent({ title: 'Bank holiday', start: at(5, 25), end: at(5, 26), allDay: true }));
   ev.push(vevent({ title: 'Annual leave', start: at(12, 22), end: at(12, 32), allDay: true }));
+  // Last year, lighter: a weekly sync and fewer ad-hoc meetings, so year-over-year has something to say.
+  // Generated after this year's events so this year's random sequence is unchanged.
+  Y = YEAR - 1;
+  ev.push(vevent({ title: 'Weekly Sync', start: at(1, 7, 14, 0), end: at(1, 7, 15, 0), attendees: PEOPLE.slice(0, 7), organizer: PEOPLE[1][1], rrule: `FREQ=WEEKLY;BYDAY=WE;UNTIL=${YEAR - 1}1231T235959Z` }));
+  for (let month = 1; month <= 12; month++) {
+    for (let i = 0; i < 16; i++) {
+      const d = at(month, 1 + Math.floor(rand() * 28), 9 + Math.floor(rand() * 8), pick([0, 30]));
+      if (d.getDay() === 0 || d.getDay() === 6) continue;
+      ev.push(vevent({ title: pick(adhocTitles), start: d, end: plus(d, pick([30, 60])), attendees: [...PEOPLE].sort(() => rand() - 0.5).slice(0, pick([1, 2, 3, 5])) }));
+    }
+  }
+  Y = YEAR;
   return [header(SELF), ...ev, 'END:VCALENDAR'].join('\r\n') + '\r\n';
 }
 

@@ -4,7 +4,8 @@ import ICAL from '../vendor/ical.js';
 
 const MAX_OCCURRENCES_PER_SERIES = 20000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CANCELLED_PREFIX = /^(cancell?ed|canceled)\s*:\s*/i;
+// Outlook's cancelled prefix in English, Dutch, Swedish, Norwegian and Danish.
+const CANCELLED_PREFIX = /^(cancell?ed|canceled|geannuleerd|inställt|inställd|avlyst|aflyst)\s*:\s*/i;
 
 function stripMailto(value) {
   if (!value) return null;
