@@ -16,7 +16,7 @@ const oldName = /name:\s*'([^']+)'/.exec(config)[1];
 const oldDomain = /domain:\s*'([^']+)'/.exec(config)[1];
 const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const pairs = [[oldName, name], [oldDomain, domain], [slug(oldName), slug(name)]];
-const files = ['index.html', 'privacy.html', 'js/config.js', 'js/app.js', 'js/story.js', 'js/card.js', 'js/slides.js', 'functions/api/subscribe.js', 'tools/serve.js', 'README.md', 'LAUNCH.md', 'package.json'];
+const files = ['index.html', 'privacy.html', 'diagnose.html', 'js/config.js', 'js/app.js', 'js/story.js', 'js/card.js', 'js/slides.js', 'functions/api/subscribe.js', 'functions/_lib/util.js', 'workers/reminders/index.js', 'workers/reminders/wrangler.toml', 'grafana/dashboard.json', 'tools/serve.js', 'README.md', 'LAUNCH.md', 'package.json'];
 let changed = 0;
 for (const f of files) {
   const p = join(root, f);
