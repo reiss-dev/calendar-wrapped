@@ -36,7 +36,7 @@ export function createEngine({ forceLocal = false } = {}) {
   async function local() {
     if (!core) {
       core = (await import('./engine-core.js')).createCore();
-      for (const [m, a] of history) core[m](a); // bring the in-page copy up to date
+      for (const [m, a] of history) await core[m](a); // bring the in-page copy up to date
     }
     return core;
   }
@@ -59,7 +59,7 @@ export function createEngine({ forceLocal = false } = {}) {
       }
     }
     const c = await local();
-    const result = c[method](args);
+    const result = await c[method](args);
     if (MUTATING.has(method)) history.push([method, args]);
     return result;
   }

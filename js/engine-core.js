@@ -2,6 +2,7 @@
 // It holds the parsed events itself, so only small summaries cross between threads.
 import { parseICS, guessSelfEmail } from './ics.js';
 import { computeStats, computeTeamStats, yearOverYear } from './stats.js';
+import { hasFlights, loadGeo } from './geo.js';
 
 const loadRange = (now = new Date()) => ({ rangeStart: new Date(now.getFullYear() - 2, 0, 1), rangeEnd: new Date(now.getFullYear() + 1, 0, 1) });
 
@@ -18,10 +19,11 @@ export function createCore() {
   }
 
   return {
-    loadText({ text }) { ({ events, meta } = parseICS(text, loadRange())); return summary(); },
-    loadEvents({ events: ev, meta: m }) { events = ev.map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) })); meta = m; return summary(); },
+    async loadText({ text }) { ({ events, meta } = parseICS(text, loadRange())); if (hasFlights(events)) await loadGeo(); return summary(); },
+    async loadEvents({ events: ev, meta: m }) { events = ev.map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) })); meta = m; if (hasFlights(events)) await loadGeo(); return summary(); },
     compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40 }) {
-      const s = computeStats(events, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek });
+      const timezone = meta?.timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : null);
+      const s = computeStats(events, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone });
       s.yoy = yearOverYear(events, { year, selfEmail, mode: s.mode, workHoursPerWeek });
       return s;
     },

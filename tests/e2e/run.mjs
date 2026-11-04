@@ -80,15 +80,26 @@ await scenario('work demo: story with visuals, summary, actions, formats, link',
   const seen = new Set();
   const total = await throughStory(page, async (i) => {
     const cur = page.locator('.slide.is-current');
-    for (const sel of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', '.viz-arcs']) if (await cur.locator(sel).count()) seen.add(sel);
+    for (const sel of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', 'canvas.globe']) if (await cur.locator(sel).count()) seen.add(sel);
+    if (await cur.locator('canvas.globe').count()) {
+      await page.waitForTimeout(1500);
+      const inked = await cur.locator('canvas.globe').evaluate((c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let k = 3; k < d.length; k += 16) if (d[k] > 0) n++; return n; });
+      if (inked > 500) seen.add('globe-drawn');
+      const before = await page.locator('.story-progress i.done').count();
+      const box = await cur.locator('canvas.globe').boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2, { steps: 5 }); await page.mouse.up();
+      if ((await page.locator('.story-progress i.done').count()) === before) seen.add('globe-drag');
+      if (SHOTS) { await page.waitForTimeout(3500); await shot(page, '02-slide-globe', false); }
+    }
     if (await cur.locator('.cap', { hasText: 'Compared with' }).count()) seen.add('yoy');
     if (await cur.locator('.persona-emoji').count()) { await page.waitForTimeout(500); if (await cur.locator('canvas.confetti').count()) seen.add('confetti'); }
     if (SHOTS && [0, 1, 3, 6, 7, 17].includes(i)) { await page.waitForTimeout(1300); await shot(page, `02-slide-${String(i + 1).padStart(2, '0')}`, false); }
   });
-  for (const k of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', '.viz-arcs', 'yoy', 'confetti']) assert.ok(seen.has(k), `story should include ${k}`);
+  for (const k of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', 'canvas.globe', 'globe-drawn', 'globe-drag', 'yoy', 'confetti']) assert.ok(seen.has(k), `story should include ${k}`);
   assert.ok(total >= 18, `slides: ${total}`);
   assert.ok(await page.locator('.summary .viz-heatmap').count() === 1);
   assert.ok(await page.locator('.summary .viz-grid').count() === 1);
+  assert.ok(await page.locator('.travel-panel canvas.globe').count() === 1, 'summary has the flights globe');
   const first = page.locator('.reclaim-list li').first();
   assert.ok(!(await first.getAttribute('class'))?.includes('locked'));
   assert.ok(await first.locator('.actions a[href^="mailto:"]').count() === 1, 'featured suggestion has an email action');

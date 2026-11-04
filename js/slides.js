@@ -5,6 +5,7 @@ import { CONFIG } from './config.js';
 import { t, tn, monthName, weekdayName } from './i18n.js';
 import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js';
 import { yoyChange } from './stats.js';
+import { createGlobe } from './globe.js';
 import { yearHeatmap, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti, dotMatrix, weeksBar, chain, barRace, hourBlocks } from './viz.js';
 
 const R = (attrs = {}) => ({ 'data-reveal': '', ...attrs });
@@ -94,6 +95,27 @@ function heatSlide(s) {
   };
 }
 
+
+function globeSlide(s, capText) {
+  const r = s.travel.routes;
+  const around = r.aroundEarth >= 1
+    ? t('That’s {x} times around the world.', { x: fmt.num(r.aroundEarth) })
+    : t('That’s {p}% of the way around the world.', { p: fmt.int(Math.max(1, Math.round(r.aroundEarth * 100))) });
+  let globe = null;
+  return {
+    theme: 'c-indigo',
+    onEnter: (el) => { globe?.destroy(); const c = el.querySelector('canvas.globe'); if (c) createGlobe(c, r).then((g) => { globe = g; }); },
+    onLeave: () => { globe?.destroy(); globe = null; },
+    render: () => h('div', {},
+      cap(capText),
+      line(t('{km} km in the air.', { km: fmt.int(r.km) })),
+      note(around, ' ', r.longest ? t('Longest flight: {from} to {to}, {km} km.', { from: r.longest.from.name, to: r.longest.to.name, km: fmt.int(r.longest.km) }) : ''),
+      h('div', { class: 'globe-wrap', 'data-noadvance': '', ...R() }, h('canvas', { class: 'globe', 'aria-label': t('Your year in the air') })),
+      h('div', { class: 'duo' }, tile(r.legs.length, t('flights')), tile(r.cities, t('cities'))),
+    ),
+  };
+}
+
 const intro = (year, what, sub) => ({
   theme: 'c-black',
   render: () => h('div', {}, cap(CONFIG.brand.name), h('h1', { class: 'line lg', ...R() }, t('Your {year},', { year }), h('br'), what), note(sub)),
@@ -169,7 +191,8 @@ function workSlides(s) {
     out.push({ theme: 'c-blue', render: () => h('div', {}, cap(t('Month by month')), line(t('{month} was the big one.', { month: monthName(bi) })), note(...rich(t('**{n} hours** of meetings.', { n: fmt.hours(s.busiestMonth.value) }))), qi >= 0 && qi !== bi ? note(t('{month} was the quietest, at {n}.', { month: monthName(qi), n: fmt.hours(s.quietestMonth.value) })) : null, h('div', R(), monthChart(s.monthly, bi))) });
   }
 
-  if (s.travel.found) {
+  if (s.travel.routes) out.push(globeSlide(s, t('On the move')));
+  else if (s.travel.found) {
     const tr = s.travel;
     out.push({ theme: 'c-purple', render: () => h('div', {}, cap(t('On the move')), line(tr.trips ? tn('{n} trip this year.', '{n} trips this year.', tr.trips) : t('Time away.'), true), h('div', { class: 'duo' }, tr.flights ? tile(tr.flights, t('flights')) : tile(tr.trains, t('train journeys')), tr.hotelNights ? tile(tr.hotelNights, t('nights in hotels')) : tile(tr.daysOff, t('days off'))), tr.places.length >= 2 ? h('div', { class: 'viz-wrap', ...R() }, travelArcs(tr.places)) : tr.places.length ? h('div', { class: 'chips', ...R() }, tr.places.map((p) => h('span', {}, p.key))) : null, tr.daysOff && tr.hotelNights ? note(...rich(t('Plus **{n}** of actual time off. Keep those.', { n: tn('{n} day', '{n} days', tr.daysOff) }))) : null) });
   }
@@ -224,7 +247,8 @@ function personalSlides(s) {
     out.push({ theme: 'c-black', render: () => h('div', {}, cap(t('Early and late')), line(t('Your day, hour by hour.')), h('div', { class: 'viz-wrap clock-wrap', ...R() }, radialClock(s.byHour)), h('div', { class: 'duo' }, textTile(fmt.time(s.earliest.start), t('earliest start'), s.earliest.title), textTile(fmt.time(s.latest.end), t('latest finish'), s.latest.title))) });
   }
 
-  if (s.travel.found) {
+  if (s.travel.routes) out.push(globeSlide(s, t('Away')));
+  else if (s.travel.found) {
     const tr = s.travel;
     out.push({ theme: 'c-purple', render: () => h('div', {}, cap(t('Away')), line(tr.trips ? tn('{n} trip this year.', '{n} trips this year.', tr.trips) : t('Time away.'), true), h('div', { class: 'duo' }, tr.flights ? tile(tr.flights, t('flights')) : tile(tr.trains, t('train journeys')), tr.hotelNights ? tile(tr.hotelNights, t('nights away')) : tile(tr.daysOff, t('days off'))), tr.places.length >= 2 ? h('div', { class: 'viz-wrap', ...R() }, travelArcs(tr.places)) : tr.places.length ? h('div', { class: 'chips', ...R() }, tr.places.map((p) => h('span', {}, p.key))) : null) });
   }

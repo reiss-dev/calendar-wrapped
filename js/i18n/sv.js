@@ -658,4 +658,13 @@ export default {
   "Copy report": "Kopiera rapport",
   "Download anonymised file": "Ladda ner anonymiserad fil",
   "Have a look at the anonymised file before sending it. Open it in any text editor.": "Ta en titt på den anonymiserade filen innan du skickar den. Öppna den i valfri textredigerare.",
+  "Your year in the air": "Ditt år i luften",
+  "{km} km in the air.": "{km} km i luften.",
+  "That’s {x} times around the world.": "Det är {x} varv runt jorden.",
+  "That’s {p}% of the way around the world.": "Det är {p} % av ett varv runt jorden.",
+  "Drag the globe to spin it.": "Dra i jordgloben för att snurra den.",
+  "cities": "städer",
+  "{n} km": "{n} km",
+  "Longest flight: {from} to {to}": "Längsta flygningen: {from} till {to}",
+  "Longest flight: {from} to {to}, {km} km.": "Längsta flygningen: {from} till {to}, {km} km.",
 };

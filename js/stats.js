@@ -2,6 +2,7 @@
 // Everything here is deterministic and DOM-free so it can be unit-tested.
 // Wording comes from copy.js; the engine stores ids and numbers so text can be re-rendered in any language.
 import { personaCopy, suggestionCopy, categoryLabel } from './copy.js';
+import { flightLegs } from './geo.js';
 
 const HOUR = 3600000;
 const DAY = 86400000;
@@ -142,7 +143,7 @@ function isMeeting(e, { attendeeInfoAvailable }) {
 }
 
 // ---------- shared stats ----------
-function travelStats(all) {
+function travelStats(all, ctx = {}) {
   const travelEvents = all.filter((e) => e.status !== 'CANCELLED' && (FLIGHT_RE.test(e.title) || HOTEL_RE.test(e.title) || TRAIN_RE.test(e.title)));
   const flights = travelEvents.filter((e) => FLIGHT_RE.test(e.title) && !HOTEL_RE.test(e.title));
   const trains = travelEvents.filter((e) => TRAIN_RE.test(e.title) && !FLIGHT_RE.test(e.title));
@@ -171,7 +172,10 @@ function travelStats(all) {
       for (let d = startOfDay(e.start); d < e.end; d.setDate(d.getDate() + 1)) if (!isWeekend(d)) oooDays.add(dayKey(d));
     }
   }
+  // Routes for the globe, when the places data is loaded (only happens if there are flights).
+  const routes = flightLegs(flights, { timezone: ctx.timezone }) || null;
   return {
+    routes: routes && routes.legs.length ? routes : null,
     flights: flights.length,
     trains: trains.length,
     hotelNights,
@@ -406,7 +410,7 @@ function workStats(all, ctx) {
     grid: weekGrid(meetings),
     longestFreeStreak: st.longestFree,
     longestBusyStreak: st.longestBusy,
-    travel: travelStats(all),
+    travel: travelStats(all, ctx),
     attendeeInfoAvailable: ctx.attendeeInfoAvailable,
   };
   stats.persona = workPersona(stats);
@@ -556,7 +560,7 @@ function personalStats(all, ctx) {
     recurringSeries: recurringSeries.slice(0, 8),
     birthdays,
     notSeenLately: missed,
-    travel: travelStats(all),
+    travel: travelStats(all, ctx),
     attendeeInfoAvailable: ctx.attendeeInfoAvailable,
   };
   stats.persona = personalPersona(stats);
@@ -600,7 +604,7 @@ function personalSuggestions(s) {
 }
 
 // ---------- entry point ----------
-export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date() } = {}) {
+export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date(), timezone = null } = {}) {
   const requestedEnd = rangeEnd;
   if (now < rangeEnd) rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const all = annotate(rawEvents.filter((e) => e.start < rangeEnd && e.end > rangeStart), selfEmail);
@@ -609,7 +613,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   const attendeeInfoAvailable = timed.length === 0 || withAttendees / timed.length >= 0.1;
   const detected = detectMode(all);
   const chosen = mode === 'auto' ? detected.mode : mode;
-  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable };
+  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone };
   const stats = chosen === 'work' ? workStats(all, ctx) : personalStats(all, ctx);
   return {
     ...stats,

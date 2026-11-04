@@ -658,4 +658,13 @@ export default {
   "Copy report": "Kopiér rapport",
   "Download anonymised file": "Download anonymiseret fil",
   "Have a look at the anonymised file before sending it. Open it in any text editor.": "Kig den anonymiserede fil igennem, før du sender den. Du kan åbne den i en hvilken som helst teksteditor.",
+  "Your year in the air": "Dit år i luften",
+  "{km} km in the air.": "{km} km i luften.",
+  "That’s {x} times around the world.": "Det er {x} gange jorden rundt.",
+  "That’s {p}% of the way around the world.": "Det er {p} % af vejen jorden rundt.",
+  "Drag the globe to spin it.": "Træk i globussen for at dreje den.",
+  "cities": "byer",
+  "{n} km": "{n} km",
+  "Longest flight: {from} to {to}": "Længste flyvning: {from} til {to}",
+  "Longest flight: {from} to {to}, {km} km.": "Længste flyvning: {from} til {to}, {km} km.",
 };

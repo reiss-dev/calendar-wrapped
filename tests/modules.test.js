@@ -66,9 +66,9 @@ test('Microsoft Graph events convert to the internal shape', () => {
   assert.equal(s.collaborators[0].name, 'Ingrid Olsen');
 });
 
-test('engine core loads, computes with year over year, and builds teams', () => {
+test('engine core loads, computes with year over year, and builds teams', async () => {
   const core = createCore();
-  const sum = core.loadText({ text: read('sample/work.ics') });
+  const sum = await core.loadText({ text: read('sample/work.ics') });
   assert.ok(sum.count > 1000 && sum.perYear[Y] > 500 && sum.perYear[Y - 1] > 100);
   assert.equal(sum.selfEmail, 'alex.morgan@northwindlabs.com');
   const s = core.compute({ year: Y, selfEmail: sum.selfEmail });
@@ -109,4 +109,37 @@ test('t() fills zero values instead of leaving the placeholder', async () => {
   try { assert.equal(t('{a} of {b}', { a: 0, b: 44 }), '0 van 44'); } finally { useDictionary('en', {}); }
   assert.equal(t('{n} trips', { n: 0 }), '0 trips');
   assert.equal(t('{n} trips', {}), '{n} trips');
+});
+
+test('flights become routes: codes, five languages, chained legs, home', async () => {
+  const geo = await import('../js/geo.js');
+  await geo.loadGeo();
+  const d = (x) => new Date(`2026-${x}T10:00:00Z`);
+  const r = geo.flightLegs([
+    { title: '✈ Flight to Stockholm (BA778)', location: 'London Heathrow (LHR)', start: d('02-10') },
+    { title: '✈ Flight to London (BA779)', location: 'Stockholm Airport', start: d('02-12') },
+    { title: 'LHR → JFK', location: '', start: d('05-01') },
+    { title: 'Vlucht naar Kopenhagen', location: '', start: d('06-01') },
+    { title: 'Flyg till Göteborg', location: '', start: d('06-03') },
+    { title: 'Fly til Tromsø', location: '', start: d('06-20') },
+    { title: 'Flight from Oslo to Bergen', location: '', start: d('07-01') },
+    { title: 'Eurostar to Paris', location: 'London St Pancras', start: d('08-01') },
+    { title: 'Flight to Atlantis', location: '', start: d('09-01') },
+  ], { timezone: 'Europe/London' });
+  assert.equal(r.home.name, 'London');
+  assert.deepEqual(r.legs.map((l) => `${l.from.name}>${l.to.name}`), ['London>Stockholm', 'Stockholm>London', 'London>New York', 'London>Copenhagen', 'Copenhagen>Göteborg', 'Göteborg>Tromso', 'Oslo>Bergen']);
+  assert.ok(Math.abs(r.legs[2].km - 5540) < 60, `LHR-JFK ${r.legs[2].km}`);
+  assert.equal(r.longest.to.name, 'New York');
+  const { s } = { s: (await import('../js/stats.js')).computeStats };
+  void s;
+});
+
+test('the work sample has a globe’s worth of routes', async () => {
+  const core = createCore();
+  const sum = await core.loadText({ text: read('sample/work.ics') });
+  const s = core.compute({ year: Y, selfEmail: sum.selfEmail });
+  const r = s.travel.routes;
+  assert.equal(r.home.name, 'London');
+  assert.ok(r.legs.length >= 14 && r.km > 20000, `${r.legs.length} legs, ${r.km} km`);
+  assert.ok(r.legs.every((l) => Number.isFinite(l.from.lat) && Number.isFinite(l.to.lon)));
 });

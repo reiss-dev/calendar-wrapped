@@ -103,7 +103,7 @@ function workCalendar() {
     ev.push(vevent({ title: chance(0.5) ? 'US sync' : 'APAC handover', start: d, end: plus(d, 45), attendees: PEOPLE.slice(6, 10), organizer: PEOPLE[7][1] }));
   }
   // Travel
-  const trips = [[2, 10, 'Stockholm', 'BA778'], [3, 24, 'Amsterdam', 'KL1008'], [5, 12, 'Copenhagen', 'SK502'], [6, 17, 'Oslo', 'BA762'], [9, 8, 'Amsterdam', 'KL1012'], [10, 20, 'Helsinki', 'AY1332'], [11, 3, 'Stockholm', 'BA776']];
+  const trips = [[5, 18, 'New York', 'BA117'], [2, 10, 'Stockholm', 'BA778'], [3, 24, 'Amsterdam', 'KL1008'], [5, 12, 'Copenhagen', 'SK502'], [6, 17, 'Oslo', 'BA762'], [9, 8, 'Amsterdam', 'KL1012'], [10, 20, 'Helsinki', 'AY1332'], [11, 3, 'Stockholm', 'BA776']];
   for (const [m, dday, city, code] of trips) {
     const out = at(m, dday, 7, 15); const back = at(m, dday + 2, 18, 40);
     ev.push(vevent({ title: `✈ Flight to ${city} (${code})`, start: out, end: plus(out, 150), location: 'London Heathrow (LHR)' }));

@@ -20,6 +20,7 @@ import { reclaimList } from './reclaim-ui.js';
 import { yearHeatmap, heatLegend, weekGridViz, readingGrid } from './viz.js';
 import { compareWithOthers, alreadyShared, MIN_SAMPLE } from './bench.js';
 import { yoyChange } from './stats.js';
+import { createGlobe } from './globe.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 
@@ -336,6 +337,7 @@ async function showSummary({ push = true } = {}) {
             ? [h('p', {}, t('Every week, every series, every person. Save it as a PDF.')), h('button', { class: 'btn', onClick: () => showReport() }, t('Open full report'))]
             : [h('p', {}, rec.suggestions.length > 1 ? tn('{n} more suggestion, the full report, clean cards and a PDF.', '{n} more suggestions, the full report, clean cards and a PDF.', rec.suggestions.length - 1) : t('The full report, clean cards and a PDF.')), unlockBtn]),
         ),
+        travelPanel(s),
         comparePanel(s),
         rec.suggestions.length ? emailPanel(s, unlocked) : null,
       ),
@@ -349,6 +351,25 @@ async function showSummary({ push = true } = {}) {
   ));
   stagger(host);
   draw();
+  host.querySelectorAll('canvas.globe').forEach((c) => createGlobe(c, s.travel.routes, { duration: 4200 }));
+}
+
+function travelPanel(s) {
+  const r = s.travel?.routes;
+  if (!r) return null;
+  const routes = new Map();
+  for (const l of r.legs) { const k = [l.from.name, l.to.name].sort().join(' – '); routes.set(k, { k, n: (routes.get(k)?.n || 0) + 1, km: l.km }); }
+  const top = [...routes.values()].sort((a, b) => b.n - a.n || b.km - a.km).slice(0, 5);
+  return h('div', { class: 'panel travel-panel', 'data-reveal': '' },
+    h('h3', {}, t('Your year in the air')),
+    h('p', { class: 'sub' }, t('{km} km in the air.', { km: fmt.int(r.km) }), ' ', r.aroundEarth >= 1 ? t('That’s {x} times around the world.', { x: fmt.num(r.aroundEarth) }) : t('That’s {p}% of the way around the world.', { p: fmt.int(Math.max(1, Math.round(r.aroundEarth * 100))) })),
+    h('div', { class: 'globe-wrap globe-light' }, h('canvas', { class: 'globe', 'aria-label': t('Your year in the air') })),
+    h('p', { class: 'caption', style: 'text-align:center' }, t('Drag the globe to spin it.')),
+    h('div', { class: 'stat-grid', style: 'margin-top:8px' },
+      h('div', { class: 'stat' }, h('b', {}, fmt.int(r.legs.length)), h('span', {}, t('flights'))),
+      h('div', { class: 'stat' }, h('b', {}, fmt.int(r.cities)), h('span', {}, t('cities'))),
+      h('div', { class: 'stat' }, h('b', {}, r.longest ? t('{n} km', { n: fmt.int(r.longest.km) }) : '—'), h('span', {}, r.longest ? t('Longest flight: {from} to {to}', { from: r.longest.from.name, to: r.longest.to.name }) : ''))),
+    h('ol', { class: 'routes' }, top.map((x) => h('li', {}, h('span', {}, x.k), h('span', { class: 'muted' }, x.n > 1 ? `${x.n}×` : t('{n} km', { n: fmt.int(x.km) }))))));
 }
 
 function comparisonTable(cmp, { meLabel, themLabel }) {

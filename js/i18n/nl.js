@@ -658,4 +658,13 @@ export default {
   "Copy report": "Kopieer rapport",
   "Download anonymised file": "Download geanonimiseerd bestand",
   "Have a look at the anonymised file before sending it. Open it in any text editor.": "Bekijk het geanonimiseerde bestand voordat je het verstuurt. Je kunt het in elke teksteditor openen.",
+  "Your year in the air": "Jouw jaar in de lucht",
+  "{km} km in the air.": "{km} km in de lucht.",
+  "That’s {x} times around the world.": "Dat is {x} keer de wereld rond.",
+  "That’s {p}% of the way around the world.": "Dat is {p}% van een rondje om de wereld.",
+  "Drag the globe to spin it.": "Sleep aan de wereldbol om hem te draaien.",
+  "cities": "steden",
+  "{n} km": "{n} km",
+  "Longest flight: {from} to {to}": "Langste vlucht: {from} naar {to}",
+  "Longest flight: {from} to {to}, {km} km.": "Langste vlucht: {from} naar {to}, {km} km.",
 };

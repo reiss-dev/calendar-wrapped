@@ -27,7 +27,7 @@ function specFromSlide(el, year) {
   if (!big && ring) big = `${ring.dataset.count}%`;
   // Drop a trailing clause that points at a chart, since the image won't include it.
   const note = text('.note').replace(/\s*[^.]*:\s*$/, '').trim();
-  return { year, cap: text('.cap'), big, unit, line: text('.line'), note, emoji: text('.persona-emoji') };
+  return { year, cap: text('.cap'), big, unit, line: text('.line'), note, emoji: text('.persona-emoji'), image: el.querySelector('canvas.globe') || null };
 }
 
 export function createStory(host, slides, { onFinish, onExit, year } = {}) {
@@ -98,6 +98,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
     if (i < 0) i = 0;
     if (i === index) return;
     const prev = index >= 0 ? slideEl(index) : null;
+    if (prev) slides[index].onLeave?.(prev);
     const forward = i > index;
     index = i;
     const cur = slideEl(i);
@@ -140,8 +141,10 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
   let downX = 0, downY = 0, downT = 0;
   const onDown = (e) => { downX = e.clientX; downY = e.clientY; downT = Date.now(); };
   const onUp = (e) => {
-    if (e.target.closest('button, a, input, [data-noadvance]')) return;
+    if (e.target.closest('button, a, input')) return;
     const dx = e.clientX - downX, dy = e.clientY - downY;
+    // Interactive areas (the globe): a drag belongs to them, a plain tap still advances.
+    if (e.target.closest('[data-noadvance]')) { if (Math.abs(dx) < 10 && Math.abs(dy) < 10) next(); return; }
     if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - downT < 600) { dx < 0 ? next() : back(); return; }
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) { e.clientX < host.clientWidth * 0.32 ? back() : next(); }
   };
@@ -157,6 +160,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
   document.body.classList.add('locked');
 
   function destroy() {
+    if (index >= 0) slides[index]?.onLeave?.(rendered.get(index));
     destroyed = true;
     host.removeEventListener('pointerdown', onDown);
     host.removeEventListener('pointerup', onUp);

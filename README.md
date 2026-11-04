@@ -46,6 +46,7 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 | Stats, personas, reclaim plan, year over year, team maths, benchmarks | `js/stats.js` |
 | All generated wording, translatable | `js/copy.js` |
 | Visualisations, all hand-drawn SVG | `js/viz.js` |
+| Flights globe: routes from flight entries, canvas globe | `js/geo.js`, `js/globe.js`, `js/geo/*` (data: `tools/make-geo.mjs`, credits in `js/geo/LICENSES.md`) |
 | Story, slides, sound and haptics, screen-reader narration | `js/slides.js`, `js/story.js`, `js/sound.js` |
 | One-tap actions: organiser messages, calendar blocks, settings steps | `js/actions.js`, `js/reclaim-ui.js` |
 | Share cards, links, comparisons | `js/card.js`, `js/model.js`, `js/share.js` |
@@ -66,6 +67,7 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 - **People** rankings ignore meetings with more than 25 people.
 - **Share of working time** uses the working week chosen on the prep screen. It defaults by language: 37.5 hours in English and Norwegian, 40 in Dutch and Swedish, 37 in Danish.
 - **Year over year** compares this year's pace with last year's full year when the export covers at least nine months of it.
+- **Flights** become routes when a title or location names an airport code ("LHR → ARN", "London Heathrow (LHR)") or a city ("Flight to Stockholm", "Vlucht naar Kopenhagen"). A leg with no origin starts from the previous destination within three weeks, otherwise from home. Home is the most common origin, or the calendar's time-zone city. Places data loads only when flights are found.
 - **Travel and days off** come from titles in five languages and from Google's and Outlook's out-of-office entries.
 - **Reclaim** estimates are annualised and conservative. The free suggestion is the most specific one, usually a named meeting.
 - **Team** shared meetings are matched by event UID, which Google and Exchange keep identical across attendees.

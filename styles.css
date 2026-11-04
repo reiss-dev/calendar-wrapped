@@ -661,3 +661,16 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .viz-reading .rd { fill: color-mix(in srgb, var(--blue) calc(var(--v) * 100%), var(--fill)); opacity: 0; animation: read-in 2.4s ease-in-out infinite; animation-delay: calc(var(--c) * 40ms); }
 @keyframes read-in { 0% { opacity: 0; } 20%, 70% { opacity: 1; } 100% { opacity: 0.15; } }
 @media (prefers-reduced-motion: reduce) { .viz-reading .rd { opacity: 1; } }
+
+/* ---------- globe ---------- */
+.globe-wrap { width: min(440px, 100%, 44vh); aspect-ratio: 1; margin: 18px 0 0; position: relative; }
+.globe-wrap canvas.globe { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; animation: pop-in 0.9s var(--spring) both; animation-delay: 200ms; }
+.globe-wrap canvas.globe:active { cursor: grabbing; }
+.travel-panel .globe-wrap { margin: 14px auto 4px; width: min(420px, 100%); }
+.globe-light { --viz-ink: var(--blue); --viz-base: var(--fill); --viz-text: var(--ink-3); }
+.routes { list-style: none; margin: 14px 0 0; padding: 0; }
+.routes li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-soft); font-size: 15px; }
+.routes .muted { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+.slide { --viz-halo: var(--sbg); }
+.globe-light { --viz-halo: var(--card); }

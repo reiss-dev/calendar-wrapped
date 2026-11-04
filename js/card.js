@@ -148,8 +148,12 @@ export function renderSlideCard(canvas, spec, theme = 'c-blue') {
       if (spec.unit) { const w = ctx.measureText(String(spec.big)).width; setFont(ctx, 500, Math.round(size * 0.24), -1); ctx.fillStyle = mute; ctx.fillText(spec.unit, pad + w + 12, y + 290); }
     } });
   }
+  if (spec.image && spec.image.width) {
+    const side = 700;
+    blocks.push({ h: side + 30, draw: (y) => { try { ctx.drawImage(spec.image, pad - 20, y, side, side * (spec.image.height / spec.image.width)); } catch { /* tainted or empty */ } } });
+  }
   if (spec.line) {
-    const size = spec.big ? 70 : 110;
+    const size = spec.big ? 70 : (spec.image ? 76 : 110);
     setFont(ctx, 700, size, -size * 0.03);
     const lines = wrap(ctx, spec.line, maxW).slice(0, 4);
     blocks.push({ h: lines.length * size * 1.1 + 30, draw: (y) => { setFont(ctx, 700, size, -size * 0.03); ctx.fillStyle = ink; lines.forEach((l, i) => ctx.fillText(l, pad, y + size + i * size * 1.1)); } });
