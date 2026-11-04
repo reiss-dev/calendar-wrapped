@@ -19,7 +19,9 @@ export const localeTag = () => LOCALES[current].tag;
 export function t(s, params) {
   const tpl = dict[s] ?? s;
   if (!params) return tpl;
-  return tpl.replace(/\{(\w+)\}/g, (m, k) => (params[k] ?? params[k] === 0 ? String(params[k]) : m));
+  const out = tpl.replace(/\{(\w+)\}/g, (m, k) => (params[k] === undefined || params[k] === null ? m : String(params[k])));
+  // Month and weekday names are lower case in nl/sv/nb/da; a sentence that opens with one still needs a capital.
+  return tpl.startsWith('{') ? out.replace(/^\p{Ll}/u, (c) => c.toLocaleUpperCase(localeTag())) : out;
 }
 
 export function tn(one, other, n, params = {}) {

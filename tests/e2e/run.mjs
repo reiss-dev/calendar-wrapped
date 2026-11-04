@@ -64,6 +64,9 @@ await scenario('landing renders, showcase draws, sign-in buttons hidden without 
   assert.ok(await page.locator('#show-clock .petal').count() === 24);
   assert.ok(await page.locator('#google-connect').isHidden());
   assert.ok(await page.locator('#microsoft-connect').isHidden());
+  const keys = new Set(JSON.parse(readFileSync(join(ROOT, 'tools/i18n-keys.json'), 'utf8')));
+  const missing = (await page.evaluate(() => [...document.querySelectorAll('[data-i18n]')].map((e) => e.dataset.i18nSrc))).filter((k) => !keys.has(k));
+  assert.deepEqual(missing, [], 'every translatable element has a key');
   await page.locator('#showcase').scrollIntoViewIfNeeded(); await page.waitForTimeout(1400);
   await shot(page, '01-landing');
   await c.close();
@@ -133,6 +136,7 @@ await scenario('personal demo in Dutch: locale, currency, keywords and visuals',
   const { c, page } = await ctx('nl', { locale: 'nl-NL', colorScheme: 'dark', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await page.goto(`${BASE}?demo=personal&lang=nl`);
   await page.waitForFunction(() => document.documentElement.lang === 'nl', null, { timeout: 5000 });
+  assert.notEqual(await page.locator('.hero h1').textContent(), 'Your year,in meetings.', 'landing is translated');
   await page.locator('.hero [data-action="demo"]').click();
   await page.waitForSelector('.prep .group');
   await page.locator('.prep .btn-lg').click();

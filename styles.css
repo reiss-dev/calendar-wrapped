@@ -533,7 +533,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .viz-clock .ring-guide { fill: none; stroke: var(--viz-base); stroke-dasharray: 2 5; }
 .viz-clock .petal { fill: color-mix(in srgb, var(--viz-ink) 55%, transparent); animation: petal-in 0.8s var(--spring) both; animation-delay: calc(var(--i) * 28ms + 250ms); }
 .viz-clock .petal.peak { fill: var(--viz-ink); }
-.viz-clock .viz-center { fill: var(--viz-ink); font: 700 30px var(--font); letter-spacing: -0.03em; }
+.viz-clock .viz-center { fill: var(--viz-ink); font: 700 26px var(--font); letter-spacing: -0.03em; }
 @keyframes petal-in { from { opacity: 0; transform: scale(0.15) rotate(-20deg); } }
 
 /* Week grid */

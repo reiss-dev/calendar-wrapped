@@ -17,7 +17,8 @@ await page.goto(base);
 const data = await page.evaluate(async () => {
   const { parseICS, guessSelfEmail } = await import('./js/ics.js');
   const { computeStats } = await import('./js/stats.js');
-  const { renderCard, cardModel } = await import('./js/card.js');
+  const { renderCard } = await import('./js/card.js');
+  const { cardModel } = await import('./js/model.js');
   const text = await (await fetch('sample/work.ics')).text();
   const y = new Date().getFullYear();
   const range = { rangeStart: new Date(y, 0, 1), rangeEnd: new Date(y + 1, 0, 1) };

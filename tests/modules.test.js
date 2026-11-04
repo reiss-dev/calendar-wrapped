@@ -102,3 +102,11 @@ test('anonymiser strips everything personal but keeps what the engine needs', as
   assert.ok(!/Ingrid|contoso|Weekly Sync|sam\.patel/.test(report));
   assert.match(diagnosticReport('not a calendar', { parseICS, guessSelfEmail, computeStats, now: NOW }), /^Error: /m);
 });
+
+test('t() fills zero values instead of leaving the placeholder', async () => {
+  const { t, useDictionary } = await import('../js/i18n.js');
+  useDictionary('nl', { '{a} of {b}': '{a} van {b}' });
+  try { assert.equal(t('{a} of {b}', { a: 0, b: 44 }), '0 van 44'); } finally { useDictionary('en', {}); }
+  assert.equal(t('{n} trips', { n: 0 }), '0 trips');
+  assert.equal(t('{n} trips', {}), '{n} trips');
+});

@@ -56,7 +56,7 @@ function sector(cx, cy, r0, r1, a0, a1) {
 }
 /** 24-hour clock: one petal per hour, length = how often something starts then. */
 export function radialClock(byHour) {
-  const S = 320, c = S / 2, r0 = 46, rMax = 150;
+  const S = 320, c = S / 2, r0 = 54, rMax = 134;
   const max = Math.max(1, ...byHour.map((x) => x.count));
   const peak = byHour.reduce((a, b) => (b.count > a.count ? b : a), byHour[0]);
   const s = svg('svg', { class: 'viz viz-clock', viewBox: `0 0 ${S} ${S}`, role: 'img', 'aria-label': t('Busiest hour: {h}:00', { h: pad2(peak.hour) }) });
@@ -66,8 +66,8 @@ export function radialClock(byHour) {
     const len = x.count ? Math.max(6, (x.count / max) * (rMax - r0)) : 2;
     s.append(svg('path', { d: sector(c, c, r0, r0 + len, a0, a1), class: `petal${x.hour === peak.hour ? ' peak' : ''}`, style: `--i:${i}; transform-origin:${c}px ${c}px` }));
   });
-  [0, 6, 12, 18].forEach((hr) => { const [x, y] = polar(c, c, r0 - 16, (hr / 24) * Math.PI * 2 - Math.PI / 2); s.append(svg('text', { x, y: y + 4, 'text-anchor': 'middle', class: 'viz-label' }, pad2(hr))); });
-  s.append(svg('text', { x: c, y: c + 6, 'text-anchor': 'middle', class: 'viz-center' }, `${pad2(peak.hour)}:00`));
+  [0, 6, 12, 18].forEach((hr) => { const [x, y] = polar(c, c, rMax + 16, (hr / 24) * Math.PI * 2 - Math.PI / 2); s.append(svg('text', { x, y: y + 4, 'text-anchor': 'middle', class: 'viz-label' }, pad2(hr))); });
+  s.append(svg('text', { x: c, y: c + 9, 'text-anchor': 'middle', class: 'viz-center' }, `${pad2(peak.hour)}:00`));
   return s;
 }
 
