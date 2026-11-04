@@ -105,6 +105,7 @@ export function googleToEvents(data, { rangeStart, rangeEnd } = {}) {
       attendees,
       isRecurring: !!it.recurringEventId,
       transparent: it.transparency === 'transparent' || it.eventType === 'focusTime',
+      oof: it.eventType === 'outOfOffice',
     });
   }
   events.sort((a, b) => a.start - b.start);

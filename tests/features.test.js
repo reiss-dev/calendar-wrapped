@@ -31,7 +31,7 @@ test('Outlook web publish: no attendees, Windows timezone, cancelled prefix, bus
   assert.ok(events.some((e) => e.status === 'CANCELLED' && !/^Cancel/i.test(e.title)), 'Canceled: prefix becomes status');
   assert.ok(events.filter((e) => e.title === 'Lunch').every((e) => e.transparent), 'BUSYSTATUS FREE is transparent');
   assert.ok(events.some((e) => e.title === 'Annual leave' && e.allDay), 'ALLDAYEVENT flag honoured');
-  assert.equal(s.travel.daysOff, 5);
+  assert.equal(s.travel.daysOff, 4, '6–10 April, less Easter Monday');
   assert.ok(s.meetings > 100);
 });
 
@@ -106,7 +106,7 @@ test('Google Calendar API events convert to the internal shape', () => {
   const s = computeStats(events, { ...range, selfEmail: meta.calendarEmail, mode: 'work', now: NOW });
   assert.equal(s.meetings, 10, 'declined, focus time and cancelled are not meetings');
   assert.equal(s.declined, 1);
-  assert.equal(s.travel.daysOff, 5);
+  assert.equal(s.travel.daysOff, 4, '6–10 April, less Easter Monday');
   assert.equal(s.collaborators[0].name, 'Priya Shah');
 });
 

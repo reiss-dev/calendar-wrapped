@@ -259,6 +259,28 @@ await scenario('diagnostics page: redacted report and anonymised file', async ()
   await c.close();
 });
 
+await scenario('time off, next year’s planner and birthdays: slides, panels, calendar file', async () => {
+  const { c, page } = await ctx('timeoff');
+  await playDemo(page);
+  const caps = [];
+  await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
+  for (const cap of ['Time off', 'Birthdays', 'Your smartest days off in']) assert.ok(caps.some((x) => x.startsWith(cap)), `story has “${cap}”`);
+  const panel = page.locator('.timeoff-panel');
+  await panel.scrollIntoViewIfNeeded();
+  assert.equal(await panel.locator('.viz-leave .lv.on').count(), 14, '14 days of leave drawn');
+  assert.equal(await panel.locator('.viz-leave .lv.booked').count(), 6, '6 booked');
+  assert.ok(await panel.locator('.plan-row').count() >= 3);
+  const dl = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'Add to calendar' }).first().click();
+  const ics = readFileSync(await (await dl).path(), 'utf8');
+  assert.match(ics, /DTSTART;VALUE=DATE:\d{8}/);
+  assert.match(ics, /BUSYSTATUS:OOF/);
+  assert.ok(await page.locator('.panel .viz-bday .bd').count() === 5, 'five team birthdays on the wheel');
+  assert.match(await page.locator('.upcoming li').first().textContent(), /Daniel · 40/);
+  await shot(page, '14-timeoff', true);
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

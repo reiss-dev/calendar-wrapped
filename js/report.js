@@ -6,6 +6,7 @@ import { CONFIG } from './config.js';
 import { categoryLabel } from './copy.js';
 import { yoyChange } from './stats.js';
 import { reclaimList } from './reclaim-ui.js';
+import { breakRows, birthdayRows, holidayLabel } from './timeoff-ui.js';
 
 const stat = (v, l) => h('div', { class: 'stat' }, h('b', {}, v), h('span', {}, l));
 const sec = (title, intro, ...body) => h('section', { class: 'report-sec' }, h('h2', {}, title), intro ? h('p', { class: 'intro' }, intro) : null, ...body);
@@ -83,6 +84,11 @@ function workBody(s, ctx) {
       table([[t('Person')], [t('Meetings'), 1], [t('Hours'), 1], [t('Last seen'), 1]], s.collaborators.map((p) => [p.name, fmt.int(p.count), fmt.hours(p.hours), h('span', { class: 'muted' }, fmt.date(p.lastSeen))]))),
     sec(t('Titles'), t('What you called it.'), table([[t('Title')], [t('Times'), 1]], s.topTitles.map((x) => [x.key, `${fmt.int(x.count)}×`]))),
     s.travel.found ? sec(t('Travel and time off'), t('Detected from flight, train, hotel and leave entries.'), h('div', { class: 'stat-grid' }, stat(fmt.int(s.travel.trips), t('trips')), stat(fmt.int(s.travel.flights), t('flights')), stat(fmt.int(s.travel.trains), t('train journeys')), stat(fmt.int(s.travel.hotelNights), t('hotel nights')), stat(fmt.int(s.travel.daysOff), t('days off'))), s.travel.places.length ? h('div', { class: 'chips-light' }, s.travel.places.map((p) => h('span', {}, `${p.key} · ${p.count}`))) : null) : null,
+    s.timeOff?.breaks.length ? sec(t('Every break'), t('{n} days of leave taken, {b} booked, {s} sick.', { n: fmt.int(s.timeOff.taken), b: fmt.int(s.timeOff.booked), s: fmt.int(s.timeOff.sick) }),
+      table([[t('Where')], [t('When')], [t('Leave'), 1], [t('Days off'), 1]], breakRows(s))) : null,
+    s.timeOff?.plan.length ? sec(t('Your smartest days off in {year}', { year: s.timeOff.planYear }), null,
+      table([[t('Holiday')], [t('Book')], [t('Days off'), 1]], s.timeOff.plan.map((p) => [holidayLabel(p.group), `${fmt.date(new Date(`${p.leave[0]}T12:00:00`))} – ${fmt.date(new Date(`${p.leave[p.leave.length - 1]}T12:00:00`))}`, `${p.off} (${t('{n} of leave', { n: p.take })})`]))) : null,
+    s.birthdayInfo?.count ? sec(t('Birthdays'), null, table([[t('Who')], [t('Date')], [t('Age'), 1]], birthdayRows(s))) : null,
     sec(t('Streaks and habits'), null, h('div', { class: 'stat-grid' }, stat(fmt.int(s.longestFreeStreak.length), t('longest run of meeting-free workdays')), stat(fmt.int(s.longestBusyStreak.length), t('longest run of workdays with meetings')), stat(fmt.int(s.backToBack), t('back-to-back transitions')), stat(fmt.int(s.fragmentedDays), t('days with no 2-hour gap')), stat(fmt.int(s.noAgenda), t('group meetings with no agenda')), stat(fmt.int(s.weekendMeetings), t('weekend meetings')))),
   ];
 }
@@ -98,5 +104,10 @@ function personalBody(s, ctx) {
     sec(t('People'), null, table([[t('Person')], [t('Plans'), 1], [t('Hours'), 1], [t('Last seen'), 1]], s.people.map((p) => [p.name, fmt.int(p.count), fmt.hours(p.hours), h('span', { class: 'muted' }, fmt.date(p.lastSeen))]))),
     sec(t('Habits'), null, table([[t('Recurring')], [t('Times'), 1], [t('Hours'), 1]], s.recurringSeries.map((r) => [r.title, fmt.int(r.count), fmt.hours(r.hours)]))),
     s.travel.found ? sec(t('Away'), null, h('div', { class: 'stat-grid' }, stat(fmt.int(s.travel.trips), t('trips')), stat(fmt.int(s.travel.flights), t('flights')), stat(fmt.int(s.travel.hotelNights), t('nights away')), stat(fmt.int(s.travel.daysOff), t('days off'))), s.travel.places.length ? h('div', { class: 'chips-light' }, s.travel.places.map((p) => h('span', {}, p.key))) : null) : null,
+    s.timeOff?.breaks.length ? sec(t('Every break'), t('{n} days of leave taken, {b} booked, {s} sick.', { n: fmt.int(s.timeOff.taken), b: fmt.int(s.timeOff.booked), s: fmt.int(s.timeOff.sick) }),
+      table([[t('Where')], [t('When')], [t('Leave'), 1], [t('Days off'), 1]], breakRows(s))) : null,
+    s.timeOff?.plan.length ? sec(t('Your smartest days off in {year}', { year: s.timeOff.planYear }), null,
+      table([[t('Holiday')], [t('Book')], [t('Days off'), 1]], s.timeOff.plan.map((p) => [holidayLabel(p.group), `${fmt.date(new Date(`${p.leave[0]}T12:00:00`))} – ${fmt.date(new Date(`${p.leave[p.leave.length - 1]}T12:00:00`))}`, `${p.off} (${t('{n} of leave', { n: p.take })})`]))) : null,
+    s.birthdayInfo?.count ? sec(t('Birthdays'), null, table([[t('Who')], [t('Date')], [t('Age'), 1]], birthdayRows(s))) : null,
   ];
 }

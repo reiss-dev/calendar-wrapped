@@ -710,3 +710,52 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 @keyframes earn-flash { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,113,227,0); } 25% { box-shadow: 0 0 0 4px rgba(0,113,227,0.35); } }
 .modal .modal-alt { display: block; margin: 14px auto 0; font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { .pips i.on, .share-unlock.flash { animation: none; } }
+
+/* ---------- time off, planner, birthdays ---------- */
+.viz-leave .lv { fill: var(--viz-base); transform-box: fill-box; transform-origin: center; animation: pop-in 0.4s var(--spring) both; animation-delay: calc(var(--i) * 9ms + 200ms); }
+.viz-leave .lv.we { opacity: 0.55; }
+.viz-leave .lv.on { fill: var(--viz-ink); }
+.viz-leave .lv.booked { fill: none; stroke: var(--viz-ink); stroke-width: 1.6; }
+.viz-leave .lv.hol { fill: color-mix(in srgb, var(--viz-ink) 45%, transparent); }
+.viz-leave .lv-hl { fill: color-mix(in srgb, var(--viz-ink) 16%, transparent); animation: reveal 0.6s var(--ease) both; animation-delay: 900ms; opacity: 0; }
+.leave-legend, .break-legend { justify-content: flex-start; gap: 6px; flex-wrap: wrap; }
+.leave-legend span, .break-legend span { margin-right: 8px; }
+.leave-legend i, .break-legend i { border-radius: 50%; width: 10px; height: 10px; background: var(--viz-base); }
+.leave-legend .k-on, .break-legend .k-take { background: var(--viz-ink); }
+.leave-legend .k-booked { background: transparent; box-shadow: inset 0 0 0 1.6px var(--viz-ink); }
+.leave-legend .k-hol, .break-legend .k-hol { background: color-mix(in srgb, var(--viz-ink) 45%, transparent); }
+.break-legend i { border-radius: 3px; }
+.viz-break { max-width: 100%; }
+.viz-break .bk { fill: var(--viz-base); transform-box: fill-box; transform-origin: center; animation: pop-in 0.4s var(--spring) both; animation-delay: calc(var(--i) * 35ms + 250ms); }
+.viz-break .bk.take { fill: var(--viz-ink); }
+.viz-break .bk.hol { fill: color-mix(in srgb, var(--viz-ink) 45%, transparent); }
+.viz-break .viz-label { font-size: 10px; }
+.plan-rows { display: grid; gap: 16px; margin-top: 18px; }
+.plan-row { display: grid; gap: 6px; }
+.plan-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.plan-head b { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.plan-head span { font-size: 14px; font-variant-numeric: tabular-nums; opacity: 0.8; }
+.plan-dates { font-size: 13px; opacity: 0.7; }
+.slide .plan-head b { font-size: 19px; }
+.plan-row .plan-act { display: flex; gap: 8px; margin-top: 2px; }
+.viz-bday .mo { fill: none; stroke: var(--viz-base); stroke-width: 10; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.7s var(--ease) forwards; animation-delay: calc(var(--i) * 40ms + 150ms); }
+.viz-bday .mo.busy { stroke: var(--viz-ink); }
+.viz-bday .viz-label.hl { fill: var(--viz-ink); font-weight: 700; }
+.viz-bday .bd { fill: var(--viz-ink); stroke: var(--viz-on); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: pop-in 0.5s var(--spring) both; animation-delay: calc(var(--i) * 70ms + 650ms); }
+.viz-bday .bd-n { fill: var(--viz-ink); font: 700 64px var(--font); letter-spacing: -0.04em; }
+.viz-bday .bd-l { font-size: 14px; }
+.panel .viz-bday .bd { stroke: var(--card); }
+.bday-wrap { max-width: 300px; margin: 6px auto 0; }
+.upcoming { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.upcoming li { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.upcoming li span:last-child { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.slide .upcoming li span:last-child { color: var(--smute); }
+@media (prefers-reduced-motion: reduce) { .viz-leave *, .viz-break *, .viz-bday * { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; } }
+.panel h4 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.plan-block { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line-soft); }
+.plan-block .sub { margin-bottom: 10px; }
+.plan-block .plan-rows { margin-top: 14px; }
+.plan-block .plan-row + .plan-row { padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.plan-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.plan-add { font-size: 14px; }
+.plan-block .plan-rows { gap: 14px; }

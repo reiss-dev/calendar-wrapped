@@ -78,7 +78,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
   }
 
   function enter(el) {
-    el.querySelectorAll('[data-reveal], .bar i, .bar-rect, .heatstrip i, .ring .fill, .cell, .petal, .bubble, .tile-g, .picto, .arc, .dest, .dest-label, .dot, .m-dot, .wk-fill, .link, .joint, .race, .race-fill, .blk').forEach((n) => { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; });
+    el.querySelectorAll('[data-reveal], .bar i, .bar-rect, .heatstrip i, .ring .fill, .cell, .petal, .bubble, .tile-g, .picto, .arc, .dest, .dest-label, .dot, .m-dot, .wk-fill, .link, .joint, .race, .race-fill, .blk, .lv, .lv-hl, .bk, .mo, .bd').forEach((n) => { n.style.animation = 'none'; void n.offsetWidth; n.style.animation = ''; });
     stagger(el);
     el.querySelectorAll('[data-count]').forEach((n) => {
       countUp(n, Number(n.dataset.count), { decimals: Number(n.dataset.decimals || 0), suffix: n.dataset.suffix || '', prefix: n.dataset.prefix || '', delay: 320 });

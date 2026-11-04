@@ -43,7 +43,7 @@ test('work mode stats are sane and capped at today', () => {
   assert.ok(s.collaborators[0].count > 100);
   assert.ok(s.collaborators.every((c) => c.email !== 'alex.morgan@northwindlabs.com'));
   assert.ok(s.collaborators.every((c) => c.lastSeen < new Date(Y, 10, 5)), "nothing after today");
-  assert.equal(s.travel.daysOff, 15);
+  assert.equal(s.travel.daysOff, 14, 'leave taken so far; the bank holiday entry is not leave');
   assert.ok(s.travel.flights >= 10);
   assert.ok(!s.travel.places.some((p) => p.key === 'London'), 'home city should be dropped');
   assert.ok(s.reclaim.suggestions.length >= 4);
@@ -66,7 +66,7 @@ test('personal mode stats', () => {
   const s = computeStats(events, { ...range, now: NOW });
   assert.equal(s.mode, 'personal');
   assert.ok(s.categories.find((c) => c.key === 'fitness').count > 100);
-  assert.equal(s.birthdays, 4);
+  assert.equal(s.birthdays, 11, 'the whole year, one per person');
   assert.ok(s.travel.trips >= 4);
   assert.ok(s.people.length >= 5);
   assert.ok(s.reclaim.suggestions.length >= 1);

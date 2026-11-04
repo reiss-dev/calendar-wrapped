@@ -3,6 +3,7 @@
 // Wording comes from copy.js; the engine stores ids and numbers so text can be re-rendered in any language.
 import { personaCopy, suggestionCopy, categoryLabel } from './copy.js';
 import { flightLegs } from './geo.js';
+import { holidayMap, bestBreaks, TYPICAL_LEAVE, fromKey } from './holidays.js';
 
 const HOUR = 3600000;
 const DAY = 86400000;
@@ -17,7 +18,10 @@ const NON_MEETING_TITLE = WSTART('focus(?: time)?|lunch|break|busy|hold|block(?:
 const WORKING_LOCATION = /^(home|office|working (from|at) .*|wfh|remote|in office|working location|thuis|kantoor|thuiswerken|hemma|kontoret|hjemme|kontor|hjemmekontor|distans)$/iu;
 const CALL_LINK = /(teams\.microsoft|microsoft teams|zoom\.us|zoom meeting|meet\.google|google meet|webex|whereby|around\.co)/i;
 const MAX_PEOPLE_PER_MEETING = 25; // bigger than this is a broadcast, not a collaboration
-const OOO_TITLE = W('ooo|out of office|annual leave|holiday|vacation|pto|time off|sick|bank holiday|leave|afwezig|vakantie|verlof|vrij|ziek|feestdag|semester|ledig|ledighet|sjuk|sjukskriven|ferie|syk|sykemeldt|helligdag|fridag|afspadsering');
+const OOO_TITLE = W('ooo|out of office|annual leave|holiday|holidays|vacation|pto|time off|day off|days off|off work|vrije dag|vrije dagen|semesterdag|feriedag|sick|bank holiday|leave|afwezig|vakantie|verlof|vrij|ziek|feestdag|semester|ledig|ledighet|sjuk|sjukskriven|ferie|syk|sykemeldt|helligdag|fridag|afspadsering');
+const SICK_TITLE = W('sick|ill|unwell|ziek|ziekmelding|sjuk|sjukskriven|syk|sykemeldt|syg|sygemeldt|sygdom');
+const PUBLIC_HOLIDAY_TITLE = W('bank holiday|public holiday|national holiday|feestdag|helligdag|röd dag|rød dag');
+const BIRTHDAY_TITLE = W('birthday|bday|b-day|turns \\d+|verjaardag|jarig|födelsedag|fyller \\d+|bursdag|fødselsdag|fylder \\d+');
 const FLIGHT_RE = /(\bflight\b|✈|\b[A-Z]{2}\s?\d{2,4}\b.*\b(to|->|→|naar|till|til)\b|\bdeparts?\b|\barrives?\b|\bvlucht\b|\bflyg\b|\bfly\b|\bflyreise\b)/iu;
 const HOTEL_RE = /(\bhotel\b|\bhotell\b|\bstay at\b|\bcheck[- ]?in\b|\bairbnb\b|\baccommodation\b|\boverachting\b|\bövernattning\b|\bovernatting\b|\bovernatning\b)/iu;
 const TRAIN_RE = /(\btrain\b|\beurostar\b|\brail\b|\btrein\b|\btåg\b|\btog\b|\bdsb\b)/iu;
@@ -184,6 +188,157 @@ function travelStats(all, ctx = {}) {
     daysOff: oooDays.size,
     found: travelEvents.length > 0 || oooDays.size > 0,
   };
+}
+
+// ---------- time off ----------
+const LABEL_NOISE = new RegExp(`${OOO_TITLE.source.slice(0, -('(?=$|[^\\p{L}])'.length))}(?=$|[^\\p{L}])|\\b(in|to|at|naar|i|till|til|på|op|airbnb|hotel|hotell|stay|trip|break|away|annual|booked|approved|ok)\\b|[\\p{Extended_Pictographic}\\uFE0F]|[-–—:|/()\\[\\],.!]`, 'giu');
+function breakLabel(title) {
+  const s = title.replace(LABEL_NOISE, ' ').replace(/\s+/g, ' ').trim();
+  return s.length >= 2 && s.length <= 24 && /^\p{Lu}/u.test(s) && !/\d{3,}/.test(s) ? s : null;
+}
+
+/**
+ * Leave from the calendar: all-day out-of-office entries (or long timed ones), by title in five
+ * languages or by Outlook's and Google's out-of-office status. Counts working days only, so weekends
+ * and public holidays inside a holiday don't count against it. Splits taken (before today) from booked.
+ */
+function timeOffStats(yearAll, ctx) {
+  const { rangeStart, rangeEnd, fullEnd, country = 'GB', mode, now = new Date() } = ctx;
+  const year = rangeStart.getFullYear();
+  const hol = holidayMap(country, year);
+  const isOff = (d) => isWeekend(d) || hol.has(dayKey(d));
+  const leave = new Map(); // dayKey → { booked, labels }
+  let sick = 0;
+  const sickDays = new Set();
+  for (const e of yearAll) {
+    if (e.status === 'CANCELLED') continue;
+    const durationH = (e.end - e.start) / HOUR;
+    const long = e.allDay || durationH >= 6;
+    if (!long) continue;
+    const ooo = e.oof || OOO_TITLE.test(e.title);
+    const stay = mode === 'personal' && e.allDay && HOTEL_RE.test(e.title);
+    if (!ooo && !stay) continue;
+    if (PUBLIC_HOLIDAY_TITLE.test(e.title)) continue;
+    const isSick = SICK_TITLE.test(e.title);
+    const label = breakLabel(e.title);
+    const last = e.allDay ? e.end : new Date(e.end.getTime() - 1);
+    for (let d = startOfDay(e.start); d < last && d < fullEnd; d.setDate(d.getDate() + 1)) {
+      if (d < rangeStart || isOff(d)) continue;
+      const k = dayKey(d);
+      if (isSick) { sickDays.add(k); continue; }
+      const cur = leave.get(k) || { booked: d >= rangeEnd, labels: new Set() };
+      if (label) cur.labels.add(label);
+      leave.set(k, cur);
+    }
+  }
+  sick = [...sickDays].filter((k) => !leave.has(k) && fromKey(k) < rangeEnd).length;
+  const keys = [...leave.keys()].sort();
+  // Group leave days into breaks: days of leave separated only by weekends or holidays are one break.
+  const breaks = [];
+  for (const k of keys) {
+    const d = fromKey(k);
+    const prev = breaks[breaks.length - 1];
+    let joined = false;
+    if (prev) {
+      let x = new Date(fromKey(prev.lastLeave)); x.setDate(x.getDate() + 1);
+      while (x < d && isOff(x)) x.setDate(x.getDate() + 1);
+      joined = dayKey(x) === k;
+    }
+    const info = leave.get(k);
+    if (joined) { prev.lastLeave = k; prev.leave++; info.labels.forEach((l) => prev.labels.add(l)); prev.booked = prev.booked && info.booked; }
+    else breaks.push({ firstLeave: k, lastLeave: k, leave: 1, labels: new Set(info.labels), booked: info.booked });
+  }
+  const routes = ctx.routes;
+  const out = breaks.map((b) => {
+    const a = fromKey(b.firstLeave), z = fromKey(b.lastLeave);
+    while (isOff(new Date(a.getFullYear(), a.getMonth(), a.getDate() - 1))) a.setDate(a.getDate() - 1);
+    while (isOff(new Date(z.getFullYear(), z.getMonth(), z.getDate() + 1))) z.setDate(z.getDate() + 1);
+    let label = [...b.labels][0] || null;
+    if (!label && routes) {
+      const leg = routes.legs.find((l) => { const t = new Date(l.date); return t >= a && t < new Date(z.getFullYear(), z.getMonth(), z.getDate() + 1) && l.to.name !== routes.home?.name; });
+      if (leg) label = leg.to.name;
+    }
+    return { start: dayKey(a), end: dayKey(z), leave: b.leave, span: Math.round((z - a) / DAY) + 1, booked: b.booked, label };
+  });
+  const taken = keys.filter((k) => !leave.get(k).booked).length;
+  const booked = keys.length - taken;
+  const longest = [...out].sort((x, y) => y.span - x.span || y.leave - x.leave)[0] || null;
+  // Longest run of working weeks with no day off at all (leave or a public holiday), up to today.
+  const rest = new Set(keys.filter((k) => !leave.get(k).booked));
+  for (const [k] of hol) { const d = fromKey(k); if (d >= rangeStart && d < rangeEnd && !isWeekend(d)) rest.add(k); }
+  const restDays = [...rest].sort().map(fromKey);
+  let gap = null;
+  const consider = (from, to, ongoing) => {
+    const days = Math.round((to - from) / DAY) + 1;
+    if (days > 0 && (!gap || days > gap.days)) gap = { from: dayKey(from), to: dayKey(to), days, weeks: Math.round(days / 7), ongoing };
+  };
+  for (let i = 1; i < restDays.length; i++) consider(new Date(restDays[i - 1].getTime() + DAY), new Date(restDays[i].getTime() - DAY), false);
+  if (restDays.length) consider(new Date(restDays[restDays.length - 1].getTime() + DAY), new Date(rangeEnd.getTime() - DAY), true);
+  const days = {};
+  for (const k of keys) days[k] = leave.get(k).booked ? 'b' : 'l';
+  for (const [k] of hol) { const d = fromKey(k); if (d.getFullYear() === year && !isWeekend(d)) days[k] = 'h'; }
+  const bank = Object.values(days).filter((v) => v === 'h').length;
+  const typical = TYPICAL_LEAVE[country] || 25;
+  const partial = rangeEnd < fullEnd;
+  const left = partial && mode === 'work' && keys.length >= 3 ? typical - keys.length : 0;
+  const planYear = Math.max(year + 1, now.getFullYear());
+  const planFrom = planYear === now.getFullYear() ? startOfDay(now) : new Date(planYear, 0, 1);
+  return {
+    country, taken, booked, sick, bank, typical, left: left > 0 && left < typical ? left : 0,
+    breaks: out.slice(0, 40), longest, longestGap: gap && gap.weeks >= 4 ? gap : null, days,
+    planYear, plan: bestBreaks(country, planYear, { max: 5, from: planFrom }),
+  };
+}
+
+// ---------- birthdays ----------
+const FAMILY = /^(mum|mom|mam|dad|mama|papa|mamma|pappa|mor|far|mormor|farmor|morfar|farfar|oma|opa|grandma|grandad|grandpa|granny|nan|nana|bestemor|bestefar|auntie|aunt|uncle|tante|oom|moster|faster|morbror|farbror)\b/i;
+const NOT_A_NAME = /^(team|office|company|work|kids|my|our|the|joint|surprise|happy|party|lunch|dinner|drinks|cake)\b|birthday|verjaardag|party|feest|fest|drinks|dinner|cake|lunch/i;
+function birthdayOf(title) {
+  const s = title.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const ageM = s.match(/(?:turns|wordt|fyller|fylder|blir)\s+(\d{1,3})|(\d{1,3})\s*(?:st|nd|rd|th|e|ste|de)?\s*(?:birthday|bday|verjaardag|bursdag|fødselsdag|födelsedag)|\((\d{1,3})\)|(\d{1,3})\s*år/i);
+  let age = ageM ? Number(ageM[1] || ageM[2] || ageM[3] || ageM[4]) : null;
+  if (!(age > 0 && age < 120)) age = null;
+  const patterns = [
+    /^(.+?)['’]s?\s+(?:\d{1,3}(?:st|nd|rd|th)\s+)?(?:birthday|bday|b-day)/i,
+    /^(?:happy\s+)?(?:birthday|bday|b-day|verjaardag|födelsedag|bursdag|fødselsdag)\s*(?:van|of|til|för|for|:|-|–|—)?\s*(.+)$/i,
+    /^(.+?)\s+(?:turns|wordt|fyller|fylder|is jarig|jarig)(?=$|[^\p{L}])/iu,
+    /^(.+?)\s+(?:\d{1,3}\s*(?:st|nd|rd|th|e)?\s*)?(?:birthday|verjaardag|födelsedag|bursdag|fødselsdag)/i,
+  ];
+  let name = null;
+  for (const re of patterns) { const m = s.match(re); if (m) { name = m[1]; break; } }
+  if (name) {
+    name = name.replace(/\(.*?\)/g, ' ').replace(/[\d:–—|!]+/g, ' ').replace(/\s-\s|^-|-$/g, ' ').replace(/\s+/g, ' ').trim().replace(/['’]s?$/i, '');
+    // Scandinavian genitive: "Annas födelsedag" is Anna's.
+    if (/födelsedag|bursdag|fødselsdag/i.test(s) && /[aeiouyåäöæø]s$/i.test(name) && name.length > 3) name = name.slice(0, -1);
+    if (FAMILY.test(name)) name = name.charAt(0).toUpperCase() + name.slice(1);
+    if (!/^\p{Lu}/u.test(name) || name.length > 24 || name.split(' ').length > 3 || NOT_A_NAME.test(name)) name = null;
+  }
+  return { name, age };
+}
+
+function birthdayStats(yearAll, ctx) {
+  const seen = new Map();
+  for (const e of [...yearAll].sort((a, b) => a.start - b.start)) {
+    if (e.status === 'CANCELLED' || !BIRTHDAY_TITLE.test(e.title)) continue;
+    const { name, age } = birthdayOf(e.title);
+    const d = e.start;
+    const key = name ? name.toLowerCase() : `?${normTitle(e.title).toLowerCase()}|${d.getMonth()}-${d.getDate()}`;
+    if (seen.has(key)) continue;
+    seen.set(key, { name, age, m: d.getMonth(), d: d.getDate() });
+  }
+  const list = [...seen.values()].sort((a, b) => a.m - b.m || a.d - b.d);
+  const perMonth = Array(12).fill(0);
+  for (const b of list) perMonth[b.m]++;
+  const top = Math.max(...perMonth);
+  const busiestMonth = top >= 2 && perMonth.filter((n) => n === top).length === 1 ? { i: perMonth.indexOf(top), n: top } : null;
+  const today = startOfDay(ctx.rangeEnd < ctx.fullEnd ? (ctx.now || new Date()) : ctx.fullEnd);
+  const upcoming = list.filter((b) => b.name).map((b) => {
+    let next = new Date(today.getFullYear(), b.m, b.d);
+    if (next < today) next = new Date(today.getFullYear() + 1, b.m, b.d);
+    return { ...b, inDays: Math.round((next - today) / DAY), next: dayKey(next) };
+  }).sort((a, b) => a.inDays - b.inDays).slice(0, 3);
+  const milestones = list.filter((b) => b.name && b.age && (b.age % 10 === 0 || b.age === 18 || b.age === 21)).slice(0, 3);
+  return { count: list.length, named: list.filter((b) => b.name).length, list: list.slice(0, 80), perMonth, busiestMonth, upcoming, milestones };
 }
 
 function monthlyBreakdown(items, rangeStart, rangeEnd, valueFn) {
@@ -530,8 +685,7 @@ function personalStats(all, ctx) {
     cur.count++; cur.hours += e.allDay ? 0 : e.durationH; recurring.set(e.uid, cur);
   }
   const recurringSeries = [...recurring.values()].map((r) => ({ ...r, hours: round1(r.hours) })).sort((a, b) => b.count - a.count);
-  const birthdays = events.filter((e) => /\b(birthday|bday)\b/i.test(e.title)).length;
-  const cutoff = new Date(rangeEnd.getTime() - 60 * DAY);
+    const cutoff = new Date(rangeEnd.getTime() - 60 * DAY);
   const missed = pals.filter((p) => p.count >= 2 && p.lastSeen < cutoff).sort((a, b) => a.lastSeen - b.lastSeen).slice(0, 3);
 
   const stats = {
@@ -558,7 +712,6 @@ function personalStats(all, ctx) {
     earliest: earliest ? { title: earliest.title, start: earliest.start } : null,
     latest: latest ? { title: latest.title, end: latest.end } : null,
     recurringSeries: recurringSeries.slice(0, 8),
-    birthdays,
     notSeenLately: missed,
     travel: travelStats(all, ctx),
     attendeeInfoAvailable: ctx.attendeeInfoAvailable,
@@ -603,8 +756,15 @@ function personalSuggestions(s) {
   return { suggestions: out, totalHours: round1(out.reduce((t, x) => t + x.hoursPerYear, 0)), workingDays: 0, featured: pickFeatured(out, ['reconnect', 'recurring', 'evenings']) };
 }
 
+// Time off and birthdays look at the whole year, including what's already booked after today.
+function extraStats(ctx) {
+  const timeOff = timeOffStats(ctx.yearAll, ctx);
+  const birthdayInfo = birthdayStats(ctx.yearAll, ctx);
+  return { timeOff, birthdayInfo, birthdays: birthdayInfo.count };
+}
+
 // ---------- entry point ----------
-export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date(), timezone = null } = {}) {
+export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date(), timezone = null, country = 'GB' } = {}) {
   const requestedEnd = rangeEnd;
   if (now < rangeEnd) rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const all = annotate(rawEvents.filter((e) => e.start < rangeEnd && e.end > rangeStart), selfEmail);
@@ -613,8 +773,11 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   const attendeeInfoAvailable = timed.length === 0 || withAttendees / timed.length >= 0.1;
   const detected = detectMode(all);
   const chosen = mode === 'auto' ? detected.mode : mode;
-  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone };
+  const yearAll = rawEvents.filter((e) => e.start < requestedEnd && e.end > rangeStart);
+  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone, country, now, yearAll, mode: chosen };
   const stats = chosen === 'work' ? workStats(all, ctx) : personalStats(all, ctx);
+  Object.assign(stats, extraStats({ ...ctx, routes: stats.travel.routes }));
+  stats.travel.daysOff = stats.timeOff.taken;
   return {
     ...stats,
     detectedMode: detected.mode,
@@ -775,4 +938,4 @@ export function computeTeamStats(members, { rangeStart, rangeEnd, now = new Date
   };
 }
 
-export const _internal = { normTitle, isMeeting, annotate, isoWeekKey, pickFeatured, MONTHS, WEEKDAYS, PERSONAL_CATEGORIES, OOO_TITLE, NON_MEETING_TITLE };
+export const _internal = { birthdayOf, breakLabel, normTitle, isMeeting, annotate, isoWeekKey, pickFeatured, MONTHS, WEEKDAYS, PERSONAL_CATEGORIES, OOO_TITLE, NON_MEETING_TITLE };

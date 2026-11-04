@@ -21,9 +21,9 @@ export function createCore() {
   return {
     async loadText({ text }) { ({ events, meta } = parseICS(text, loadRange())); if (hasFlights(events)) await loadGeo(); return summary(); },
     async loadEvents({ events: ev, meta: m }) { events = ev.map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) })); meta = m; if (hasFlights(events)) await loadGeo(); return summary(); },
-    compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40 }) {
+    compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40, country = 'GB' }) {
       const timezone = meta?.timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : null);
-      const s = computeStats(events, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone });
+      const s = computeStats(events, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone, country });
       s.yoy = yearOverYear(events, { year, selfEmail, mode: s.mode, workHoursPerWeek });
       return s;
     },

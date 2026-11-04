@@ -117,6 +117,8 @@ function workCalendar() {
   ev.push(vevent({ title: 'OOO - holiday', start: at(8, 10), end: at(8, 22), allDay: true }));
   ev.push(vevent({ title: 'Bank holiday', start: at(5, 25), end: at(5, 26), allDay: true }));
   ev.push(vevent({ title: 'Annual leave', start: at(12, 22), end: at(12, 32), allDay: true }));
+  // Team birthdays, the way people put them in a shared work calendar.
+  for (const [m, dd, title] of [[3, 12, '🎂 Priya’s birthday'], [7, 3, 'Tom Hendricks birthday'], [10, 2, 'Maja’s birthday'], [10, 21, 'Jonas’ birthday'], [11, 19, 'Daniel turns 40']]) ev.push(vevent({ title, start: at(m, dd), end: at(m, dd + 1), allDay: true }));
   // Last year, lighter: a weekly sync and fewer ad-hoc meetings, so year-over-year has something to say.
   // Generated after this year's events so this year's random sequence is unchanged.
   Y = YEAR - 1;
@@ -153,6 +155,8 @@ function personalCalendar() {
   const appts = ['Dentist', 'Doctor', 'Haircut', 'Physio', 'Car MOT', 'Optician', 'Plumber coming', 'Delivery window'];
   for (let i = 0; i < 24; i++) { const d = at(1 + Math.floor(rand() * 12), 1 + Math.floor(rand() * 28), 9 + Math.floor(rand() * 8), 0); ev.push(vevent({ title: pick(appts), start: d, end: plus(d, 60) })); }
   for (const [m, dd, who] of [[2, 14, 'Sam'], [3, 9, 'Mum'], [6, 21, 'Jess'], [9, 2, 'Dan'], [11, 30, 'Chloe']]) ev.push(vevent({ title: `${who}'s birthday`, start: at(m, dd), end: at(m, dd + 1), allDay: true }));
+  for (const [m, dd, title] of [[1, 22, 'Priya’s birthday'], [5, 3, 'Uncle Rob’s birthday'], [7, 9, 'Leo turns 5 🎈'], [10, 4, 'Grandma turns 90'], [10, 17, 'Mo’s 30th birthday 🎂'], [10, 26, 'Ella’s birthday']]) ev.push(vevent({ title, start: at(m, dd), end: at(m, dd + 1), allDay: true }));
+  ev.push(vevent({ title: 'Sam’s birthday drinks', start: at(2, 14, 19, 0), end: at(2, 14, 23, 0), attendees: [FRIENDS[0], FRIENDS[1]] }));
   const trips = [[2, 20, 'Lisbon', 'TP1359'], [5, 23, 'Edinburgh', null], [7, 18, 'Barcelona', 'VY7821'], [10, 9, 'Berlin', 'BA982']];
   for (const [m, dd, city, code] of trips) {
     const out = at(m, dd, 10, 20);

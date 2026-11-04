@@ -121,6 +121,7 @@ export function graphToEvents({ me, items }, { rangeStart, rangeEnd } = {}) {
       attendees,
       isRecurring: it.type === 'occurrence' || it.type === 'exception',
       transparent: it.showAs === 'free',
+      oof: it.showAs === 'oof',
     });
   }
   events.sort((a, b) => a.start - b.start);

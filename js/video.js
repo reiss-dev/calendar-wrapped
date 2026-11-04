@@ -2,12 +2,13 @@
 // encoded in the browser. WebCodecs + mp4-muxer gives a real MP4 faster than real time;
 // browsers without it fall back to MediaRecorder in real time. Nothing is uploaded.
 import { CONFIG } from './config.js';
-import { t, localeTag } from './i18n.js';
+import { t, localeTag, monthName } from './i18n.js';
 import { fmt } from './ui.js';
 import { persona as personaOf, categoryLabel } from './copy.js';
 import { THEME_COLOURS } from './card.js';
 import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
+import { hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 
 export const W = 1080, H = 1920, FPS = 30;
 const PAD = 96;
@@ -125,6 +126,52 @@ function blocks(ctx, total, back, p, y, ink, base) {
   return y + Math.ceil(n / cols) * step;
 }
 
+function leaveRows(ctx, days, year, p, y, c) {
+  const left = PAD + 90, step = (W - PAD - left) / 31, r = step * 0.32;
+  for (let m = 0; m < 12; m++) {
+    const yy = y + m * 66;
+    const k0 = easeOut((p - 0.1 - m * 0.025) / 0.25);
+    if (k0 <= 0) continue;
+    ctx.globalAlpha = k0;
+    ctx.fillStyle = c.mute; ctx.font = `600 30px ${FONT}`; ctx.fillText(monthName(m, 'short').replace('.', ''), PAD, yy + 10);
+    const n = new Date(year, m + 1, 0).getDate();
+    for (let d = 1; d <= n; d++) {
+      const date = new Date(year, m, d);
+      const k = `${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const kind = days[k], we = date.getDay() === 0 || date.getDay() === 6;
+      const x = left + (d - 1) * step + step / 2;
+      ctx.beginPath();
+      if (kind === 'b') { ctx.lineWidth = 4; ctx.strokeStyle = c.ink; ctx.arc(x, yy, r, 0, Math.PI * 2); ctx.stroke(); continue; }
+      ctx.fillStyle = kind === 'l' ? c.ink : kind === 'h' ? rgba(c.ink, 0.5) : c.base;
+      ctx.arc(x, yy, kind ? r : we ? r * 0.5 : r * 0.72, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  return y + 12 * 66;
+}
+function wheel(ctx, info, p, cx, cy, R, c) {
+  for (let m = 0; m < 12; m++) {
+    const k = easeOut((p - 0.05 - m * 0.02) / 0.2);
+    if (k <= 0) continue;
+    const a0 = (m / 12) * Math.PI * 2 - Math.PI / 2 + 0.035, a1 = a0 + ((1 / 12) * Math.PI * 2 - 0.07) * k;
+    ctx.beginPath(); ctx.lineWidth = 26; ctx.lineCap = 'round'; ctx.strokeStyle = info.busiestMonth?.i === m ? c.ink : c.base; ctx.arc(cx, cy, R, a0, a1); ctx.stroke();
+    ctx.fillStyle = info.busiestMonth?.i === m ? c.ink : c.mute; ctx.font = `700 34px ${FONT}`; ctx.textAlign = 'center';
+    const am = ((m + 0.5) / 12) * Math.PI * 2 - Math.PI / 2;
+    ctx.fillText(monthName(m, 'narrow'), cx + (R + 62) * Math.cos(am), cy + (R + 62) * Math.sin(am) + 12); ctx.textAlign = 'left';
+  }
+  const used = new Map();
+  info.list.forEach((b, i) => {
+    const k = easeOut((p - 0.3 - i * 0.025) / 0.15);
+    const slot = `${b.m}-${Math.floor(b.d / 4)}`; const n = used.get(slot) || 0; used.set(slot, n + 1);
+    if (k <= 0) return;
+    const a = ((b.m + (b.d - 0.5) / new Date(2001, b.m + 1, 0).getDate()) / 12) * Math.PI * 2 - Math.PI / 2;
+    const rr = R - 56 - n * 44;
+    ctx.beginPath(); ctx.fillStyle = c.ink; ctx.arc(cx + rr * Math.cos(a), cy + rr * Math.sin(a), 17 * k, 0, Math.PI * 2); ctx.fill();
+  });
+  ctx.textAlign = 'center'; ctx.fillStyle = c.ink; ctx.font = `700 190px ${FONT}`; ctx.globalAlpha = enter(p, 0.1, 0.2);
+  ctx.fillText(String(Math.round(info.count * easeOut(p / 0.45))), cx, cy + 66); ctx.globalAlpha = 1; ctx.textAlign = 'left';
+}
+
 // ---------------------------------------------------------------- scenes
 /** The scenes for one person's year. Async because the globe needs its data. */
 export async function buildScenes(s) {
@@ -214,6 +261,25 @@ export async function buildScenes(s) {
       ctx.globalAlpha = enter(p, 0.05, 0.12);
       ctx.drawImage(globeCanvas, (W - 960) / 2, y + 40, 960, 960);
       ctx.globalAlpha = 1;
+    });
+  }
+  if (hasTimeOff(s)) {
+    const o = s.timeOff;
+    scene('c-teal', 3.2, (ctx, p, c) => {
+      let y = 300;
+      y = cap(ctx, t('Time off'), y, p, c);
+      y = bigNumber(ctx, o.taken, y, p, c.ink, c.mute, { unit: work ? t('days') : t('weekdays') });
+      y = say(ctx, work ? (s.isPartialYear ? t('of leave taken so far.') : t('of leave this year.')) : (s.isPartialYear ? t('away from it all, so far.') : t('away from it all this year.')), y, { size: 62, colour: c.ink, a: enter(p, 0.15), rise: 30 });
+      leaveRows(ctx, o.days, s.year, p, y + 70, c);
+    });
+  }
+  if (hasBirthdays(s)) {
+    const b = s.birthdayInfo;
+    scene('c-purple', 3, (ctx, p, c) => {
+      let y = 300;
+      y = cap(ctx, t('Birthdays'), y, p, c);
+      y = say(ctx, b.busiestMonth ? t('{month} is birthday season.', { month: monthName(b.busiestMonth.i) }) : t('{n} birthdays in the calendar.', { n: b.count }), y + 10, { size: 84, colour: c.ink, a: enter(p, 0.06), rise: 40 });
+      wheel(ctx, b, p, W / 2, y + 520, 360, c);
     });
   }
   scene('c-pink', 2.8, (ctx, p, c) => {

@@ -21,6 +21,8 @@ import { yearHeatmap, heatLegend, weekGridViz, readingGrid } from './viz.js';
 import { compareWithOthers, alreadyShared, MIN_SAMPLE } from './bench.js';
 import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
+import { countryFor } from './holidays.js';
+import { timeOffPanel, birthdayPanel } from './timeoff-ui.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -249,7 +251,7 @@ function renderPrepOptions(inner, probe) {
 // ---------- story ----------
 async function startStory() {
   const o = state.options;
-  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week });
+  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: countryFor(locale()) });
   state.stats.source = state.summary?.meta?.source || 'unknown';
   state.stats.selfEmail = o.selfEmail;
   state.stats.demo = !!state.demo;
@@ -349,6 +351,8 @@ async function showSummary({ push = true } = {}) {
           earn,
         ),
         travelPanel(s),
+        timeOffPanel(s),
+        birthdayPanel(s),
         comparePanel(s),
         rec.suggestions.length ? emailPanel(s, unlocked) : null,
       ),

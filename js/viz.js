@@ -307,3 +307,95 @@ export function readingGrid() {
   }
   return s;
 }
+
+// ---------------------------------------------------------------- time off
+/**
+ * The year as twelve rows of days. Leave taken is solid, leave booked is a ring, public holidays
+ * are half-tone, weekends sit back. The longest break gets a soft highlight behind it.
+ * days: { 'YYYY-MM-DD': 'l' | 'b' | 'h' }
+ */
+export function leaveYear(days, year, { highlight = null } = {}) {
+  const step = 11.5, r = 4, left = 30, top = 4;
+  const W = left + 31 * step, H = top + 12 * 15;
+  const s = svg('svg', { class: 'viz viz-leave', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': t('Your year, day by day') });
+  const rowY = (m) => top + m * 15 + 7;
+  if (highlight) {
+    const a = new Date(`${highlight.start}T12:00:00`), z = new Date(`${highlight.end}T12:00:00`);
+    for (let m = 0; m < 12; m++) {
+      const first = new Date(year, m, 1, 12), last = new Date(year, m + 1, 0, 12);
+      const from = a > first ? a : first, to = z < last ? z : last;
+      if (from > to || from.getFullYear() !== year) continue;
+      const x0 = left + (from.getDate() - 1) * step - 1, x1 = left + (to.getDate() - 1) * step + r * 2 + 1;
+      s.append(svg('rect', { x: x0, y: rowY(m) - r - 2.5, width: x1 - x0, height: r * 2 + 5, rx: r + 2.5, class: 'lv-hl' }));
+    }
+  }
+  for (let m = 0; m < 12; m++) {
+    s.append(svg('text', { x: 0, y: rowY(m) + 4, class: 'viz-label' }, monthName(m, 'short')));
+    const n = new Date(year, m + 1, 0).getDate();
+    for (let d = 1; d <= n; d++) {
+      const date = new Date(year, m, d);
+      const k = key(date);
+      const kind = days[k];
+      const we = date.getDay() === 0 || date.getDay() === 6;
+      const cls = kind === 'l' ? 'lv on' : kind === 'b' ? 'lv booked' : kind === 'h' ? 'lv hol' : we ? 'lv we' : 'lv';
+      s.append(svg('circle', { cx: left + (d - 1) * step + r, cy: rowY(m), r: kind ? r : we ? r * 0.55 : r * 0.75, class: cls, style: `--i:${m * 4 + Math.floor(d / 3)}` }));
+    }
+  }
+  return s;
+}
+export function leaveLegend({ booked = true } = {}) {
+  return h('div', { class: 'viz-legend leave-legend' },
+    h('i', { class: 'k-on' }), h('span', {}, t('leave')),
+    booked ? [h('i', { class: 'k-booked' }), h('span', {}, t('booked'))] : null,
+    h('i', { class: 'k-hol' }), h('span', {}, t('public holiday')));
+}
+
+/** One break, day by day: weekends, public holidays and the days of leave it takes. */
+export function breakStrip(plan) {
+  const a = new Date(`${plan.start}T12:00:00`), z = new Date(`${plan.end}T12:00:00`);
+  const n = Math.round((z - a) / 86400000) + 1;
+  const leave = new Set(plan.leave);
+  const cell = 22, gap = 4;
+  const s = svg('svg', { class: 'viz viz-break', viewBox: `0 0 ${n * (cell + gap) - gap} ${cell + 16}`, role: 'img', 'aria-label': t('Take {take}, get {off} days off', { take: plan.take, off: plan.off }) });
+  for (let i = 0; i < n; i++) {
+    const d = new Date(a.getFullYear(), a.getMonth(), a.getDate() + i);
+    const we = d.getDay() === 0 || d.getDay() === 6;
+    const cls = leave.has(key(d)) ? 'bk take' : we ? 'bk we' : 'bk hol';
+    s.append(svg('rect', { x: i * (cell + gap), y: 0, width: cell, height: cell, rx: 6, class: cls, style: `--i:${i}` }),
+      svg('text', { x: i * (cell + gap) + cell / 2, y: cell + 13, 'text-anchor': 'middle', class: 'viz-label' }, weekdayName(d.getDay(), 'narrow')));
+  }
+  return s;
+}
+export function breakLegend() {
+  return h('div', { class: 'viz-legend break-legend' },
+    h('i', { class: 'k-take' }), h('span', {}, t('leave')),
+    h('i', { class: 'k-hol' }), h('span', {}, t('public holiday')),
+    h('i', { class: 'k-we' }), h('span', {}, t('weekend')));
+}
+
+// ---------------------------------------------------------------- birthdays
+/** A year as a ring: one arc per month, one dot per birthday, the busiest month lit. */
+export function birthdayWheel(info) {
+  const S = 320, c = S / 2, R = 118;
+  const s = svg('svg', { class: 'viz viz-bday', viewBox: `0 0 ${S} ${S}`, role: 'img', 'aria-label': t('{n} birthdays', { n: info.count }) });
+  const ang = (m, d) => ((m + (d - 0.5) / new Date(2001, m + 1, 0).getDate()) / 12) * Math.PI * 2 - Math.PI / 2;
+  for (let m = 0; m < 12; m++) {
+    const a0 = (m / 12) * Math.PI * 2 - Math.PI / 2 + 0.035, a1 = ((m + 1) / 12) * Math.PI * 2 - Math.PI / 2 - 0.035;
+    const [x0, y0] = polar(c, c, R, a0), [x1, y1] = polar(c, c, R, a1);
+    s.append(svg('path', { d: `M${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}`, pathLength: 1, class: `mo${info.busiestMonth?.i === m ? ' busy' : ''}`, style: `--i:${m}` }));
+    const [lx, ly] = polar(c, c, R + 22, (m + 0.5) / 12 * Math.PI * 2 - Math.PI / 2);
+    s.append(svg('text', { x: lx, y: ly + 4, 'text-anchor': 'middle', class: `viz-label${info.busiestMonth?.i === m ? ' hl' : ''}` }, monthName(m, 'narrow')));
+  }
+  const used = new Map();
+  info.list.forEach((b, i) => {
+    const slot = `${b.m}-${Math.floor(b.d / 4)}`;
+    const k = used.get(slot) || 0; used.set(slot, k + 1);
+    const [x, y] = polar(c, c, R - 18 - k * 15, ang(b.m, b.d));
+    const g = svg('circle', { cx: x, cy: y, r: b.age && (b.age % 10 === 0 || b.age === 18 || b.age === 21) ? 8 : 6, class: 'bd', style: `--i:${i}` });
+    g.append(svg('title', {}, `${b.name || t('Birthday')}, ${fmt.date(new Date(2001, b.m, b.d))}`));
+    s.append(g);
+  });
+  s.append(svg('text', { x: c, y: c + 10, 'text-anchor': 'middle', class: 'viz-center bd-n' }, String(info.count)));
+  s.append(svg('text', { x: c, y: c + 34, 'text-anchor': 'middle', class: 'viz-label bd-l' }, info.count === 1 ? t('birthday') : t('birthdays')));
+  return s;
+}

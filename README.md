@@ -1,6 +1,6 @@
 # Calendar Wrapped
 
-Your year, in meetings. Drop in a calendar export, or sign in with Google or Microsoft, and get a Wrapped-style story with hand-built visuals, a share card in four formats, a 9:16 story video, a persona, and a ranked plan for getting time back with one-tap actions. Works for work and personal calendars, for whole teams, and in English, Dutch, Swedish, Norwegian and Danish.
+Your year, in meetings. Drop in a calendar export, or sign in with Google or Microsoft, and get a Wrapped-style story with hand-built visuals, a share card in four formats, a 9:16 story video, your time off and birthdays, a planner for next year's best days off, a persona, and a ranked plan for getting time back with one-tap actions. Works for work and personal calendars, for whole teams, and in English, Dutch, Swedish, Norwegian and Danish.
 
 Calendars are read and analysed in the browser, off the main thread. They are never uploaded. The server side is a handful of Cloudflare Pages Functions plus one scheduled Worker.
 
@@ -15,7 +15,7 @@ npm run dev
 Open http://localhost:4173 and click **See a demo**. Add `?demo=personal` for the personal sample and `?lang=nl` (or `sv`, `nb`, `da`) for another language. Drop one `.ics` for a personal story, or several for a team report.
 
 ```bash
-npm test                         # 49 unit tests
+npm test                         # 55 unit tests
 npm run e2e                      # headless Chromium end to end (needs Playwright)
 npm run inspect -- file.ics      # diagnose a real export, titles hidden
 npm run rebrand -- "Name" domain.app
@@ -43,7 +43,9 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 | Parsing: ICS, recurrence, time zones, Outlook quirks, de-duplication | `js/ics.js` |
 | Sign-in: Google (token client) and Microsoft (PKCE popup), tokens never stored | `js/google.js`, `js/microsoft.js`, `auth-callback.html` |
 | Engine in a Web Worker, with in-page fallback | `js/engine.js`, `js/engine-core.js`, `js/worker.js` |
-| Stats, personas, reclaim plan, year over year, team maths, benchmarks | `js/stats.js` |
+| Stats, personas, reclaim plan, year over year, team maths, benchmarks, time off, birthdays | `js/stats.js` |
+| Public holidays for five countries, best-days-off planner | `js/holidays.js` |
+| Time off, planner and birthday slides and panels | `js/timeoff-ui.js` |
 | All generated wording, translatable | `js/copy.js` |
 | Visualisations, all hand-drawn SVG | `js/viz.js` |
 | Flights globe: routes from flight entries, canvas globe | `js/geo.js`, `js/globe.js`, `js/geo/*` (data: `tools/make-geo.mjs`, credits in `js/geo/LICENSES.md`) |
@@ -70,7 +72,11 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 - **Share of working time** uses the working week chosen on the prep screen. It defaults by language: 37.5 hours in English and Norwegian, 40 in Dutch and Swedish, 37 in Danish.
 - **Year over year** compares this year's pace with last year's full year when the export covers at least nine months of it.
 - **Flights** become routes when a title or location names an airport code ("LHR → ARN", "London Heathrow (LHR)") or a city ("Flight to Stockholm", "Vlucht naar Kopenhagen"). A leg with no origin starts from the previous destination within three weeks, otherwise from home. Home is the most common origin, or the calendar's time-zone city. Places data loads only when flights are found.
-- **Travel and days off** come from titles in five languages and from Google's and Outlook's out-of-office entries.
+- **Travel** comes from titles in five languages.
+- **Time off** is all-day (or six-hour-plus) entries with a leave title in five languages ("Annual leave", "Vakantie", "Semester"…) or Outlook's and Google's out-of-office status. Personal calendars also count hotel and Airbnb stays. It's counted in working days, so weekends and public holidays inside a break don't count. Sick days are counted apart, and entries titled "Bank holiday" aren't leave. Days after today are "booked". A break is leave days joined by weekends or public holidays. A break's place comes from its title ("Holiday - Cornwall") or a flight landing during it.
+- **Public holidays** follow the language: English means England and Wales, then the Netherlands, Sweden, Norway and Denmark. They include days most people get off in practice (Swedish Midsummer Eve, Christmas Eve and New Year's Eve; Dutch Liberation Day in lustrum years).
+- **Best days off** looks at each public holiday on a weekday and finds up to five days of leave that add the most free days around it, keeping only windows that at least double the leave. The story shows the best three; the summary shows up to five, each with an "Add to calendar" file.
+- **Birthdays** are entries with a birthday word in five languages, one per person per year. Names and ages come from titles like "Sam's birthday", "Grandma turns 90", "Verjaardag oma" or "Kim fylder 50". Ages ending in 0, and 18 and 21, are milestones.
 - **Reclaim** estimates are annualised and conservative. The free suggestion is the most specific one, usually a named meeting.
 - **Team** shared meetings are matched by event UID, which Google and Exchange keep identical across attendees.
 

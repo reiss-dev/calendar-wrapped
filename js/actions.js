@@ -36,6 +36,22 @@ export function blockIcs({ title, description = '', days, startHour, startMin = 
   ].filter(Boolean).join('\r\n') + '\r\n';
 }
 
+/** An all-day hold from `start` to `end` (inclusive, 'YYYY-MM-DD'), shown as out of office. */
+export function leaveIcs({ title, start, end, description = '' }) {
+  const ymd = (k) => k.replace(/-/g, '');
+  const [y, m, d] = end.split('-').map(Number);
+  const after = new Date(y, m - 1, d + 1);
+  const id = `leave-${ymd(start)}-${Math.random().toString(36).slice(2, 10)}@${CONFIG.brand.domain}`;
+  return [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${CONFIG.brand.name}//Planner//EN`, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT', `UID:${id}`, `DTSTAMP:${stamp(new Date())}`, `SUMMARY:${esc(title)}`,
+    description ? `DESCRIPTION:${esc(description)}` : null,
+    `DTSTART;VALUE=DATE:${ymd(start)}`, `DTEND;VALUE=DATE:${after.getFullYear()}${pad(after.getMonth() + 1)}${pad(after.getDate())}`,
+    'TRANSP:OPAQUE', 'X-MICROSOFT-CDO-BUSYSTATUS:OOF', 'X-MICROSOFT-CDO-ALLDAYEVENT:TRUE', 'STATUS:TENTATIVE',
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n') + '\r\n';
+}
+
 const mailto = (to, subject, body) => `mailto:${to ? encodeURIComponent(to) : ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
 function message(kind, x, sender) {

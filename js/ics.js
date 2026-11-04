@@ -114,6 +114,7 @@ export function parseICS(text, { rangeStart, rangeEnd } = {}) {
       attendees: readAttendees(comp),
       isRecurring,
       transparent: transp === 'TRANSPARENT' || msBusy === 'FREE',
+      oof: msBusy === 'OOF',
     });
   };
 
