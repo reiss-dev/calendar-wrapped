@@ -62,7 +62,8 @@ Cloudflare Pages, no build command, output directory `/`.
 | `STRIPE_TEAM_PRICE_ID` | Monthly price with GBP 15, EUR 18, SEK 179, NOK 179, DKK 129 | Team plan |
 | `UNLOCK_SECRET` | Long random string | Signing unlock and unsubscribe tokens |
 | `RESEND_API_KEY`, `MAIL_FROM` | From Resend, domain verified | Emailing the plan |
-| `SUBSCRIBERS`, `COUNTERS`, `BENCH` | KV namespaces | Check-ins, counts, benchmarks |
+| `SUBSCRIBERS`, `COUNTERS`, `BENCH`, `REFERRALS` | KV namespaces | Check-ins, counts, benchmarks, unlock by sharing |
+| `REFERRAL_GOAL` | Optional, default `3` | Friends needed to unlock by sharing |
 | `STATS_TOKEN` | Long random string | Reading counts at `/api/hit?token=…` |
 | `LOKI_URL`, `LOKI_USER`, `LOKI_TOKEN` | From Grafana Cloud | Dashboard |
 

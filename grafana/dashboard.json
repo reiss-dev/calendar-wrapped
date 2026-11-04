@@ -142,9 +142,9 @@
             "uid": "${DS_LOKI}"
           },
           "refId": "D",
-          "expr": "sum(count_over_time({app=\"calendar-wrapped\", kind=\"event\", event=~\"card_saved|card_shared|link_copied|slide_shared\"} [$__range]))",
+          "expr": "sum(count_over_time({app=\"calendar-wrapped\", kind=\"event\", event=~\"card_saved|card_shared|link_copied|slide_shared|video_saved|video_shared|referral_link_copied\"} [$__range]))",
           "queryType": "instant",
-          "legendFormat": "Saved or shared a card"
+          "legendFormat": "Saved or shared a card or video"
         },
         {
           "datasource": {
@@ -348,7 +348,7 @@
             "uid": "${DS_LOKI}"
           },
           "refId": "A",
-          "expr": "sum(count_over_time({app=\"calendar-wrapped\", kind=\"event\", event=~\"card_saved|card_shared|link_copied|slide_shared\"} [$__range])) / sum(count_over_time({app=\"calendar-wrapped\", kind=\"event\", event=\"story_finished\"} [$__range]))",
+          "expr": "sum(count_over_time({app=\"calendar-wrapped\", kind=\"event\", event=~\"card_saved|card_shared|link_copied|slide_shared|video_saved|video_shared|referral_link_copied\"} [$__range])) / sum(count_over_time({app=\"calendar-wrapped\", kind=\"event\", event=\"story_finished\"} [$__range]))",
           "queryType": "instant"
         }
       ],

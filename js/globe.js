@@ -48,7 +48,7 @@ function readColours(el) {
  * routes: { legs: [{ date, from: {name, lat, lon}, to: {...}, km }], home: {name, lat, lon} }
  * Returns { destroy, replay }.
  */
-export async function createGlobe(canvas, routes, { autoplay = true, duration = 5200, interactive = true, labels = 6 } = {}) {
+export async function createGlobe(canvas, routes, { autoplay = true, duration = 5200, interactive = true, labels = 6, manual = false, size: fixed = null } = {}) {
   const dots = await landDots();
   const ctx = canvas.getContext('2d');
   const legs = [...routes.legs].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -74,8 +74,8 @@ export async function createGlobe(canvas, routes, { autoplay = true, duration = 
   const colours = readColours(canvas);
 
   function size() {
-    const dpr = Math.min(2, devicePixelRatio || 1);
-    const w = canvas.clientWidth || 360, h = canvas.clientHeight || w;
+    const dpr = fixed ? 1 : Math.min(2, devicePixelRatio || 1);
+    const w = fixed || canvas.clientWidth || 360, h = fixed || canvas.clientHeight || w;
     if (canvas.width !== Math.round(w * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
     return { w: canvas.width, h: canvas.height, dpr };
   }
@@ -199,7 +199,16 @@ export async function createGlobe(canvas, routes, { autoplay = true, duration = 
     canvas.removeEventListener('pointerup', onUp); canvas.removeEventListener('pointercancel', onUp);
   }
   function replay() { progress = reduceMotion() ? 1 : 0; started = null; }
+  /** Manual mode (video export): draw the globe at a given point in its playback. */
+  function renderAt(p, spin = 0) {
+    progress = Math.max(0, Math.min(1, p));
+    const current = paths.filter((x) => x.at <= progress).at(-1);
+    if (current) { const mid = current.pts[Math.floor(current.pts.length / 2)]; const target = Math.atan2(mid[0], mid[2]) / RAD; lambda += (((target - lambda + 540) % 360) - 180) * 0.08; }
+    lambda += spin;
+    draw();
+  }
+  if (manual) { draw(); return { destroy, replay, draw, renderAt }; }
   draw();
   raf = requestAnimationFrame(frame);
-  return { destroy, replay, draw };
+  return { destroy, replay, draw, renderAt };
 }

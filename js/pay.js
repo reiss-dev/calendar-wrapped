@@ -25,6 +25,8 @@ function grant(kind, extra = {}) {
   const cur = read();
   store(KEY, { ...cur, ...extra, kinds: [...new Set([...cur.kinds, kind])], at: Date.now() });
 }
+/** Earned by sharing: three friends made their own. */
+export const grantReferral = () => grant('personal', { referral: true });
 function revoke(kind) {
   const cur = read();
   store(KEY, { ...cur, kinds: cur.kinds.filter((k) => k !== kind) });
@@ -113,7 +115,7 @@ const COPY = {
   }),
 };
 
-export function openUnlockModal({ product = 'personal', onUnlocked, beforeRedirect } = {}) {
+export function openUnlockModal({ product = 'personal', onUnlocked, beforeRedirect, onShareInstead } = {}) {
   const copy = COPY[product]();
   track('unlock_opened');
   const root = h('div', { class: 'modal-root', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'unlock-title' });
@@ -144,6 +146,7 @@ export function openUnlockModal({ product = 'personal', onUnlocked, beforeRedire
     h('ul', {}, copy.points.map((p) => h('li', {}, p))),
     btn,
     h('button', { class: 'btn btn-secondary btn-block', style: 'margin-top:10px', onClick: close }, t('Not now')),
+    onShareInstead ? h('button', { class: 'link modal-alt', onClick: () => { close(); setTimeout(onShareInstead, 320); } }, t('Or unlock it free by sharing')) : null,
     h('p', { class: 'fine' }, t('Secure checkout by Stripe. Your calendar is never sent anywhere, including to us.')),
   );
   root.append(modal);

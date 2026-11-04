@@ -14,7 +14,7 @@ import { track, initMonitoring } from './analytics.js';
 import { googleEnabled, connectGoogle, preloadGoogle } from './google.js';
 import { microsoftEnabled, connectMicrosoft } from './microsoft.js';
 import { addFiles, renderTeamSetup, renderTeamReport, savedTeam, clearTeam } from './team.js';
-import { isUnlocked, getUnlock, openUnlockModal, handleReturnFromCheckout, price } from './pay.js';
+import { isUnlocked, getUnlock, openUnlockModal, handleReturnFromCheckout, price, grantReferral } from './pay.js';
 import { persona as personaOf } from './copy.js';
 import { reclaimList } from './reclaim-ui.js';
 import { yearHeatmap, heatLegend, weekGridViz, readingGrid } from './viz.js';
@@ -23,6 +23,8 @@ import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
+import { openVideoModal, videoSupported } from './video-ui.js';
+import { withRef, captureReferrer, creditReferrer, referralProgress, GOAL } from './referral.js';
 
 const STATS_KEY = 'cw:stats';
 const PREFS_KEY = 'cw:card';
@@ -136,7 +138,7 @@ function loadDemo() {
     const res = await fetch(`sample/${which}.ics`);
     if (!res.ok) throw new Error('Demo file not found.');
     return engine.loadText(await res.text());
-  });
+  }, { demo: true });
 }
 
 function connectRange() {
@@ -166,7 +168,8 @@ function loadMicrosoft() {
 }
 
 // ---------- prep ----------
-async function runPrep(label, loader) {
+async function runPrep(label, loader, { demo = false } = {}) {
+  state.demo = demo;
   show('prep');
   const log = h('div', { class: 'prep-log' });
   const inner = h('div', { class: 'prep-inner' }, h('div', { class: 'spinner reading-wrap', 'aria-hidden': 'true' }, readingGrid()), h('h2', {}, t('Reading your year')), log);
@@ -249,6 +252,7 @@ async function startStory() {
   state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week });
   state.stats.source = state.summary?.meta?.source || 'unknown';
   state.stats.selfEmail = o.selfEmail;
+  state.stats.demo = !!state.demo;
   saveStats(state.stats);
   track('story_started');
   playStory();
@@ -262,6 +266,8 @@ function playStory() {
 const saveCardPrefs = () => store(PREFS_KEY, { format: state.card.format, hideNames: state.card.hideNames, who: state.card.who });
 const myModel = (s = state.stats) => cardModel(s, { hideNames: state.card.hideNames, who: state.card.who, locale: locale() });
 const ctxOf = (s) => ({ selfEmail: s.selfEmail, source: s.source });
+// Until the personal unlock is bought or earned, share links carry an anonymous invite id.
+const myLink = (s) => (isUnlocked('personal') ? shareUrl(myModel(s)) : withRef(shareUrl(myModel(s))));
 
 async function showSummary({ push = true } = {}) {
   const s = state.stats;
@@ -289,6 +295,7 @@ async function showSummary({ push = true } = {}) {
     h('button', { class: 'btn', onClick: () => download(canvas, `calendar-wrapped-${s.year}-${state.card.format}.png`) }, t('Save image')),
     navigator.share ? h('button', { class: 'btn btn-secondary', onClick: () => shareCard(canvas, s) }, t('Share')) : null,
     h('button', { class: 'btn btn-secondary', onClick: () => copyLink(s) }, t('Copy link')),
+    videoSupported() ? h('button', { class: 'btn btn-secondary btn-video', onClick: () => openVideoModal(s) }, h('span', { class: 'play', 'aria-hidden': 'true' }), t('Make a video')) : null,
   );
 
   const c = yoyChange(s);
@@ -303,7 +310,10 @@ async function showSummary({ push = true } = {}) {
   ];
 
   const rec = s.reclaim;
-  const unlockBtn = h('button', { class: 'btn', onClick: () => openUnlockModal({ beforeRedirect: () => saveStats(s), onUnlocked: () => showSummary({ push: false }) }) }, t('Unlock for {price}', { price: price('personal') }));
+  if (!s.demo) creditReferrer();
+  const earn = unlocked ? null : shareUnlock(s);
+  const showEarn = () => { earn.scrollIntoView({ behavior: 'smooth', block: 'center' }); earn.classList.remove('flash'); void earn.offsetWidth; earn.classList.add('flash'); };
+  const unlockBtn = h('button', { class: 'btn', onClick: () => openUnlockModal({ beforeRedirect: () => saveStats(s), onUnlocked: () => showSummary({ push: false }), onShareInstead: earn && !earn.hidden ? showEarn : null }) }, t('Unlock for {price}', { price: price('personal') }));
   const peak = Object.entries(s.daily || {}).sort((a, b) => b[1] - a[1])[0];
 
   host.append(h('div', { class: 'summary' },
@@ -336,6 +346,7 @@ async function showSummary({ push = true } = {}) {
           h('div', { class: 'unlock-row' }, unlocked
             ? [h('p', {}, t('Every week, every series, every person. Save it as a PDF.')), h('button', { class: 'btn', onClick: () => showReport() }, t('Open full report'))]
             : [h('p', {}, rec.suggestions.length > 1 ? tn('{n} more suggestion, the full report, clean cards and a PDF.', '{n} more suggestions, the full report, clean cards and a PDF.', rec.suggestions.length - 1) : t('The full report, clean cards and a PDF.')), unlockBtn]),
+          earn,
         ),
         travelPanel(s),
         comparePanel(s),
@@ -353,6 +364,47 @@ async function showSummary({ push = true } = {}) {
   draw();
   host.querySelectorAll('canvas.globe').forEach((c) => createGlobe(c, s.travel.routes, { duration: 4200 }));
 }
+
+// ---------- unlock by sharing ----------
+let refreshEarn = null;
+function earnedUnlock() {
+  if (isUnlocked('personal')) return;
+  grantReferral();
+  track('referral_unlocked');
+  sound.chime?.();
+  toast(t('{n} friends made theirs. Everything’s unlocked, on us.', { n: GOAL }));
+  if (state.view === 'summary') showSummary({ push: false });
+}
+function shareUnlock(s) {
+  const pips = h('div', { class: 'pips', 'aria-hidden': 'true' }, Array.from({ length: GOAL }, () => h('i')));
+  const status = h('span', { class: 'pips-label', 'aria-live': 'polite' });
+  const copy = h('button', { class: 'btn btn-secondary', onClick: async () => {
+    await copyText(myLink(s), t('Invite link copied. Send it to a few friends.'));
+    track('referral_link_copied');
+  } }, t('Copy my invite link'));
+  const share = navigator.share ? h('button', { class: 'btn btn-secondary', onClick: async () => {
+    try { await navigator.share({ title: CONFIG.brand.name, text: s.mode === 'work' ? t('I just saw my year in meetings. Make yours, it takes a minute:') : t('I just saw my year in plans. Make yours, it takes a minute:'), url: myLink(s) }); track('referral_link_copied'); } catch { /* cancelled */ }
+  } }, t('Share')) : null;
+  const box = h('div', { class: 'share-unlock', id: 'share-unlock', hidden: true },
+    h('div', { class: 'share-unlock-text' },
+      h('b', {}, t('Or unlock it free')),
+      h('p', {}, t('Send your link to friends. When {n} of them make their own, everything here unlocks.', { n: GOAL }))),
+    h('div', { class: 'share-unlock-progress' }, pips, status),
+    h('div', { class: 'share-unlock-actions' }, copy, share));
+  const update = (p) => {
+    if (!p || !box.isConnected) return;
+    box.hidden = false;
+    [...pips.children].forEach((i, k) => i.classList.toggle('on', k < p.count));
+    status.textContent = p.count ? t('{n} of {goal} friends so far', { n: p.count, goal: p.goal }) : t('No one yet. It counts when they make their own.');
+    if (p.unlocked) earnedUnlock();
+  };
+  referralProgress().then(update);
+  refreshEarn = () => referralProgress().then(update);
+  return box;
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.view === 'summary' && !isUnlocked('personal')) refreshEarn?.();
+});
 
 function travelPanel(s) {
   const r = s.travel?.routes;
@@ -471,7 +523,7 @@ async function shareCard(canvas, s) {
   try {
     const blob = await canvasToBlob(canvas);
     const file = new File([blob], `calendar-wrapped-${s.year}.png`, { type: 'image/png' });
-    const url = shareUrl(myModel(s));
+    const url = myLink(s);
     const P = personaOf(s.persona);
     const data = { files: [file], title: s.mode === 'work' ? t('My {year} in meetings', { year: s.year }) : t('My {year} in plans', { year: s.year }), text: t('{emoji} {name}. Make yours: {url}', { emoji: P.emoji, name: P.name, url }) };
     track('card_shared');
@@ -479,7 +531,7 @@ async function shareCard(canvas, s) {
   } catch { /* cancelled */ }
 }
 async function copyLink(s) {
-  await copyText(shareUrl(myModel(s)), state.card.hideNames ? t('Link copied. Names and titles are left out.') : t('Link copied.'));
+  await copyText(myLink(s), state.card.hideNames ? t('Link copied. Names and titles are left out.') : t('Link copied.'));
   track('link_copied');
 }
 
@@ -583,6 +635,7 @@ async function boot() {
   translateDom();
   initLanguagePicker();
   initMonitoring();
+  captureReferrer();
   initLanding();
   state.stats = loadStats();
   state.team = savedTeam();

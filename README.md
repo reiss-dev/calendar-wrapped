@@ -1,6 +1,6 @@
 # Calendar Wrapped
 
-Your year, in meetings. Drop in a calendar export, or sign in with Google or Microsoft, and get a Wrapped-style story with hand-built visuals, a share card in four formats, a persona, and a ranked plan for getting time back with one-tap actions. Works for work and personal calendars, for whole teams, and in English, Dutch, Swedish, Norwegian and Danish.
+Your year, in meetings. Drop in a calendar export, or sign in with Google or Microsoft, and get a Wrapped-style story with hand-built visuals, a share card in four formats, a 9:16 story video, a persona, and a ranked plan for getting time back with one-tap actions. Works for work and personal calendars, for whole teams, and in English, Dutch, Swedish, Norwegian and Danish.
 
 Calendars are read and analysed in the browser, off the main thread. They are never uploaded. The server side is a handful of Cloudflare Pages Functions plus one scheduled Worker.
 
@@ -15,7 +15,7 @@ npm run dev
 Open http://localhost:4173 and click **See a demo**. Add `?demo=personal` for the personal sample and `?lang=nl` (or `sv`, `nb`, `da`) for another language. Drop one `.ics` for a personal story, or several for a team report.
 
 ```bash
-npm test                         # 45 unit tests
+npm test                         # 49 unit tests
 npm run e2e                      # headless Chromium end to end (needs Playwright)
 npm run inspect -- file.ics      # diagnose a real export, titles hidden
 npm run rebrand -- "Name" domain.app
@@ -27,14 +27,14 @@ node tools/i18n-check.js nl      # check a translation
 To test against the real functions, run them with Wrangler and point the e2e suite at it:
 
 ```bash
-npx wrangler pages dev . --kv BENCH --kv COUNTERS --kv SUBSCRIBERS
+npx wrangler pages dev . --kv BENCH --kv COUNTERS --kv SUBSCRIBERS --kv REFERRALS
 ```
 
 ```bash
 E2E_BASE=http://localhost:8788 npm run e2e
 ```
 
-No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.js`, MPL-2.0), and for link previews the resvg renderer (`functions/_vendor/resvg.wasm`, MPL-2.0) and Inter (`functions/_vendor/fonts.js`, SIL OFL).
+No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.js`, MPL-2.0), the MP4 muxer for story videos (`vendor/mp4-muxer.js`, MIT), and for link previews the resvg renderer (`functions/_vendor/resvg.wasm`, MPL-2.0) and Inter (`functions/_vendor/fonts.js`, SIL OFL).
 
 ## What's where
 
@@ -50,6 +50,8 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 | Story, slides, sound and haptics, screen-reader narration | `js/slides.js`, `js/story.js`, `js/sound.js` |
 | One-tap actions: organiser messages, calendar blocks, settings steps | `js/actions.js`, `js/reclaim-ui.js` |
 | Share cards, links, comparisons | `js/card.js`, `js/model.js`, `js/share.js` |
+| Story video: 9:16 MP4 drawn and encoded on the device (WebCodecs, MediaRecorder fallback) | `js/video.js`, `js/video-ui.js` |
+| Unlock by sharing: invite codes on share links, three friends unlock | `js/referral.js`, `functions/api/referral.js` |
 | Team mode | `js/team.js` |
 | Payments: one-off personal unlock, monthly team plan | `js/pay.js`, `functions/api/checkout.js`, `verify.js`, `entitlement.js`, `portal.js` |
 | Link previews: per-card page and PNG | `functions/c/[token].js`, `functions/og/[token].js`, `functions/_lib/card-svg.js` |
@@ -77,6 +79,7 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 - Calendar data never leaves the device. The only exception is the plan text, and only when someone asks for it by email.
 - Share links carry a card's numbers, without names or titles unless switched on. The server reads a link only to draw its preview image, and stores nothing.
 - Benchmarks receive a few rounded numbers, only after someone taps **Compare with others**.
+- Until someone unlocks, their share links carry a random invite code. When a friend makes their own Wrapped from a real calendar (demos don't count), the server stores a count against that code and a salted hash of the friend's random code. Videos are made on the device.
 - Analytics are daily counts per event name, plus error messages and Web Vitals. There are no cookies, IDs or IP addresses.
 - `privacy.html` says all of this, including Google's Limited Use wording.
 
@@ -84,4 +87,5 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 
 - Translations were machine-drafted and validated for completeness, not by native speakers. See LAUNCH.md.
 - Outlook formats were tested with reproduced files and a mocked Microsoft Graph, not a live tenant.
-- Unlocks are stored per device. A determined person can bypass a £4 unlock, and that's fine. The team plan is re-checked against Stripe daily.
+- Unlocks are stored per device. A determined person can bypass a £4 unlock, or fake three friends, and that's fine. The team plan is re-checked against Stripe daily.
+- Story videos need WebCodecs (Chrome, Edge, Safari 16.4+) for a fast MP4. Firefox falls back to recording in real time (about 30 seconds), as WebM. Emoji in the video come from the device's own emoji font.

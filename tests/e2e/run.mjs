@@ -108,7 +108,7 @@ await scenario('work demo: story with visuals, summary, actions, formats, link',
   await page.locator('.who').fill('Alex');
   await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
   sharedLink = await page.evaluate(() => navigator.clipboard.readText());
-  assert.match(sharedLink, /\/c\/[A-Za-z0-9_-]+$/);
+  assert.match(sharedLink, /\/c\/[A-Za-z0-9_-]+(\?r=[a-z0-9]{10,24})?$/);
   await page.getByRole('button', { name: 'Compare with others' }).click();
   await page.waitForSelector('.panel >> text=people so far');
   await shot(page, '03-summary');
@@ -256,6 +256,81 @@ await scenario('diagnostics page: redacted report and anonymised file', async ()
   assert.ok(!/Ingrid|contoso|Weekly Sync|Customer call/.test(anon), 'anonymised file must not contain names, domains or titles');
   assert.match(anon, /BEGIN:VCALENDAR/);
   await shot(page, '10-diagnose');
+  await c.close();
+});
+
+await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
+  const { c, page } = await ctx('video');
+  await playDemo(page);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.summary .btn-video');
+  await page.locator('.summary .btn-video').click();
+  await page.waitForSelector('.modal-video .video-meter');
+  await page.waitForTimeout(1500);
+  await shot(page, '11-video-making', false);
+  await page.waitForSelector('.modal-root[data-ready]', { timeout: 120000 });
+  const type = await page.locator('.modal-root').getAttribute('data-ready');
+  const size = Number(await page.locator('.modal-root').getAttribute('data-size'));
+  assert.match(type, /^video\/(mp4|webm)/);
+  assert.ok(size > 500_000, `video is ${size} bytes`);
+  assert.ok(await page.locator('.modal-video video').count() === 1);
+  await page.waitForTimeout(600);
+  await shot(page, '12-video-ready', false);
+  const dl = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save video' }).click();
+  assert.match((await dl).suggestedFilename(), /^calendar-wrapped-\d{4}\.(mp4|webm)$/);
+  await c.close();
+});
+
+await scenario('unlock by sharing: three friends make theirs from the invite link', async () => {
+  const { c, page } = await ctx('inviter');
+  await playDemo(page);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('#share-unlock:not([hidden])');
+  assert.equal(await page.locator('.pips i.on').count(), 0);
+  await page.locator('#share-unlock').getByRole('button', { name: 'Copy my invite link' }).click();
+  const link = await page.evaluate(() => navigator.clipboard.readText());
+  assert.match(link, /\/c\/[A-Za-z0-9_-]+\?r=[a-z0-9]{10,24}$/, 'invite id rides on the card link');
+  // Opening the unlock sheet offers the free route too.
+  await page.locator('.unlock-row .btn').first().click();
+  await page.getByRole('button', { name: 'Or unlock it free by sharing' }).click();
+  await page.waitForTimeout(500);
+  for (let i = 0; i < 3; i++) {
+    const f = await ctx(`friend${i}`);
+    await f.page.goto(link);
+    await f.page.waitForSelector('.shared canvas');
+    assert.ok(!f.page.url().includes('?r='), 'the invite id is tidied out of the address bar');
+    await f.page.goto(BASE);
+    await f.page.setInputFiles('#file-input', join(ROOT, 'sample/work.ics'));
+    await f.page.waitForSelector('.prep .btn-lg', { timeout: 20000 });
+    await f.page.locator('.prep .btn-lg').click();
+    await f.page.waitForSelector('.slide.is-current');
+    await f.page.keyboard.press('Escape');
+    await f.page.waitForSelector('.summary canvas');
+    await f.page.waitForFunction(() => localStorage.getItem('cw:credited'));
+    await f.c.close();
+    if (i === 1) {
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+      await page.waitForFunction(() => document.querySelectorAll('.pips i.on').length === 2);
+      await page.locator('#share-unlock').scrollIntoViewIfNeeded();
+      await shot(page, '13-share-unlock', false);
+    }
+  }
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('cw:unlock') || '{}').referral === true);
+  await page.waitForSelector('.summary');
+  assert.equal(await page.locator('#share-unlock').count(), 0, 'the free route disappears once earned');
+  assert.ok(await page.getByRole('button', { name: 'Open full report' }).isVisible());
+  // A demo never credits anyone.
+  const d = await ctx('demo-friend');
+  await d.page.goto(link);
+  await d.page.waitForSelector('.shared canvas');
+  await playDemo(d.page);
+  await d.page.keyboard.press('Escape');
+  await d.page.waitForSelector('.summary canvas');
+  await d.page.waitForTimeout(400);
+  assert.equal(await d.page.evaluate(() => localStorage.getItem('cw:credited')), null);
+  await d.c.close();
   await c.close();
 });
 

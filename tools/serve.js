@@ -9,9 +9,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.argv[2]) || 4173;
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.ics': 'text/calendar', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.txt': 'text/plain', '.md': 'text/markdown' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.mp4': 'video/mp4', '.css': 'text/css; charset=utf-8', '.ics': 'text/calendar', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.txt': 'text/plain', '.md': 'text/markdown' };
 const json = (res, status, obj) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
 const bench = { n: 0, hist: {} };
+const referrals = new Map(), credited = new Set();
+const readBody = (req) => new Promise((r) => { let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => { try { r(JSON.parse(b)); } catch { r({}); } }); });
 
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -22,6 +24,21 @@ createServer(async (req, res) => {
   if (p0 === '/api/bench') {
     if (req.method === 'POST') { bench.n++; return json(res, 200, { ok: true }); }
     return json(res, 200, bench);
+  }
+  if (p0 === '/api/referral') {
+    // Same rules as functions/api/referral.js, in memory.
+    const ID = /^[a-z0-9]{10,24}$/;
+    if (req.method === 'POST') {
+      const { r, v } = await readBody(req);
+      if (!ID.test(r || '') || !ID.test(v || '')) return json(res, 400, { error: 'bad_input' });
+      if (r === v || credited.has(v)) return json(res, 200, { ok: true, counted: false });
+      credited.add(v); referrals.set(r, (referrals.get(r) || 0) + 1);
+      return json(res, 200, { ok: true, counted: true });
+    }
+    const r = url.searchParams.get('r') || '';
+    if (!ID.test(r)) return json(res, 400, { error: 'bad_input' });
+    const n = referrals.get(r) || 0;
+    return json(res, 200, { count: Math.min(n, 3), goal: 3, unlocked: n >= 3 });
   }
   if (/^\/c\/[A-Za-z0-9_-]+\/?$/.test(p0)) {
     const html = (await readFile(join(root, 'index.html'), 'utf8')).replace('<head>', '<head>\n  <base href="/" />');

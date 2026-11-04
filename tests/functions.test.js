@@ -9,6 +9,7 @@ import * as subscribe from '../functions/api/subscribe.js';
 import * as unsubscribe from '../functions/api/unsubscribe.js';
 import * as bench from '../functions/api/bench.js';
 import * as hit from '../functions/api/hit.js';
+import * as referral from '../functions/api/referral.js';
 import { withCardMeta } from '../functions/c/[token].js';
 import { sign, verify as verifyToken } from '../functions/_lib/util.js';
 import { run as runReminders } from '../workers/reminders/index.js';
@@ -123,6 +124,25 @@ test('benchmarks accept only valid buckets and return histograms', async () => {
   const data = await (await bench.onRequestGet({ request: new Request('https://x.app/api/bench?m=w&y=2026'), env })).json();
   assert.equal(data.n, 4);
   assert.deepEqual(data.hist.share, { 20: 1, 25: 2, 40: 1 });
+});
+
+test('referrals: unique visitors only, one inviter each, unlock at the goal', async () => {
+  const env = { REFERRALS: kv(), ...SECRET };
+  const r = 'inviter00001', send = (v, who = r) => referral.onRequestPost({ request: post('https://x.app/api/referral', { r: who, v }), env }).then((x) => x.json());
+  const progress = () => referral.onRequestGet({ request: new Request(`https://x.app/api/referral?r=${r}`), env }).then((x) => x.json());
+  assert.deepEqual(await progress(), { count: 0, goal: 3, unlocked: false });
+  assert.equal((await send('friend000001')).counted, true);
+  assert.equal((await send('friend000001')).counted, false, 'same visitor twice');
+  assert.equal((await send(r)).counted, false, 'self-referral');
+  assert.equal((await send('friend000001', 'inviter00002')).counted, false, 'a visitor credits one inviter only');
+  assert.equal((await send('friend000002')).counted, true);
+  assert.deepEqual(await progress(), { count: 2, goal: 3, unlocked: false });
+  await send('friend000003'); await send('friend000004');
+  assert.deepEqual(await progress(), { count: 3, goal: 3, unlocked: true });
+  assert.ok(![...env.REFERRALS.m.keys(), ...env.REFERRALS.m.values()].some((x) => String(x).includes('friend0000')), 'visitor ids are stored hashed');
+  assert.equal((await referral.onRequestPost({ request: post('https://x.app/api/referral', { r: 'BAD!', v: 'friend000009' }), env })).status, 400);
+  assert.equal((await referral.onRequestGet({ request: new Request('https://x.app/api/referral?r=x'), env })).status, 400);
+  assert.equal((await referral.onRequestGet({ request: new Request(`https://x.app/api/referral?r=${r}`), env: {} })).status, 503);
 });
 
 test('hit counts known events, forwards to Loki, and keeps stats private', async () => {
