@@ -281,6 +281,27 @@ await scenario('time off, next year’s planner and birthdays: slides, panels, c
   await c.close();
 });
 
+await scenario('public holidays: country picker defaults from the calendar, changes the plan, is remembered', async () => {
+  const { c, page } = await ctx('country');
+  await page.goto(BASE);
+  await page.locator('.hero [data-action="demo"]').click();
+  await page.waitForSelector('.prep .group', { timeout: 20000 });
+  assert.equal(await page.locator('#country').inputValue(), 'GB', 'demo calendar is Europe/London');
+  assert.equal(await page.locator('#country option').count(), 11);
+  await page.locator('#country').selectOption('GB-SCT');
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.timeoff-panel');
+  assert.match(await page.locator('.timeoff-panel').textContent(), /public holidays in Scotland/);
+  await page.goto(BASE);
+  await page.locator('.hero [data-action="demo"]').click();
+  await page.waitForSelector('.prep .group', { timeout: 20000 });
+  assert.equal(await page.locator('#country').inputValue(), 'GB-SCT', 'the choice is remembered');
+  await shot(page, '15-prep-country', false);
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

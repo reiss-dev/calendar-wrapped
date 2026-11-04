@@ -59,6 +59,8 @@ export function parseICS(text, { rangeStart, rangeEnd } = {}) {
   const calName = root.getFirstPropertyValue('x-wr-calname') || null;
   const prodId = root.getFirstPropertyValue('prodid') || '';
   const calTz = root.getFirstPropertyValue('x-wr-timezone') || null;
+  // A hint for the calendar's home: its own time zone, or the first one its events use (Outlook names them the Windows way).
+  const tzHint = calTz || root.getAllSubcomponents('vtimezone').map((z) => z.getFirstPropertyValue('tzid')).find(Boolean) || null;
 
   const vevents = root.getAllSubcomponents('vevent');
   const bases = new Map();
@@ -149,6 +151,7 @@ export function parseICS(text, { rangeStart, rangeEnd } = {}) {
       calendarEmail: calName && EMAIL_RE.test(calName) ? calName.toLowerCase() : null,
       prodId,
       timezone: calTz,
+      tzHint,
       rawEventCount: rawCount,
       source: detectSource(prodId),
     },

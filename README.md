@@ -15,7 +15,7 @@ npm run dev
 Open http://localhost:4173 and click **See a demo**. Add `?demo=personal` for the personal sample and `?lang=nl` (or `sv`, `nb`, `da`) for another language. Drop one `.ics` for a personal story, or several for a team report.
 
 ```bash
-npm test                         # 55 unit tests
+npm test                         # 57 unit tests
 npm run e2e                      # headless Chromium end to end (needs Playwright)
 npm run inspect -- file.ics      # diagnose a real export, titles hidden
 npm run rebrand -- "Name" domain.app
@@ -74,7 +74,7 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 - **Flights** become routes when a title or location names an airport code ("LHR → ARN", "London Heathrow (LHR)") or a city ("Flight to Stockholm", "Vlucht naar Kopenhagen"). A leg with no origin starts from the previous destination within three weeks, otherwise from home. Home is the most common origin, or the calendar's time-zone city. Places data loads only when flights are found.
 - **Travel** comes from titles in five languages.
 - **Time off** is all-day (or six-hour-plus) entries with a leave title in five languages ("Annual leave", "Vakantie", "Semester"…) or Outlook's and Google's out-of-office status. Personal calendars also count hotel and Airbnb stays. It's counted in working days, so weekends and public holidays inside a break don't count. Sick days are counted apart, and entries titled "Bank holiday" aren't leave. Days after today are "booked". A break is leave days joined by weekends or public holidays. A break's place comes from its title ("Holiday - Cornwall") or a flight landing during it.
-- **Public holidays** follow the language: English means England and Wales, then the Netherlands, Sweden, Norway and Denmark. They include days most people get off in practice (Swedish Midsummer Eve, Christmas Eve and New Year's Eve; Dutch Liberation Day in lustrum years).
+- **Public holidays** cover England and Wales, Scotland, Northern Ireland, Ireland, the Netherlands, Belgium, Luxembourg, Sweden, Norway, Denmark and Finland, picked on the prep screen. The default is the calendar's own time zone (Outlook's Windows names too), then the browser's, then the language, and a choice is remembered on the device. Weekend holidays move to the next weekday where the UK and Ireland do that. Days most people get off in practice are included (Midsummer Eve and Christmas Eve in Sweden and Finland, New Year's Eve in Sweden, Dutch Liberation Day in lustrum years).
 - **Best days off** looks at each public holiday on a weekday and finds up to five days of leave that add the most free days around it, keeping only windows that at least double the leave. The story shows the best three; the summary shows up to five, each with an "Add to calendar" file.
 - **Birthdays** are entries with a birthday word in five languages, one per person per year. Names and ages come from titles like "Sam's birthday", "Grandma turns 90", "Verjaardag oma" or "Kim fylder 50". Ages ending in 0, and 18 and 21, are milestones.
 - **Reclaim** estimates are annualised and conservative. The free suggestion is the most specific one, usually a named meeting.

@@ -21,8 +21,8 @@ import { yearHeatmap, heatLegend, weekGridViz, readingGrid } from './viz.js';
 import { compareWithOthers, alreadyShared, MIN_SAMPLE } from './bench.js';
 import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
-import { countryFor } from './holidays.js';
-import { timeOffPanel, birthdayPanel } from './timeoff-ui.js';
+import { COUNTRIES, guessCountry } from './holidays.js';
+import { timeOffPanel, birthdayPanel, countryName } from './timeoff-ui.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -31,10 +31,11 @@ import { withRef, captureReferrer, creditReferrer, referralProgress, GOAL } from
 const STATS_KEY = 'cw:stats';
 const PREFS_KEY = 'cw:card';
 const FRIEND_KEY = 'cw:friend';
+const COUNTRY_KEY = 'cw:country';
 const engine = createEngine();
 const state = {
   summary: null, stats: null, years: [], story: null, demoToggle: false, team: null, view: 'landing',
-  options: { year: null, mode: 'auto', selfEmail: null, week: null },
+  options: { year: null, mode: 'auto', selfEmail: null, week: null, country: null },
   card: { format: 'portrait', hideNames: CONFIG.share.hideNamesByDefault, who: '', ...storage(PREFS_KEY, {}) },
 };
 const views = {};
@@ -203,6 +204,8 @@ async function runPrep(label, loader, { demo = false } = {}) {
   state.options.year = state.years.includes(now.getFullYear()) ? now.getFullYear() : state.years[0];
   state.options.selfEmail = summary.selfEmail;
   state.options.week = state.options.week || localeInfo().week;
+  const browserTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
+  state.options.country = COUNTRIES.includes(storage(COUNTRY_KEY)) ? storage(COUNTRY_KEY) : guessCountry({ calendarTz: summary.meta?.tzHint || summary.meta?.timezone, browserTz, locale: locale() });
 
   lastLine = null;
   await say(t('Found <b>{n} entries</b> across {y}', { n: fmt.int(summary.count), y: tn('{n} year', '{n} years', perYear.length) }));
@@ -239,6 +242,9 @@ function renderPrepOptions(inner, probe) {
     h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Year')), seg(state.years, state.options.year, (y) => { state.options.year = y; })),
     h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Calendar type')), seg(['work', 'personal'], state.options.mode, (m) => { state.options.mode = m; group.querySelectorAll('[data-work-only]').forEach((r) => { r.style.display = m === 'work' ? '' : 'none'; }); }, (m) => (m === 'work' ? t('Work') : t('Personal')))),
     emailRow, weekRow,
+    h('div', { class: 'row' }, h('label', { class: 'lbl', for: 'country' }, t('Public holidays')),
+      h('div', { class: 'select-wrap' }, h('select', { id: 'country', onChange: (e) => { state.options.country = e.target.value; store(COUNTRY_KEY, e.target.value); } },
+        COUNTRIES.map((c) => h('option', { value: c, selected: c === state.options.country }, countryName(c)))))),
   );
   const warn = !probe.attendeeInfoAvailable ? h('p', { class: 'prep-warn', 'data-reveal': '' }, t('This export has no attendee details, so every timed event is treated as a meeting. Outlook’s published calendars often leave them out.')) : null;
   const play = h('button', { class: 'btn btn-lg', 'data-reveal': '', onClick: () => { sound.prime(); startStory(); } }, t('Play my Wrapped'));
@@ -251,7 +257,7 @@ function renderPrepOptions(inner, probe) {
 // ---------- story ----------
 async function startStory() {
   const o = state.options;
-  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: countryFor(locale()) });
+  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country });
   state.stats.source = state.summary?.meta?.source || 'unknown';
   state.stats.selfEmail = o.selfEmail;
   state.stats.demo = !!state.demo;

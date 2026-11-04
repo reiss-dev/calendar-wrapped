@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { easter, bankHolidays, bestBreaks, countryFor } from '../js/holidays.js';
+import { easter, bankHolidays, bestBreaks, countryFor, guessCountry, COUNTRIES } from '../js/holidays.js';
 import { parseICS, guessSelfEmail } from '../js/ics.js';
 import { computeStats, _internal } from '../js/stats.js';
 
@@ -24,6 +24,24 @@ test('public holidays per country, with weekend substitutes in England', () => {
   assert.ok(keys('DK', 2023).includes('2023-05-05') && !keys('DK', 2024).some((k) => k === '2024-04-26'), 'Store bededag ends after 2023');
   assert.equal(countryFor('nb'), 'NO');
   assert.equal(countryFor('xx'), 'GB');
+});
+
+test('Scotland, Northern Ireland, Ireland, Belgium, Luxembourg and Finland', () => {
+  assert.deepEqual(keys('GB-SCT', 2026), ['2026-01-01', '2026-01-02', '2026-04-03', '2026-05-04', '2026-05-25', '2026-08-03', '2026-11-30', '2026-12-25', '2026-12-28']);
+  assert.ok(keys('GB-NIR', 2026).includes('2026-03-17') && keys('GB-NIR', 2026).includes('2026-07-13'), 'St Patrick’s Day, and the Boyne moves off a Sunday');
+  assert.ok(keys('IE', 2026).includes('2026-02-02') && keys('IE', 2026).includes('2026-10-26'), 'St Brigid’s Day and the October bank holiday');
+  assert.ok(keys('IE', 2027).includes('2027-02-01'), 'St Brigid’s Day on a Monday');
+  assert.ok(keys('BE', 2026).includes('2026-07-21') && keys('BE', 2026).includes('2026-11-11'));
+  assert.ok(keys('LU', 2026).includes('2026-05-09') && keys('LU', 2026).includes('2026-06-23'));
+  assert.ok(keys('FI', 2026).includes('2026-12-06') && keys('FI', 2026).includes('2026-06-19'));
+  for (const c of COUNTRIES) assert.ok(bestBreaks(c, 2027).length >= 2, `${c} has a plan`);
+});
+
+test('country guess: calendar time zone, then browser, then language', () => {
+  assert.equal(guessCountry({ calendarTz: 'Europe/Amsterdam', locale: 'en' }), 'NL');
+  assert.equal(guessCountry({ calendarTz: 'GMT Standard Time', locale: 'nl' }), 'GB', 'Outlook’s Windows name');
+  assert.equal(guessCountry({ calendarTz: 'W. Europe Standard Time', browserTz: 'Europe/Oslo', locale: 'en' }), 'NO', 'ambiguous Windows names fall through');
+  assert.equal(guessCountry({ calendarTz: 'UTC', browserTz: 'America/New_York', locale: 'da' }), 'DK');
 });
 
 test('best days off: few days of leave, long breaks, inside the year, no overlaps', () => {

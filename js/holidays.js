@@ -1,9 +1,10 @@
 // Public holidays for the five supported countries, and a planner that finds the days of leave
 // that buy the longest breaks. Pure and DOM-free: the engine and the tests use it directly.
 //
-// Countries follow the language: English → England and Wales, Dutch → the Netherlands,
-// Swedish → Sweden, Norwegian → Norway, Danish → Denmark. Days most people get off in practice
-// are included (Swedish Midsummer Eve, Christmas Eve and New Year's Eve); one-off royal
+// Covers the UK (England and Wales, Scotland, Northern Ireland), Ireland, the Benelux and the
+// Nordics. The country is picked on the prep screen; the default comes from the calendar's time
+// zone, then the browser's, then the language. Days most people get off in practice are included
+// (Midsummer Eve and Christmas Eve in Sweden and Finland, New Year's Eve in Sweden); one-off royal
 // holidays are not.
 
 const DAY = 86400000;
@@ -13,10 +14,22 @@ export const fromKey = (k) => { const [y, m, d] = k.split('-').map(Number); retu
 const isWeekend = (d) => d.getDay() === 0 || d.getDay() === 6;
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
+/** In the order the picker shows them. GB means England and Wales. */
+export const COUNTRIES = ['GB', 'GB-SCT', 'GB-NIR', 'IE', 'NL', 'BE', 'LU', 'SE', 'NO', 'DK', 'FI'];
 export const COUNTRY_BY_LOCALE = { en: 'GB', nl: 'NL', sv: 'SE', nb: 'NO', da: 'DK' };
 export const countryFor = (locale) => COUNTRY_BY_LOCALE[locale] || 'GB';
-/** Usual paid leave a year, for a gentle "still to use" note. */
-export const TYPICAL_LEAVE = { GB: 25, NL: 25, SE: 25, NO: 25, DK: 25 };
+const COUNTRY_BY_TZ = {
+  'Europe/London': 'GB', 'Europe/Belfast': 'GB-NIR', 'Europe/Dublin': 'IE', 'Europe/Amsterdam': 'NL', 'Europe/Brussels': 'BE', 'Europe/Luxembourg': 'LU',
+  'Europe/Stockholm': 'SE', 'Europe/Oslo': 'NO', 'Arctic/Longyearbyen': 'NO', 'Europe/Copenhagen': 'DK', 'Europe/Helsinki': 'FI', 'Europe/Mariehamn': 'FI',
+  // Windows names, as Outlook writes them. Only the ones that point at a single country here.
+  'GMT Standard Time': 'GB', 'FLE Standard Time': 'FI',
+};
+/** Best first guess: the calendar's time zone, then the browser's, then the language. */
+export function guessCountry({ calendarTz = null, browserTz = null, locale = 'en' } = {}) {
+  return COUNTRY_BY_TZ[calendarTz] || COUNTRY_BY_TZ[browserTz] || countryFor(locale);
+}
+/** Usual paid leave a year in working days, for a gentle "still to use" note. */
+export const TYPICAL_LEAVE = { GB: 25, 'GB-SCT': 25, 'GB-NIR': 25, IE: 21, NL: 25, BE: 20, LU: 26, SE: 25, NO: 25, DK: 25, FI: 25 };
 
 /** Easter Sunday (Gregorian), by the anonymous computus. */
 export function easter(year) {
@@ -46,6 +59,56 @@ function gb(y) {
     out.push([day, name, 'christmas']);
   }
   return out;
+}
+// Moves holidays that land on a weekend to the next free weekday, in order (the UK and Irish way).
+function substitute(list) {
+  const taken = new Set(), out = [];
+  for (const [d, name, group, sub] of list) {
+    let day = d;
+    if (sub) while (isWeekend(day) || taken.has(dayKey(day))) day = addDays(day, 1);
+    taken.add(dayKey(day));
+    out.push([day, name, group]);
+  }
+  return out;
+}
+function sct(y) {
+  const E = easter(y);
+  return substitute([[new Date(y, 0, 1), 'New Year’s Day', 'newyear', true], [new Date(y, 0, 2), '2nd January', 'newyear', true], [addDays(E, -2), 'Good Friday', 'easter'],
+    [nthWeekday(y, 4, 1, 1), 'Early May bank holiday', 'earlymay'], [lastWeekday(y, 4, 1), 'Spring bank holiday', 'latemay'], [nthWeekday(y, 7, 1, 1), 'Summer bank holiday', 'summer'],
+    [new Date(y, 10, 30), 'St Andrew’s Day', 'standrew', true], [new Date(y, 11, 25), 'Christmas Day', 'christmas', true], [new Date(y, 11, 26), 'Boxing Day', 'christmas', true]]);
+}
+function nir(y) {
+  return [...gb(y), ...substitute([[new Date(y, 2, 17), 'St Patrick’s Day', 'stpatrick', true], [new Date(y, 6, 12), 'Battle of the Boyne', 'boyne', true]])];
+}
+function ie(y) {
+  const E = easter(y);
+  const list = [[new Date(y, 0, 1), 'New Year’s Day', 'newyear', true]];
+  if (y >= 2023) { const feb1 = new Date(y, 1, 1); list.push([feb1.getDay() === 5 ? feb1 : nthWeekday(y, 1, 1, 1), 'St Brigid’s Day', 'stbrigid']); }
+  list.push([new Date(y, 2, 17), 'St Patrick’s Day', 'stpatrick', true], [addDays(E, 1), 'Easter Monday', 'easter'], [nthWeekday(y, 4, 1, 1), 'May bank holiday', 'earlymay'],
+    [nthWeekday(y, 5, 1, 1), 'June bank holiday', 'june'], [nthWeekday(y, 7, 1, 1), 'August bank holiday', 'summer'], [lastWeekday(y, 9, 1), 'October bank holiday', 'october'],
+    [new Date(y, 11, 25), 'Christmas Day', 'christmas', true], [new Date(y, 11, 26), 'St Stephen’s Day', 'christmas', true]);
+  return substitute(list);
+}
+function be(y) {
+  const E = easter(y);
+  return [[new Date(y, 0, 1), 'Nieuwjaar', 'newyear'], [addDays(E, 1), 'Paasmaandag', 'easter'], [new Date(y, 4, 1), 'Dag van de Arbeid', 'mayday'], [addDays(E, 39), 'O.L.H. Hemelvaart', 'ascension'],
+    [addDays(E, 50), 'Pinkstermaandag', 'whitsun'], [new Date(y, 6, 21), 'Nationale feestdag', 'national'], [new Date(y, 7, 15), 'O.L.V. Hemelvaart', 'assumption'],
+    [new Date(y, 10, 1), 'Allerheiligen', 'allsaints'], [new Date(y, 10, 11), 'Wapenstilstand', 'armistice'], [new Date(y, 11, 25), 'Kerstmis', 'christmas']];
+}
+function lu(y) {
+  const E = easter(y);
+  const out = [[new Date(y, 0, 1), 'Neijoerschdag', 'newyear'], [addDays(E, 1), 'Ouschterméindeg', 'easter'], [new Date(y, 4, 1), 'Dag vun der Aarbecht', 'mayday'], [addDays(E, 39), 'Christi Himmelfaart', 'ascension'],
+    [addDays(E, 50), 'Péngschtméindeg', 'whitsun'], [new Date(y, 5, 23), 'Nationalfeierdag', 'national'], [new Date(y, 7, 15), 'Léiffrawëschdag', 'assumption'],
+    [new Date(y, 10, 1), 'Allerhellgen', 'allsaints'], [new Date(y, 11, 25), 'Chrëschtdag', 'christmas'], [new Date(y, 11, 26), 'Stiefesdag', 'christmas']];
+  if (y >= 2019) out.push([new Date(y, 4, 9), 'Europadag', 'europe']);
+  return out;
+}
+function fi(y) {
+  const E = easter(y);
+  return [[new Date(y, 0, 1), 'Uudenvuodenpäivä', 'newyear'], [new Date(y, 0, 6), 'Loppiainen', 'epiphany'], [addDays(E, -2), 'Pitkäperjantai', 'easter'], [E, 'Pääsiäispäivä', 'easter'], [addDays(E, 1), '2. pääsiäispäivä', 'easter'],
+    [new Date(y, 4, 1), 'Vappu', 'mayday'], [addDays(E, 39), 'Helatorstai', 'ascension'], [addDays(E, 49), 'Helluntaipäivä', 'whitsun'],
+    [firstOnOrAfter(y, 5, 19, 5), 'Juhannusaatto', 'midsummer'], [firstOnOrAfter(y, 5, 20, 6), 'Juhannuspäivä', 'midsummer'], [firstOnOrAfter(y, 9, 31, 6), 'Pyhäinpäivä', 'allsaints'],
+    [new Date(y, 11, 6), 'Itsenäisyyspäivä', 'independence'], [new Date(y, 11, 24), 'Jouluaatto', 'christmas'], [new Date(y, 11, 25), 'Joulupäivä', 'christmas'], [new Date(y, 11, 26), 'Tapaninpäivä', 'christmas']];
 }
 function nl(y) {
   const E = easter(y);
@@ -77,7 +140,7 @@ function dk(y) {
   if (y <= 2023) out.push([addDays(E, 26), 'Store bededag', 'prayer']); // abolished from 2024
   return out;
 }
-const RULES = { GB: gb, NL: nl, SE: se, NO: no, DK: dk };
+const RULES = { GB: gb, 'GB-SCT': sct, 'GB-NIR': nir, IE: ie, NL: nl, BE: be, LU: lu, SE: se, NO: no, DK: dk, FI: fi };
 
 const cache = new Map();
 /** Public holidays for a year, sorted: [{ key: 'YYYY-MM-DD', name, group }]. */

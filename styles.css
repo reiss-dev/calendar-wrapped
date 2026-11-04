@@ -759,3 +759,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .plan-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .plan-add { font-size: 14px; }
 .plan-block .plan-rows { gap: 14px; }
+.select-wrap { position: relative; display: inline-flex; align-items: center; }
+.select-wrap select { appearance: none; -webkit-appearance: none; font: inherit; font-size: 16px; letter-spacing: inherit; border: 0; background: none; color: var(--ink-2); text-align: right; text-align-last: right; padding: 4px 22px 4px 4px; cursor: pointer; outline: none; max-width: min(280px, 55vw); }
+.select-wrap select:focus-visible { color: var(--ink); outline: 3px solid rgba(0,113,227,0.5); border-radius: 6px; }
+.select-wrap::after { content: ''; position: absolute; right: 4px; width: 7px; height: 7px; border-right: 1.8px solid var(--ink-3); border-bottom: 1.8px solid var(--ink-3); transform: translateY(-2px) rotate(45deg); pointer-events: none; }
+@media (max-width: 560px) { .select-wrap { width: 100%; } .select-wrap select { width: 100%; max-width: none; text-align: left; text-align-last: left; color: var(--ink); padding-left: 0; } }

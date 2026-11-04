@@ -16,10 +16,15 @@ export function holidayLabel(group) {
     newyear: t('New Year'), easter: t('Easter'), earlymay: t('Early May'), latemay: t('Late May'), summer: t('August bank holiday'),
     christmas: t('Christmas'), kings: t('King’s Day'), liberation: t('Liberation Day'), ascension: t('Ascension'), whitsun: t('Whitsun'),
     epiphany: t('Epiphany'), mayday: t('May Day'), national: t('National Day'), midsummer: t('Midsummer'), allsaints: t('All Saints'),
-    constitution: t('Constitution Day'), prayer: t('Great Prayer Day'),
+    constitution: t('Constitution Day'), prayer: t('Great Prayer Day'), standrew: t('St Andrew’s Day'), stpatrick: t('St Patrick’s Day'), boyne: t('Battle of the Boyne'),
+    stbrigid: t('St Brigid’s Day'), june: t('June bank holiday'), october: t('October bank holiday'), assumption: t('Assumption'), armistice: t('Armistice Day'),
+    europe: t('Europe Day'), independence: t('Independence Day'),
   }[group] || group;
 }
 export function countryName(code) {
+  if (code === 'GB') return t('England and Wales');
+  if (code === 'GB-SCT') return t('Scotland');
+  if (code === 'GB-NIR') return t('Northern Ireland');
   try { return new Intl.DisplayNames([localeTag()], { type: 'region' }).of(code); } catch { return code; }
 }
 /** The best few windows by days gained, back in date order. */
