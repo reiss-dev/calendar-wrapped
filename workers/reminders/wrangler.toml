@@ -1,0 +1,21 @@
+# Quarterly check-in emails. Deploy from this folder with: npx wrangler deploy
+name = "calendar-wrapped-reminders"
+main = "index.js"
+compatibility_date = "2026-10-01"
+
+# 08:17 UTC on the first day of January, April, July and October.
+[triggers]
+crons = ["17 8 1 1,4,7,10 *"]
+
+# Use the same KV namespace id as the Pages project's SUBSCRIBERS binding.
+[[kv_namespaces]]
+binding = "SUBSCRIBERS"
+id = "REPLACE_WITH_SUBSCRIBERS_NAMESPACE_ID"
+
+[vars]
+SITE_URL = "https://calendarwrapped.app/"
+BRAND = "Calendar Wrapped"
+
+# Secrets (set with `npx wrangler secret put NAME`):
+#   RESEND_API_KEY, MAIL_FROM, UNLOCK_SECRET (same value as the Pages project),
+#   STRIPE_SECRET_KEY, STRIPE_TEAM_PRICE_ID, REMINDER_TOKEN

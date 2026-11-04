@@ -16,12 +16,13 @@ let pw;
 try { pw = require('playwright'); } catch { pw = require(process.env.PLAYWRIGHT_PATH || '/opt/node-tools/node_modules/playwright'); }
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PORT = 4300 + Math.floor(Math.random() * 500);
-const BASE = `http://localhost:${PORT}/`;
+// E2E_BASE runs the suite against another server, e.g. `wrangler pages dev` with the real functions.
+const BASE = process.env.E2E_BASE ? process.env.E2E_BASE.replace(/\/?$/, '/') : `http://localhost:${PORT}/`;
 const SHOTS = process.env.SHOTS;
 if (SHOTS) mkdirSync(SHOTS, { recursive: true });
 
-const server = spawn(process.execPath, [join(ROOT, 'tools/serve.js'), String(PORT)], { stdio: 'ignore' });
-await new Promise((r) => setTimeout(r, 600));
+const server = process.env.E2E_BASE ? null : spawn(process.execPath, [join(ROOT, 'tools/serve.js'), String(PORT)], { stdio: 'ignore' });
+if (server) await new Promise((r) => setTimeout(r, 600));
 const browser = await pw.chromium.launch();
 const results = [];
 const errors = [];
@@ -131,7 +132,7 @@ await scenario('shared link opens the card, then compares after making yours', a
 await scenario('personal demo in Dutch: locale, currency, keywords and visuals', async () => {
   const { c, page } = await ctx('nl', { locale: 'nl-NL', colorScheme: 'dark', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await page.goto(`${BASE}?demo=personal&lang=nl`);
-  assert.equal(await page.evaluate(() => document.documentElement.lang), 'nl');
+  await page.waitForFunction(() => document.documentElement.lang === 'nl', null, { timeout: 5000 });
   await page.locator('.hero [data-action="demo"]').click();
   await page.waitForSelector('.prep .group');
   await page.locator('.prep .btn-lg').click();
@@ -244,7 +245,7 @@ await scenario('diagnostics page: redacted report and anonymised file', async ()
 });
 
 await browser.close();
-server.kill();
+server?.kill();
 const width = Math.max(...results.map((r) => r[0].length));
 for (const [name, status, ms, msg] of results) console.log(`${status === 'FAIL' ? '✗' : status === 'ok' ? '✓' : ' '} ${name.padEnd(width)}  ${status === 'ok' ? `${ms} ms` : status}${msg ? `\n    ${msg}` : ''}`);
 if (errors.length) { console.log(`\nConsole errors (${errors.length}):`); for (const e of errors) console.log(`  ${e}`); }
