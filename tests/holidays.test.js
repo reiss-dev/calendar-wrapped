@@ -111,3 +111,27 @@ test('birthdays: names, ages and dedupe across five languages', () => {
   assert.equal(info.upcoming[0].inDays, 26);
   assert.deepEqual(info.milestones.map((x) => x.name), ['Grandma', 'Mo']);
 });
+
+test('things added by hand: time off, trips on the globe, and nothing counted as a meeting', async () => {
+  const { extraEvents } = await import('../js/engine-core.js');
+  const geo = await import('../js/geo.js');
+  geo.useGeo(await import('../js/geo/places.js'));
+  const range = { rangeStart: new Date(2026, 0, 1), rangeEnd: new Date(2027, 0, 1) };
+  const { events, meta } = parseICS(readFileSync(new URL('../sample/work.ics', import.meta.url), 'utf8'), range);
+  const opts = { ...range, selfEmail: guessSelfEmail(events, meta), now: new Date(2026, 10, 4, 12), timezone: 'Europe/London' };
+  const before = computeStats(events, opts);
+  const extras = { off: [{ start: '2026-02-16', end: '2026-02-20', label: 'Half term' }], trips: [{ to: 'Lisbon', start: '2026-06-01', end: '2026-06-05', holiday: true }] };
+  const after = computeStats([...events, ...extraEvents(extras)], opts);
+  assert.equal(after.meetings, before.meetings, 'added items are never meetings');
+  assert.equal(after.totalEventsInRange, before.totalEventsInRange);
+  assert.equal(after.timeOff.taken, before.timeOff.taken + 10, 'five days of half term and five in Lisbon');
+  assert.ok(after.timeOff.breaks.some((b) => b.label === 'Half term'));
+  assert.ok(after.timeOff.breaks.some((b) => b.label === 'Lisbon'));
+  const lisbon = after.travel.routes.legs.filter((l) => l.to.name === 'Lisbon' || l.from.name === 'Lisbon');
+  assert.equal(lisbon.length, 2, 'a flight out and a flight home');
+  assert.equal(lisbon[1].to.name, after.travel.routes.home.name);
+  assert.ok(after.travel.routes.km > before.travel.routes.km);
+  assert.ok(geo.searchPlaces('lisb').some((p) => p.name === 'Lisbon'));
+  assert.equal(geo.resolvePlace('Lisbon').name, 'Lisbon');
+  assert.equal(geo.resolvePlace('Atlantis'), null);
+});

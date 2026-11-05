@@ -24,9 +24,23 @@ function parse({ PLACES, AIRPORTS }) {
   return { places, airports };
 }
 
-export const hasFlights = (events) => events.some((e) => FLIGHTISH.test(e.title));
+export const hasFlights = (events) => events.some((e) => FLIGHTISH.test(e.title) || e.toHome);
 export async function loadGeo() { if (!data) data = parse(await import('./geo/places.js')); return data; }
 export const geoLoaded = () => !!data;
+/** Type-ahead for places someone adds by hand: cities and airport codes, best matches first. */
+export function searchPlaces(q, n = 6) {
+  if (!data) return [];
+  const k = norm(q);
+  if (!k) return [];
+  const out = [], seen = new Set();
+  const push = (p) => { const id = norm(p.name); if (!seen.has(id)) { seen.add(id); out.push({ name: p.name, code: p.code || null }); } };
+  if (/^[a-z]{3}$/.test(k) && data.airports.get(k.toUpperCase())) push(data.airports.get(k.toUpperCase()));
+  for (const [key, p] of data.places) if (key.startsWith(k)) { push(p); if (out.length >= n * 3) break; }
+  if (out.length < n) for (const [key, p] of data.places) if (key.includes(` ${k}`)) { push(p); if (out.length >= n * 3) break; }
+  return out.sort((a, b) => a.name.length - b.name.length).slice(0, n);
+}
+/** The known place a typed name points at, or null. */
+export const resolvePlace = (name) => (data ? (codesIn(name)[0] || placeFrom(name)) : null);
 /** For tests and the worker, which already have the module. */
 export function useGeo(mod) { data = parse(mod); }
 
@@ -63,9 +77,10 @@ const tzCity = (tz) => (tz ? placeFrom(tz.split('/').pop().replace(/_/g, ' ')) :
 export function flightLegs(events, { timezone } = {}) {
   if (!data) return null;
   const parsed = events
-    .filter((e) => FLIGHTISH.test(e.title))
+    .filter((e) => FLIGHTISH.test(e.title) || e.toHome)
     .sort((a, b) => a.start - b.start)
     .map((e) => {
+      if (e.toHome) return { date: e.start, from: null, to: null, toHome: true }; // a trip added by hand, flying back
       const titleCodes = codesIn(e.title);
       let from = null, to = null;
       if (titleCodes.length >= 2) [from, to] = titleCodes;
@@ -78,7 +93,7 @@ export function flightLegs(events, { timezone } = {}) {
       if (from && to && norm(from.name) === norm(to.name) && from.code && to.code === undefined) from = null;
       return { date: e.start, from, to };
     })
-    .filter((p) => p.to);
+    .filter((p) => p.to || p.toHome);
 
   // Home: the most common explicit origin, else the calendar's time zone city.
   const tally = new Map();
@@ -88,6 +103,7 @@ export function flightLegs(events, { timezone } = {}) {
   const legs = [];
   let last = null;
   for (const p of parsed) {
+    if (p.toHome) { if (!home) continue; p.to = home; }
     let from = p.from;
     if (!from && last && p.date - last.date < 21 * 86400000) from = last.to;
     if (!from) from = home;

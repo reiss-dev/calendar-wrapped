@@ -9,6 +9,7 @@ import { THEME_COLOURS } from './card.js';
 import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
 import { hasTimeOff, hasBirthdays } from './timeoff-ui.js';
+import { highlights, showHighlights } from './extras.js';
 
 export const W = 1080, H = 1920, FPS = 30;
 const PAD = 96;
@@ -280,6 +281,25 @@ export async function buildScenes(s) {
       y = cap(ctx, t('Birthdays'), y, p, c);
       y = say(ctx, b.busiestMonth ? t('{month} is birthday season.', { month: monthName(b.busiestMonth.i) }) : t('{n} birthdays in the calendar.', { n: b.count }), y + 10, { size: 84, colour: c.ink, a: enter(p, 0.06), rise: 40 });
       wheel(ctx, b, p, W / 2, y + 520, 360, c);
+    });
+  }
+  if (showHighlights(s)) {
+    const items = highlights(s).slice(0, 6);
+    scene('c-orange', 3.4, (ctx, p, c) => {
+      let y = 330;
+      y = cap(ctx, t('Highlights'), y, p, c);
+      y = say(ctx, t('The bits that mattered.'), y + 10, { size: 90, colour: c.ink, a: enter(p, 0.05), rise: 40 });
+      y += 60;
+      ctx.fillStyle = c.base; ctx.fillRect(PAD + 205, y + 20, 4, items.length * 170 - 60);
+      items.forEach((x, i) => {
+        const a = enter(p, 0.15 + i * 0.07, 0.15), yy = y + i * 170 + (1 - a) * 30;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = c.mute; ctx.font = `600 38px ${FONT}`; ctx.fillText(monthName(x.m, 'short').replace('.', ''), PAD, yy + 62);
+        ctx.fillStyle = c.ink; ctx.beginPath(); ctx.arc(PAD + 207, yy + 48, 46, 0, Math.PI * 2); ctx.fill();
+        ctx.font = `52px ${EMOJI}`; ctx.textAlign = 'center'; ctx.fillText(x.emoji, PAD + 207, yy + 66); ctx.textAlign = 'left';
+        say(ctx, x.title, yy + 10, { size: 52, colour: c.ink, a, x: PAD + 290, maxW: W - PAD * 2 - 290, max: 2, lh: 1.15 });
+      });
+      ctx.globalAlpha = 1;
     });
   }
   scene('c-pink', 2.8, (ctx, p, c) => {

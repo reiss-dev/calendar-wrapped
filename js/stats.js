@@ -138,7 +138,7 @@ function annotate(events, selfEmail) {
 }
 
 function isMeeting(e, { attendeeInfoAvailable }) {
-  if (e.allDay || e.status === 'CANCELLED' || e.transparent) return false;
+  if (e.manual || e.allDay || e.status === 'CANCELLED' || e.transparent) return false;
   if (e.myStatus === 'DECLINED') return false;
   if (e.durationH < 5 / 60 || e.durationH > 8) return false;
   if (NON_MEETING_TITLE.test(e.title) && e.others.length === 0) return false;
@@ -650,7 +650,7 @@ function pickFeatured(list, preferredKinds) {
 // ---------- personal mode ----------
 function personalStats(all, ctx) {
   const { rangeStart, rangeEnd } = ctx;
-  const events = all.filter((e) => e.status !== 'CANCELLED' && e.myStatus !== 'DECLINED' && !e.workingLocation && !(!e.allDay && e.durationH > 24));
+  const events = all.filter((e) => !e.manual && e.status !== 'CANCELLED' && e.myStatus !== 'DECLINED' && !e.workingLocation && !(!e.allDay && e.durationH > 24));
   const timed = events.filter((e) => !e.allDay);
   const totalHours = timed.reduce((s, e) => s + e.durationH, 0);
   const cats = PERSONAL_CATEGORIES.map((c) => {
@@ -771,7 +771,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   const timed = all.filter((e) => !e.allDay);
   const withAttendees = timed.filter((e) => e.attendees.length > 0).length;
   const attendeeInfoAvailable = timed.length === 0 || withAttendees / timed.length >= 0.1;
-  const detected = detectMode(all);
+  const detected = detectMode(all.filter((e) => !e.manual));
   const chosen = mode === 'auto' ? detected.mode : mode;
   const yearAll = rawEvents.filter((e) => e.start < requestedEnd && e.end > rangeStart);
   const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone, country, now, yearAll, mode: chosen };
@@ -786,7 +786,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
     isPartialYear: rangeEnd < requestedEnd,
     year: rangeStart.getFullYear(),
     generatedAt: new Date(),
-    totalEventsInRange: all.length,
+    totalEventsInRange: all.filter((e) => !e.manual).length,
   };
 }
 

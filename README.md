@@ -15,7 +15,7 @@ npm run dev
 Open http://localhost:4173 and click **See a demo**. Add `?demo=personal` for the personal sample and `?lang=nl` (or `sv`, `nb`, `da`) for another language. Drop one `.ics` for a personal story, or several for a team report.
 
 ```bash
-npm test                         # 57 unit tests
+npm test                         # 58 unit tests
 npm run e2e                      # headless Chromium end to end (needs Playwright)
 npm run inspect -- file.ics      # diagnose a real export, titles hidden
 npm run rebrand -- "Name" domain.app
@@ -44,7 +44,8 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 | Sign-in: Google (token client) and Microsoft (PKCE popup), tokens never stored | `js/google.js`, `js/microsoft.js`, `auth-callback.html` |
 | Engine in a Web Worker, with in-page fallback | `js/engine.js`, `js/engine-core.js`, `js/worker.js` |
 | Stats, personas, reclaim plan, year over year, team maths, benchmarks, time off, birthdays | `js/stats.js` |
-| Public holidays for five countries, best-days-off planner | `js/holidays.js` |
+| Public holidays for eleven countries, best-days-off planner | `js/holidays.js` |
+| Things the calendar missed: time off, trips and moments added by hand; highlights | `js/extras.js` |
 | Time off, planner and birthday slides and panels | `js/timeoff-ui.js` |
 | All generated wording, translatable | `js/copy.js` |
 | Visualisations, all hand-drawn SVG | `js/viz.js` |
@@ -76,6 +77,8 @@ No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.j
 - **Time off** is all-day (or six-hour-plus) entries with a leave title in five languages ("Annual leave", "Vakantie", "Semester"…) or Outlook's and Google's out-of-office status. Personal calendars also count hotel and Airbnb stays. It's counted in working days, so weekends and public holidays inside a break don't count. Sick days are counted apart, and entries titled "Bank holiday" aren't leave. Days after today are "booked". A break is leave days joined by weekends or public holidays. A break's place comes from its title ("Holiday - Cornwall") or a flight landing during it.
 - **Public holidays** cover England and Wales, Scotland, Northern Ireland, Ireland, the Netherlands, Belgium, Luxembourg, Sweden, Norway, Denmark and Finland, picked on the prep screen. The default is the calendar's own time zone (Outlook's Windows names too), then the browser's, then the language, and a choice is remembered on the device. Weekend holidays move to the next weekday where the UK and Ireland do that. Days most people get off in practice are included (Midsummer Eve and Christmas Eve in Sweden and Finland, New Year's Eve in Sweden, Dutch Liberation Day in lustrum years).
 - **Best days off** looks at each public holiday on a weekday and finds up to five days of leave that add the most free days around it, keeping only windows that at least double the leave. The story shows the best three; the summary shows up to five, each with an "Add to calendar" file.
+- **Things added by hand** on the prep screen are kept per year on the device. Time off becomes an out-of-office block; a trip becomes a flight out and a flight home (and time off when it was a holiday); moments only appear in the highlights. None of them ever count as meetings or plans.
+- **Highlights** are the moments someone added, plus up to three the calendar makes obvious: the longest break of five days or more, milestone birthdays, and the furthest trip of 1,500 km or more. The slide shows when there's one moment added, or three highlights in all.
 - **Birthdays** are entries with a birthday word in five languages, one per person per year. Names and ages come from titles like "Sam's birthday", "Grandma turns 90", "Verjaardag oma" or "Kim fylder 50". Ages ending in 0, and 18 and 21, are milestones.
 - **Reclaim** estimates are annualised and conservative. The free suggestion is the most specific one, usually a named meeting.
 - **Team** shared meetings are matched by event UID, which Google and Exchange keep identical across attendees.

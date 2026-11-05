@@ -302,6 +302,45 @@ await scenario('public holidays: country picker defaults from the calendar, chan
   await c.close();
 });
 
+await scenario('things the calendar missed: time off, a trip and a moment feed the story', async () => {
+  const { c, page } = await ctx('extras');
+  await page.goto(BASE);
+  await page.locator('.hero [data-action="demo"]').click();
+  await page.waitForSelector('.prep .extras', { timeout: 20000 });
+  await page.locator('.chip-add', { hasText: 'Time off' }).click();
+  await page.fill('#extra-from', '2026-02-16'); await page.fill('#extra-to', '2026-02-20'); await page.fill('#extra-label', 'Half term');
+  await page.locator('.extra-form button[type=submit]').click();
+  await page.locator('.chip-add', { hasText: 'Trip' }).click();
+  await page.fill('#extra-city', 'Atlantis'); await page.fill('#extra-from', '2026-06-01'); await page.fill('#extra-to', '2026-06-05');
+  await page.locator('.extra-form button[type=submit]').click();
+  assert.match(await page.locator('.field-error').textContent(), /don’t know that place/);
+  await page.fill('#extra-city', 'lisb');
+  await page.locator('.suggest button', { hasText: 'Lisbon' }).click();
+  await page.locator('.extra-form button[type=submit]').click();
+  await page.locator('.chip-add', { hasText: 'Moment' }).click();
+  await page.fill('#extra-moment', 'Promoted to team lead');
+  await page.selectOption('#extra-month', '2');
+  await page.locator('.extra-form button[type=submit]').click();
+  await page.waitForTimeout(300);
+  assert.equal(await page.locator('.extras-list li').count(), 3);
+  await shot(page, '16-extras', false);
+  const caps = [];
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
+  assert.ok(caps.includes('Highlights'), 'story has a highlights slide');
+  const s = await page.evaluate(() => JSON.parse(localStorage.getItem('cw:stats')));
+  assert.equal(s.timeOff.taken, 19, '14 from the calendar and 5 added');
+  assert.ok(s.travel.routes.legs.some((l) => l.to.name === 'Lisbon'), 'Lisbon is on the globe');
+  assert.equal(s.moments[0].title, 'Promoted to team lead');
+  const panel = page.locator('.highlights-panel');
+  await panel.scrollIntoViewIfNeeded();
+  assert.match(await panel.textContent(), /Promoted to team lead/);
+  await panel.getByRole('button', { name: 'Remove Promoted to team lead' }).click();
+  assert.doesNotMatch(await panel.textContent(), /Promoted to team lead/);
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

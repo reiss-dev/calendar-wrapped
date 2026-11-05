@@ -7,6 +7,7 @@ import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js'
 import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
+import { highlightsSlide, showHighlights } from './extras.js';
 import { yearHeatmap, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti, dotMatrix, weeksBar, chain, barRace, hourBlocks } from './viz.js';
 
 const R = (attrs = {}) => ({ 'data-reveal': '', ...attrs });
@@ -209,6 +210,7 @@ function workSlides(s) {
 
   out.push({ theme: 'c-graphite', render: () => h('div', {}, cap(t('Put another way')), line(t('{n} hours is roughly…', { n: fmt.hours(s.totalHours) })), h('ul', { class: 'equiv', ...R() }, s.equivalents.map((e) => h('li', {}, h('div', { class: 'eq-head' }, h('b', { 'data-count': e.value, 'data-decimals': Number.isInteger(e.value) ? 0 : 1 }, '0'), h('span', {}, equivalentLabel(e.key || e.label))), e.key ? pictogram(e.key, e.value, { cap: 22 }) : null)))) });
 
+  if (showHighlights(s)) out.push(highlightsSlide(s));
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
@@ -264,6 +266,7 @@ function personalSlides(s) {
   const rec = s.recurringSeries[0];
   out.push({ theme: 'c-yellow', render: () => h('div', {}, cap(t('Little things')), h('div', { class: 'duo', style: 'margin-top:0; border-top:0' }, hasBirthdays(s) ? tile(s.uniquePeople, t('people')) : tile(s.birthdays, t('birthdays remembered')), tile(s.longestBusyStreak.length, t('days in a row with plans'))), rec ? note(...rich(t('Your most faithful habit: **“{title}”**, {n} times.', { title: rec.title, n: fmt.int(rec.count) }))) : null, s.longestFreeStreak.length >= 3 ? note(t('Longest stretch of nothing at all: {n} days from {from}.', { n: fmt.int(s.longestFreeStreak.length), from: fmt.date(s.longestFreeStreak.start) })) : null) });
 
+  if (showHighlights(s)) out.push(highlightsSlide(s));
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 

@@ -23,6 +23,7 @@ import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
 import { COUNTRIES, guessCountry } from './holidays.js';
 import { timeOffPanel, birthdayPanel, countryName } from './timeoff-ui.js';
+import { extrasBlock, loadExtras, highlightsPanel } from './extras.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -238,8 +239,9 @@ function renderPrepOptions(inner, probe) {
   const weeks = [35, 37.5, 40];
   if (!weeks.includes(state.options.week)) weeks.push(state.options.week);
   const weekRow = workOnly(h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Working week')), seg(weeks.sort((a, b) => a - b), state.options.week, (w) => { state.options.week = w; }, (w) => t('{n} hrs', { n: fmt.num(w) }))));
+  const extras = extrasBlock({ year: state.options.year, mode: () => state.options.mode });
   const group = h('div', { class: 'group', 'data-reveal': '' },
-    h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Year')), seg(state.years, state.options.year, (y) => { state.options.year = y; })),
+    h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Year')), seg(state.years, state.options.year, (y) => { state.options.year = y; extras.setYear(y); })),
     h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Calendar type')), seg(['work', 'personal'], state.options.mode, (m) => { state.options.mode = m; group.querySelectorAll('[data-work-only]').forEach((r) => { r.style.display = m === 'work' ? '' : 'none'; }); }, (m) => (m === 'work' ? t('Work') : t('Personal')))),
     emailRow, weekRow,
     h('div', { class: 'row' }, h('label', { class: 'lbl', for: 'country' }, t('Public holidays')),
@@ -249,7 +251,7 @@ function renderPrepOptions(inner, probe) {
   const warn = !probe.attendeeInfoAvailable ? h('p', { class: 'prep-warn', 'data-reveal': '' }, t('This export has no attendee details, so every timed event is treated as a meeting. Outlook’s published calendars often leave them out.')) : null;
   const play = h('button', { class: 'btn btn-lg', 'data-reveal': '', onClick: () => { sound.prime(); startStory(); } }, t('Play my Wrapped'));
   const privacy = h('p', { class: 'caption', 'data-reveal': '' }, t('Still nothing has left your browser.'));
-  inner.append(...[group, warn, play, privacy].filter(Boolean));
+  inner.append(...[group, extras.el, warn, play, privacy].filter(Boolean));
   stagger(inner);
   play.focus({ preventScroll: true });
 }
@@ -257,7 +259,9 @@ function renderPrepOptions(inner, probe) {
 // ---------- story ----------
 async function startStory() {
   const o = state.options;
-  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country });
+  const extras = loadExtras(o.year);
+  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country, extras });
+  state.stats.moments = extras.moments;
   state.stats.source = state.summary?.meta?.source || 'unknown';
   state.stats.selfEmail = o.selfEmail;
   state.stats.demo = !!state.demo;
@@ -359,6 +363,7 @@ async function showSummary({ push = true } = {}) {
         travelPanel(s),
         timeOffPanel(s),
         birthdayPanel(s),
+        highlightsPanel(s, { onChange: () => saveStats(s) }),
         comparePanel(s),
         rec.suggestions.length ? emailPanel(s, unlocked) : null,
       ),

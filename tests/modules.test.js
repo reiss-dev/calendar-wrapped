@@ -71,7 +71,7 @@ test('engine core loads, computes with year over year, and builds teams', async 
   const sum = await core.loadText({ text: read('sample/work.ics') });
   assert.ok(sum.count > 1000 && sum.perYear[Y] > 500 && sum.perYear[Y - 1] > 100);
   assert.equal(sum.selfEmail, 'alex.morgan@northwindlabs.com');
-  const s = core.compute({ year: Y, selfEmail: sum.selfEmail });
+  const s = await core.compute({ year: Y, selfEmail: sum.selfEmail });
   assert.equal(s.mode, 'work');
   assert.ok(s.yoy && s.yoy.year === Y - 1);
   const a = core.addMember({ text: read('sample/team/alex.ics'), label: 'alex' });
@@ -137,7 +137,7 @@ test('flights become routes: codes, five languages, chained legs, home', async (
 test('the work sample has a globe’s worth of routes', async () => {
   const core = createCore();
   const sum = await core.loadText({ text: read('sample/work.ics') });
-  const s = core.compute({ year: Y, selfEmail: sum.selfEmail });
+  const s = await core.compute({ year: Y, selfEmail: sum.selfEmail });
   const r = s.travel.routes;
   assert.equal(r.home.name, 'London');
   assert.ok(r.legs.length >= 14 && r.km > 20000, `${r.legs.length} legs, ${r.km} km`);

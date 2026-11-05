@@ -64,7 +64,7 @@ export function countUp(el, to, { duration = 1400, decimals = 0, prefix = '', su
 /** Apply stagger indices to every [data-reveal] descendant so CSS can delay them. */
 export function stagger(root, base = 0) {
   root.querySelectorAll('[data-reveal]').forEach((node, i) => {
-    node.style.setProperty('--i', String(base + i));
+    node.style.setProperty('--i', String(base + Math.min(i, 8))); // long pages: everything below the fold is ready by the time you reach it
   });
 }
 
