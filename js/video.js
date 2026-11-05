@@ -307,10 +307,21 @@ export async function buildScenes(s) {
       ctx.globalAlpha = 1;
     });
   }
-  scene('c-pink', 2.8, (ctx, p, c) => {
-    const a = enter(p, 0.05, 0.2);
-    ctx.globalAlpha = a; ctx.font = `${Math.round(220 * (0.7 + 0.3 * a))}px ${EMOJI}`; ctx.fillStyle = c.ink; ctx.fillText(P.emoji, PAD - 10, 820); ctx.globalAlpha = 1;
-    let y = 900;
+  scene('c-pink', 3, (ctx, p, c) => {
+    // The persona lands like a rubber stamp: big and tilted, then slammed down with a jolt.
+    const k = clamp((p - 0.08) / 0.16), land = 1 - (1 - k) ** 3;
+    const sc = 2.2 - 1.2 * land + (k >= 1 ? 0 : Math.sin(k * Math.PI) * 0.06), rot = (-24 + 16 * land) * Math.PI / 180;
+    const jolt = p > 0.24 && p < 0.32 ? Math.sin((p - 0.24) / 0.08 * Math.PI * 3) * 10 * (0.32 - p) / 0.08 : 0;
+    ctx.save(); ctx.translate(W / 2, 560 + jolt); ctx.rotate(rot); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, k * 1.6);
+    ctx.strokeStyle = c.ink; ctx.lineWidth = 10; ctx.beginPath(); ctx.arc(0, 0, 300, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 3; ctx.setLineDash([8, 12]); ctx.beginPath(); ctx.arc(0, 0, 210, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    const ring = `${CONFIG.brand.name} · ${s.year} · ${P.name} · `.toLocaleUpperCase();
+    ctx.font = `800 34px ${FONT}`; ctx.fillStyle = c.ink; ctx.textAlign = 'center';
+    const chars = [...ring], step = (Math.PI * 2) / chars.length, spin = p * 0.6;
+    chars.forEach((ch, i) => { ctx.save(); ctx.rotate(i * step + spin); ctx.translate(0, -248); ctx.fillText(ch, 0, 12); ctx.restore(); });
+    ctx.font = `230px ${EMOJI}`; ctx.fillText(P.emoji, 0, 80); ctx.textAlign = 'left';
+    ctx.restore(); ctx.globalAlpha = 1;
+    let y = 960;
     y = cap(ctx, t('Your calendar persona'), y, p, c);
     y = say(ctx, P.name, y + 10, { size: 130, colour: c.ink, a: enter(p, 0.15), rise: 50, max: 3 });
     say(ctx, P.blurb, y + 30, { size: 52, weight: 500, colour: c.mute, a: enter(p, 0.3), rise: 30 });

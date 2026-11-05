@@ -37,5 +37,6 @@ export const sound = {
   tick() { if (!enabled) return; note(1320, { dur: 0.05, gain: 0.03, glide: 0.9 }); buzz(6); },
   back() { if (!enabled) return; note(990, { dur: 0.05, gain: 0.025, glide: 0.9 }); buzz(4); },
   chime() { if (!enabled) return; note(1318.5, { dur: 0.5, gain: 0.05, type: 'triangle' }); note(1975.5, { at: 0.09, dur: 0.7, gain: 0.04, type: 'triangle' }); buzz([10, 40, 14]); },
+  thud() { if (!enabled) return; note(140, { dur: 0.22, gain: 0.09, glide: 0.45, type: 'sine' }); note(70, { at: 0.01, dur: 0.3, gain: 0.07, glide: 0.6, type: 'sine' }); buzz([18, 30, 10]); },
   pop() { if (!enabled) return; note(660, { dur: 0.08, gain: 0.04, glide: 1.6 }); buzz(8); },
 };

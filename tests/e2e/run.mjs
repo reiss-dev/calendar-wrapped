@@ -92,10 +92,10 @@ await scenario('work demo: story with visuals, summary, actions, formats, link',
       if (SHOTS) { await page.waitForTimeout(3500); await shot(page, '02-slide-globe', false); }
     }
     if (await cur.locator('.cap', { hasText: 'Compared with' }).count()) seen.add('yoy');
-    if (await cur.locator('.persona-emoji').count()) { await page.waitForTimeout(500); if (await cur.locator('canvas.confetti').count()) seen.add('confetti'); }
+    if (await cur.locator('.persona-emoji').count()) { await page.waitForTimeout(1100); if (await cur.locator('canvas.confetti').count()) seen.add('confetti'); if (await cur.locator('.stamp').count()) seen.add('stamp'); }
     if (SHOTS && [0, 1, 3, 6, 7, 17].includes(i)) { await page.waitForTimeout(1300); await shot(page, `02-slide-${String(i + 1).padStart(2, '0')}`, false); }
   });
-  for (const k of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', 'canvas.globe', 'globe-drawn', 'globe-drag', 'yoy', 'confetti']) assert.ok(seen.has(k), `story should include ${k}`);
+  for (const k of ['.viz-heatmap', '.viz-clock', '.viz-bubbles', '.viz-treemap', '.viz-picto', 'canvas.globe', 'globe-drawn', 'globe-drag', 'yoy', 'confetti', 'stamp']) assert.ok(seen.has(k), `story should include ${k}`);
   assert.ok(total >= 18, `slides: ${total}`);
   assert.ok(await page.locator('.summary .viz-heatmap').count() === 1);
   assert.ok(await page.locator('.summary .viz-grid').count() === 1);

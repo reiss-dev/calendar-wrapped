@@ -8,7 +8,8 @@ import { yoyChange } from './stats.js';
 import { createGlobe } from './globe.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
-import { yearHeatmap, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti, dotMatrix, weeksBar, chain, barRace, hourBlocks } from './viz.js';
+import { monthGrid, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti, dotMatrix, weeksBar, chain, barRace, hourBlocks, personaStamp } from './viz.js';
+import { sound } from './sound.js';
 
 const R = (attrs = {}) => ({ 'data-reveal': '', ...attrs });
 const narrow = (i) => monthName(i, 'narrow');
@@ -37,12 +38,12 @@ function weekStrip(weekly, worst) {
   const n = Math.max(1, weekly.length);
   const bw = (W - gap * (n - 1)) / n;
   const max = Math.max(1, ...weekly.map((w) => w.hours));
-  const s = svg('svg', { class: 'chart', viewBox: `0 0 ${W} ${H}`, 'aria-hidden': 'true' });
+  const s = svg('svg', { class: 'chart chart-weeks', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none', 'aria-hidden': 'true' });
   weekly.forEach((w, i) => {
     const x = i * (bw + gap);
     const hgt = Math.max(3, (w.hours / max) * H);
     const isWorst = worst && new Date(w.start).getTime() === new Date(worst.start).getTime();
-    s.append(svg('rect', { class: `bar-rect ${isWorst ? '' : 'dim'}`, x, y: H - hgt, width: bw, height: hgt, rx: 2, style: `--i:${Math.min(i, 12)}; transform-origin: ${x}px ${H}px` }));
+    s.append(svg('rect', { class: `bar-rect ${isWorst ? 'worst' : 'dim'}`, x, y: H - hgt, width: bw, height: hgt, rx: 2, style: `--i:${Math.min(i, 12)}; transform-origin: ${x}px ${H}px` }));
   });
   return s;
 }
@@ -88,7 +89,7 @@ function heatSlide(s) {
     render: () => h('div', { class: 'wide' },
       cap(t('Day by day')),
       line(t('Every square is a day.')),
-      h('div', { class: 'viz-wrap', ...R() }, yearHeatmap(s.daily || {}, s.year, { unit: work ? 'h' : 'n', peak: peakEntry?.[0] })),
+      h('div', { class: 'viz-wrap fill', ...R() }, monthGrid(s.daily || {}, s.year, { unit: work ? 'h' : 'n', peak: peakEntry?.[0] })),
       h('div', R(), heatLegend()),
       peakEntry ? note(...rich(work
         ? t('Your heaviest day: **{date}**, with {h} hours of meetings.', { date: fmt.dateLong(new Date(`${peakEntry[0]}T12:00:00`)), h: fmt.num(peakEntry[1]) })
@@ -117,6 +118,19 @@ function globeSlide(s, capText) {
     ),
   };
 }
+
+// A thud: the page jolts and the phone taps when something lands.
+function thudAt(el, ms) {
+  clearTimeout(el._thud);
+  el._thud = setTimeout(() => { el.classList.remove('thud'); void el.offsetWidth; el.classList.add('thud'); sound.thud(); }, ms);
+}
+const personaSlide = (s, P) => ({
+  theme: 'c-pink',
+  onEnter: (el) => { thudAt(el, 760); clearTimeout(el._conf); el._conf = setTimeout(() => confetti(el), 820); },
+  render: () => h('div', {},
+    h('div', { class: 'viz-wrap fill stamp-wrap', ...R() }, personaStamp(P.emoji, `${CONFIG.brand.name} · ${s.year} · ${P.name} · `.toLocaleUpperCase())),
+    cap(t('Your calendar persona')), line(P.name, true), note(P.blurb)),
+});
 
 const intro = (year, what, sub) => ({
   theme: 'c-black',
@@ -162,7 +176,7 @@ function workSlides(s) {
   out.push({ theme: 'c-white', render: () => h('div', {}, cap(t('Your working time')), ring(s.shareOfWork), line(t('of your working hours were meetings.')), note(shareLine, ' ', t('Based on a {n}-hour week.', { n: fmt.num(s.workHoursPerWeek || 40) }))) });
 
   if (s.worstWeek) {
-    out.push({ theme: 'c-pink', render: () => h('div', {}, cap(t('The worst week')), h('h2', { class: 'line lg', ...R() }, fmt.weekRange(s.worstWeek.start)), big(Math.round(s.worstWeek.hours), { suffix: hrs() }), note(...rich(t('**{n} meetings** in five days. Every other week, for scale:', { n: fmt.int(s.worstWeek.count) }))), h('div', R(), weekStrip(s.weekly, s.worstWeek))) });
+    out.push({ theme: 'c-pink', onEnter: (el) => thudAt(el, 1180), render: () => h('div', {}, cap(t('The worst week')), h('h2', { class: 'line lg', ...R() }, fmt.weekRange(s.worstWeek.start)), big(Math.round(s.worstWeek.hours), { suffix: hrs() }), note(...rich(t('**{n} meetings** in five days. Every other week, for scale:', { n: fmt.int(s.worstWeek.count) }))), h('div', { class: 'viz-wrap fill weeks-wrap', ...R() }, weekStrip(s.weekly, s.worstWeek))) });
   }
 
   out.push({ theme: 'c-orange', render: () => h('div', {}, cap(t('No breathing room')), big(s.backToBack), line(t('times you went straight into the next one.')), s.longestChain.length > 1 ? h('div', { class: 'viz-wrap', ...R() }, chain(s.longestChain.length)) : null, h('div', { class: 'duo' }, tile(s.longestChain.length, t('longest chain'), s.longestChain.date ? fmt.dateLong(s.longestChain.date) : ''), tile(s.backToBackDays, t('wall-to-wall days'), t('three or more in a row')))) });
@@ -175,16 +189,16 @@ function workSlides(s) {
 
   if (s.collaborators.length) {
     const top = s.collaborators[0];
-    out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Most seen')), h('h2', { class: 'line lg', ...R() }, top.name), note(...rich(t('**{n} meetings** together, {h} hours. More than most people see their family.', { n: fmt.int(top.count), h: fmt.hours(top.hours) }))), h('div', { class: 'viz-wrap bubbles-wrap', ...R() }, bubbles(s.collaborators.map((p) => ({ label: p.name, value: p.count, sub: fmt.int(p.count) })), { max: 9 }))) });
+    out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Most seen')), h('h2', { class: 'line lg', ...R() }, top.name), note(...rich(t('**{n} meetings** together, {h} hours. More than most people see their family.', { n: fmt.int(top.count), h: fmt.hours(top.hours) }))), h('div', { class: 'viz-wrap fill bubbles-wrap', ...R() }, bubbles(s.collaborators.map((p) => ({ label: p.name, value: p.count, sub: fmt.int(p.count) })), { max: 9 }))) });
   }
 
   if (s.recurringCount) {
     const r = s.recurringSeries[0];
-    out.push({ theme: 'c-teal', render: () => h('div', {}, cap(t('Same time next week?')), bigPct(s.recurringShare), line(t('of your meeting time was on repeat.')), note(...rich(t('{n} recurring series. The heaviest: **“{title}”**, {h} hours across {c} sittings.', { n: fmt.int(s.recurringCount), title: r.title, h: fmt.hours(r.hours), c: fmt.int(r.count) }))), h('div', { class: 'viz-wrap', ...R() }, treemap(s.recurringSeries.map((x) => ({ label: x.title, value: x.hours, sub: t('{h} hrs', { h: fmt.hours(x.hours) }) })), { H: 300 }))) });
+    out.push({ theme: 'c-teal', render: () => h('div', {}, cap(t('Same time next week?')), bigPct(s.recurringShare), line(t('of your meeting time was on repeat.')), note(...rich(t('{n} recurring series. The heaviest: **“{title}”**, {h} hours across {c} sittings.', { n: fmt.int(s.recurringCount), title: r.title, h: fmt.hours(r.hours), c: fmt.int(r.count) }))), h('div', { class: 'viz-wrap fill', ...R() }, treemap(s.recurringSeries.map((x) => ({ label: x.title, value: x.hours, sub: t('{h} hrs', { h: fmt.hours(x.hours) }) })), { H: 300 }))) });
   }
 
   if (s.earliest && s.latest) {
-    out.push({ theme: 'c-black', render: () => h('div', {}, cap(t('When you meet')), line(t('Your day, hour by hour.')), h('div', { class: 'viz-wrap clock-wrap', ...R() }, radialClock(s.byHour)), h('div', { class: 'duo' }, textTile(fmt.time(s.earliest.start), t('earliest start'), s.earliest.title), textTile(fmt.time(s.latest.end), t('latest finish'), s.latest.title))) });
+    out.push({ theme: 'c-black', render: () => h('div', {}, cap(t('When you meet')), line(t('Your day, hour by hour.')), h('div', { class: 'viz-wrap fill clock-wrap', ...R() }, radialClock(s.byHour)), h('div', { class: 'duo' }, textTile(fmt.time(s.earliest.start), t('earliest start'), s.earliest.title), textTile(fmt.time(s.latest.end), t('latest finish'), s.latest.title))) });
   }
 
   if (s.busiestMonth) {
@@ -214,7 +228,7 @@ function workSlides(s) {
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
-  out.push({ theme: 'c-pink', onEnter: (el) => setTimeout(() => confetti(el), 350), render: () => h('div', {}, h('div', { class: 'persona-emoji', ...R() }, P.emoji), cap(t('Your calendar persona')), line(P.name, true), note(P.blurb)) });
+  out.push(personaSlide(s, P));
 
   const rec = s.reclaim;
   out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Next year')), big(Math.round(rec.totalHours), { suffix: hrs() }), line(t('you could realistically get back.')), note(...(rec.totalHours > 0 ? rich(t('That’s **{d} working days** from {n} specific changes, drawn from your own calendar.', { d: fmt.num(rec.workingDays), n: fmt.int(rec.suggestions.length) })) : [t('Your calendar is already in good shape. The details are on your summary.')])), rec.totalHours > 0 ? h('div', { class: 'viz-wrap', ...R() }, hourBlocks(s.totalHours * (s.daysCovered ? 365 / Math.max(30, s.daysCovered) : 1), rec.totalHours)) : null), cta: ({ finish }) => h('button', { class: 'btn btn-lg', onClick: finish }, t('See my card')) });
@@ -236,12 +250,12 @@ function personalSlides(s) {
   if (yoy) out.push(yoy);
 
   if (s.categories.length) {
-    out.push({ theme: 'c-orange', render: () => h('div', {}, cap(t('Where the time went')), line(t('{category}, mostly.', { category: categoryLabel(s.categories[0].key) })), h('div', { class: 'viz-wrap', ...R() }, treemap(s.categories.map((c) => ({ label: categoryLabel(c.key), value: c.count, sub: fmt.int(c.count) })), { H: 300 }))) });
+    out.push({ theme: 'c-orange', render: () => h('div', {}, cap(t('Where the time went')), line(t('{category}, mostly.', { category: categoryLabel(s.categories[0].key) })), h('div', { class: 'viz-wrap fill', ...R() }, treemap(s.categories.map((c) => ({ label: categoryLabel(c.key), value: c.count, sub: fmt.int(c.count) })), { H: 300 }))) });
   }
 
   if (s.people.length) {
     const top = s.people[0];
-    out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Your people')), h('h2', { class: 'line lg', ...R() }, top.name), note(...rich(t('**{n} plans** together this year. {p} people made it into the calendar at all.', { n: fmt.int(top.count), p: fmt.int(s.uniquePeople) }))), h('div', { class: 'viz-wrap bubbles-wrap', ...R() }, bubbles(s.people.map((p) => ({ label: p.name, value: p.count, sub: fmt.int(p.count) })), { max: 9 }))) });
+    out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Your people')), h('h2', { class: 'line lg', ...R() }, top.name), note(...rich(t('**{n} plans** together this year. {p} people made it into the calendar at all.', { n: fmt.int(top.count), p: fmt.int(s.uniquePeople) }))), h('div', { class: 'viz-wrap fill bubbles-wrap', ...R() }, bubbles(s.people.map((p) => ({ label: p.name, value: p.count, sub: fmt.int(p.count) })), { max: 9 }))) });
   }
   if (hasBirthdays(s)) out.push(birthdaySlide(s));
 
@@ -253,7 +267,7 @@ function personalSlides(s) {
   out.push({ theme: 'c-teal', render: () => h('div', {}, cap(t('Weekends')), big(s.freeWeekends), line(s.freeWeekends === 1 ? t('weekend with nothing planned.') : t('weekends with nothing planned.')), note(t('Out of {n}.', { n: fmt.int(s.totalWeekends) }), ' ', s.freeWeekends / Math.max(1, s.totalWeekends) > 0.5 ? t('Spontaneous or sofa-bound, your call.') : t('Your weekends work harder than most people’s weeks.')), h('div', { class: 'duo' }, tile(s.weekendEvents, t('weekend plans')), tile(s.eveningEvents, t('weeknight plans')))) });
 
   if (s.earliest && s.latest) {
-    out.push({ theme: 'c-black', render: () => h('div', {}, cap(t('Early and late')), line(t('Your day, hour by hour.')), h('div', { class: 'viz-wrap clock-wrap', ...R() }, radialClock(s.byHour)), h('div', { class: 'duo' }, textTile(fmt.time(s.earliest.start), t('earliest start'), s.earliest.title), textTile(fmt.time(s.latest.end), t('latest finish'), s.latest.title))) });
+    out.push({ theme: 'c-black', render: () => h('div', {}, cap(t('Early and late')), line(t('Your day, hour by hour.')), h('div', { class: 'viz-wrap fill clock-wrap', ...R() }, radialClock(s.byHour)), h('div', { class: 'duo' }, textTile(fmt.time(s.earliest.start), t('earliest start'), s.earliest.title), textTile(fmt.time(s.latest.end), t('latest finish'), s.latest.title))) });
   }
 
   if (s.travel.routes) out.push(globeSlide(s, t('Away')));
@@ -270,7 +284,7 @@ function personalSlides(s) {
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
-  out.push({ theme: 'c-pink', onEnter: (el) => setTimeout(() => confetti(el), 350), render: () => h('div', {}, h('div', { class: 'persona-emoji', ...R() }, P.emoji), cap(t('Your calendar persona')), line(P.name, true), note(P.blurb)) });
+  out.push(personaSlide(s, P));
 
   out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Next year')), line(t('A few gentle nudges.'), true), note(tn('{n} small idea drawn from your own year, waiting on your summary. No guilt, just patterns.', '{n} small ideas drawn from your own year, waiting on your summary. No guilt, just patterns.', s.reclaim.suggestions.length))), cta: ({ finish }) => h('button', { class: 'btn btn-lg', onClick: finish }, t('See my card')) });
 

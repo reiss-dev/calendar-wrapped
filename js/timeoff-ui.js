@@ -103,7 +103,7 @@ export function birthdaySlide(s) {
     render: () => h('div', {},
       h('p', { class: 'cap', ...R() }, t('Birthdays')),
       h('h2', { class: 'line', ...R() }, b.busiestMonth ? t('{month} is birthday season.', { month: monthName(b.busiestMonth.i) }) : tn('{n} birthday in the calendar.', '{n} birthdays in the calendar.', b.count)),
-      h('div', { class: 'viz-wrap bday-wrap', ...R() }, birthdayWheel(b)),
+      h('div', { class: 'viz-wrap fill bday-wrap', ...R() }, birthdayWheel(b)),
       next ? h('p', { class: 'note', ...R() }, ...rich(t('Next up: **{name}**, {date}.', { name: next.name, date: fmt.date(d(next.next)) }))) : null,
       big ? h('p', { class: 'note', ...R() }, big) : null,
     ),

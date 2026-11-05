@@ -329,6 +329,7 @@ export function leaveYear(days, year, { highlight = null } = {}) {
       s.append(svg('rect', { x: x0, y: rowY(m) - r - 2.5, width: x1 - x0, height: r * 2 + 5, rx: r + 2.5, class: 'lv-hl' }));
     }
   }
+  let order = 0;
   for (let m = 0; m < 12; m++) {
     s.append(svg('text', { x: 0, y: rowY(m) + 4, class: 'viz-label' }, monthName(m, 'short')));
     const n = new Date(year, m + 1, 0).getDate();
@@ -338,7 +339,7 @@ export function leaveYear(days, year, { highlight = null } = {}) {
       const kind = days[k];
       const we = date.getDay() === 0 || date.getDay() === 6;
       const cls = kind === 'l' ? 'lv on' : kind === 'b' ? 'lv booked' : kind === 'h' ? 'lv hol' : we ? 'lv we' : 'lv';
-      s.append(svg('circle', { cx: left + (d - 1) * step + r, cy: rowY(m), r: kind ? r : we ? r * 0.55 : r * 0.75, class: cls, style: `--i:${m * 4 + Math.floor(d / 3)}` }));
+      s.append(svg('circle', { cx: left + (d - 1) * step + r, cy: rowY(m), r: kind ? r : we ? r * 0.55 : r * 0.75, class: cls, style: `--i:${m * 4 + Math.floor(d / 3)}${kind ? `; --s:${order++}` : ''}` }));
     }
   }
   return s;
@@ -398,4 +399,41 @@ export function birthdayWheel(info) {
   s.append(svg('text', { x: c, y: c + 10, 'text-anchor': 'middle', class: 'viz-center bd-n' }, String(info.count)));
   s.append(svg('text', { x: c, y: c + 34, 'text-anchor': 'middle', class: 'viz-label bd-l' }, info.count === 1 ? t('birthday') : t('birthdays')));
   return s;
+}
+
+// ---------------------------------------------------------------- the year as twelve months
+/** Twelve little month calendars, three across: the year heatmap shaped for a phone. */
+export function monthGrid(daily, year, { unit = 'h', peak = null } = {}) {
+  const cell = 10, step = 12.5, mw = 7 * step, lab = 15, mh = lab + 6 * step, gx = 18, gy = 12;
+  const W = 3 * mw + 2 * gx, H = 4 * mh + 3 * gy;
+  const cap = quantile(Object.values(daily), 0.95) || 1;
+  const today = new Date();
+  const s = svg('svg', { class: 'viz viz-heatmap viz-months', viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': t('Your year, day by day') });
+  for (let m = 0; m < 12; m++) {
+    const x0 = (m % 3) * (mw + gx), y0 = Math.floor(m / 3) * (mh + gy);
+    s.append(svg('text', { x: x0, y: y0 + 10, class: 'viz-label' }, monthName(m, 'short')));
+    const first = (new Date(year, m, 1).getDay() + 6) % 7, n = new Date(year, m + 1, 0).getDate();
+    for (let d = 1; d <= n; d++) {
+      const date = new Date(year, m, d), k = key(date), idx = first + d - 1;
+      const v = daily[k] || 0;
+      const r = svg('rect', { x: x0 + (idx % 7) * step, y: y0 + lab + Math.floor(idx / 7) * step, width: cell, height: cell, rx: 2.5,
+        class: `cell${date > today ? ' future' : ''}${k === peak ? ' peak' : ''}`, style: `--v:${(v ? Math.max(0.18, Math.min(1, v / cap)) : 0).toFixed(2)}; --c:${m * 3 + Math.floor(idx / 7)}` });
+      r.append(svg('title', {}, `${fmt.dateLong(date)}: ${unit === 'h' ? t('{h} hours in meetings', { h: fmt.num(v) }) : t('{n} plans', { n: fmt.int(v) })}`));
+      s.append(r);
+    }
+  }
+  return s;
+}
+
+// ---------------------------------------------------------------- persona stamp
+/** A rubber stamp: the persona's emoji in a ring of type. Returns a wrapper with the emoji as real text. */
+export function personaStamp(emoji, ringText) {
+  const S = 300, c = S / 2, r = 118;
+  const id = `stamp-${Math.random().toString(36).slice(2, 8)}`;
+  const ring = svg('svg', { class: 'viz stamp-ring', viewBox: `0 0 ${S} ${S}`, 'aria-hidden': 'true' },
+    svg('defs', {}, svg('path', { id, d: `M ${c} ${c} m -${r} 0 a ${r} ${r} 0 1 1 ${r * 2} 0 a ${r} ${r} 0 1 1 -${r * 2} 0` })),
+    svg('circle', { cx: c, cy: c, r: 144, class: 'st-outer' }),
+    svg('circle', { cx: c, cy: c, r: 98, class: 'st-inner' }),
+    svg('g', { class: 'st-spin' }, svg('text', { class: 'st-text' }, svg('textPath', { href: `#${id}`, textLength: Math.floor(2 * Math.PI * r) - 4, lengthAdjust: 'spacing' }, ringText))));
+  return h('div', { class: 'stamp' }, ring, h('div', { class: 'persona-emoji stamp-emoji' }, emoji));
 }

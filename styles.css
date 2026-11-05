@@ -891,3 +891,51 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   .slide .viz-leave { max-height: 25vh; width: auto; max-width: 100%; }
   .slide .bday-wrap .viz-bday { max-height: 32vh; width: auto; margin: 0 auto; }
 }
+
+/* ---------- fill the page: a page's main visual takes the space the words leave ---------- */
+.slide { display: flex; flex-direction: column; justify-content: flex-end; justify-content: safe flex-end; }
+.slide-inner { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.slide-inner > div:first-child { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.slide:has(.fill) .slide-inner { flex: 1 1 auto; }
+.slide .viz-wrap.fill { flex: 1 1 auto; min-height: 140px; max-height: min(60vh, 560px); display: flex; align-items: center; justify-content: center; margin-top: 18px; margin-bottom: 4px; }
+.slide .viz-wrap.fill > svg, .slide .viz-wrap.fill > .stamp { width: 100%; height: 100%; max-width: 100%; }
+.slide .viz-wrap.fill.clock-wrap { max-width: none; }
+.slide .viz-wrap.fill.bday-wrap { max-width: none; margin-inline: 0; }
+@media (max-height: 760px) { .slide .viz-wrap.fill { min-height: 110px; } .slide .clock-wrap .viz-clock, .slide .bday-wrap .viz-bday { max-height: none; } }
+
+/* Year as months on the heatmap page */
+.viz-months .viz-label { font-size: 9px; font-weight: 600; text-transform: capitalize; }
+.viz-months .cell { animation-delay: calc(var(--c) * 22ms + 200ms); }
+
+/* ---------- persona stamp ---------- */
+.stamp { position: relative; display: grid; place-items: center; aspect-ratio: 1; height: 100%; max-height: 100%; width: auto !important; margin-inline: auto; }
+.stamp-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.stamp-ring .st-outer { fill: none; stroke: var(--sink); stroke-width: 5; }
+.stamp-ring .st-inner { fill: none; stroke: var(--sink); stroke-width: 1.5; stroke-dasharray: 3 5; opacity: 0.7; }
+.stamp-ring .st-text { fill: var(--sink); font: 800 17px var(--font); letter-spacing: 0.08em; }
+.stamp-ring .st-spin { transform-origin: 150px 150px; animation: st-spin 40s linear infinite; }
+.stamp-emoji { position: relative; font-size: clamp(64px, 14vh, 120px); line-height: 1; margin: 0 !important; }
+@keyframes st-spin { to { transform: rotate(360deg); } }
+.slide .stamp { animation: stamp-slam 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 0.4s both; transform: rotate(-8deg); }
+@keyframes stamp-slam { from { opacity: 0; transform: scale(2.3) rotate(-24deg); } 70% { opacity: 1; } to { opacity: 1; transform: scale(1) rotate(-8deg); } }
+/* The whole page jolts when something lands. */
+.slide.thud { animation: thud 0.42s cubic-bezier(0.3, 0, 0.3, 1); }
+@keyframes thud { 0% { transform: none; } 20% { transform: translate(0, 7px) scale(0.994); } 45% { transform: translate(-3px, -2px); } 70% { transform: translate(2px, 1px); } 100% { transform: none; } }
+
+/* ---------- worst week: the bar that slams in last ---------- */
+.chart .bar-rect.worst { fill: var(--sink); animation: slam-y 0.55s cubic-bezier(0.25, 1.7, 0.45, 1) both; animation-delay: 1.05s; }
+@keyframes slam-y { from { transform: scaleY(0); } }
+
+/* ---------- time off: the days light up through the year ---------- */
+.viz-leave .lv.on, .viz-leave .lv.booked, .viz-leave .lv.hol { animation: lv-light 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both; animation-delay: calc(var(--s, 0) * 38ms + 700ms); }
+@keyframes lv-light { from { opacity: 0; transform: scale(2.4); } }
+
+/* ---------- highlights: the line draws down the year ---------- */
+.slide .timeline::before { transform-origin: top; animation: grow-y 1.1s var(--ease) 0.25s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slide .stamp, .slide.thud, .chart .bar-rect.worst, .viz-leave .lv, .slide .timeline::before, .stamp-ring .st-spin { animation: none !important; }
+}
+.slide .weeks-wrap { align-items: stretch; max-height: min(42vh, 420px); }
+.slide .weeks-wrap .chart-weeks { margin-top: 0; }
+.report .chart .bar-rect.worst { animation: none; }
