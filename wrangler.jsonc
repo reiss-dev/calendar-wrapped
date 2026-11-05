@@ -1,0 +1,25 @@
+// Cloudflare Workers config. With Workers Builds connected to this repo, every push to main
+// deploys. Static files come from the repo root (see .assetsignore); worker/index.js handles
+// /api/*, /c/<token> (link previews) and /og/<token> (preview images).
+// Bindings live here, not in the dashboard: a deploy replaces whatever isn't listed.
+// Add the KV namespaces from LAUNCH.md step 6 by uncommenting and filling in their IDs.
+{
+  "name": "calendar-wrapped",
+  "main": "worker/index.js",
+  "compatibility_date": "2025-07-18",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  // Keeps variables set in the dashboard (secrets always survive a deploy).
+  "keep_vars": true,
+  "observability": { "enabled": true }
+  // "kv_namespaces": [
+  //   { "binding": "SUBSCRIBERS", "id": "<id>" },
+  //   { "binding": "COUNTERS", "id": "<id>" },
+  //   { "binding": "BENCH", "id": "<id>" },
+  //   { "binding": "REFERRALS", "id": "<id>" }
+  // ]
+}

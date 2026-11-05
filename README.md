@@ -68,6 +68,7 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 | Languages | `js/i18n.js`, `js/i18n/*.js`, `tools/i18n-*.js` |
 | Tester tools | `diagnose.html`, `js/anonymise.js`, `tools/inspect.js` |
 | Brand, prices, sign-in client IDs, toggles | `js/config.js` |
+| Deploy: Workers entry and config (also deploys as Pages) | `worker/index.js`, `wrangler.jsonc`, `.assetsignore` |
 
 ## How the numbers are counted
 

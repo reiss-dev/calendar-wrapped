@@ -32,7 +32,7 @@ export async function onRequestGet({ params, request, env }) {
   const token = String(params.token || '');
   const model = decodeModel(token);
   if (!model) return Response.redirect(new URL('/', url).href, 302);
-  const page = await env.ASSETS.fetch(new URL('/index.html', url));
+  const page = await env.ASSETS.fetch(new URL('/', url)); // '/' rather than '/index.html', which redirects
   const html = withCardMeta(await page.text(), { origin: url.origin, token, model });
   return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } });
 }

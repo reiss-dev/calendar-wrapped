@@ -1,0 +1,21 @@
+# Not served as static files (Workers static assets).
+.git
+.github
+.claude
+.assetsignore
+.gitignore
+node_modules
+functions
+worker
+workers
+tests
+tools
+grafana
+wrangler.jsonc
+wrangler.toml
+package.json
+package-lock.json
+*.md
+sample/outlook-*.ics
+.wrangler
+.dev.vars

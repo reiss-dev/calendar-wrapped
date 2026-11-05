@@ -53,7 +53,11 @@ Add any interesting anonymised file to `tests/fixtures/` with a test. Priority: 
 
 ## 6. Deploy (an hour)
 
-Cloudflare Pages, no build command, output directory `/`.
+**Cloudflare Workers (recommended).** In the dashboard, Workers & Pages → Create → Import a repository → `calendar-wrapped`. Leave the build command empty and keep the deploy command `npx wrangler deploy`. `wrangler.jsonc` does the rest: static files from the repo root (minus `.assetsignore`), and `worker/index.js` for `/api/*`, share links and preview images. Every push to `main` deploys.
+
+Bindings live in `wrangler.jsonc`, not the dashboard, because a deploy replaces anything that isn't listed there. Create the four KV namespaces (Storage & Databases → KV), paste their IDs into the commented `kv_namespaces` block and push. Add keys and tokens under the Worker's Settings → Variables and Secrets as **secrets**; they survive deploys.
+
+**Or Cloudflare Pages.** Still works: no build command, output directory `/`, and `functions/` is picked up automatically.
 
 | Setting | Value | For |
 |---|---|---|
