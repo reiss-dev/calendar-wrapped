@@ -102,7 +102,7 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
     const forward = i > index;
     index = i;
     const cur = slideEl(i);
-    if (prev) { prev.classList.remove('is-current'); prev.classList.add('is-leaving'); prev.dataset.dir = forward ? 'fwd' : 'back'; prev.setAttribute('aria-hidden', 'true'); setTimeout(() => prev.classList.remove('is-leaving'), 600); }
+    if (prev) { prev.classList.remove('is-current'); prev.classList.add('is-leaving'); prev.dataset.dir = forward ? 'fwd' : 'back'; prev.setAttribute('aria-hidden', 'true'); setTimeout(() => prev.classList.remove('is-leaving'), 680); }
     cur.dataset.dir = forward ? 'fwd' : 'back';
     cur.classList.add('is-current');
     cur.removeAttribute('aria-hidden');

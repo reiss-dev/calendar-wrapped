@@ -811,4 +811,8 @@ export default {
   "The big moments, from your calendar and from you.": "De store øjeblikke, fra din kalender og fra dig.",
   "Nothing yet. Add the moments your calendar can’t know about.": "Intet endnu. Tilføj de øjeblikke, din kalender ikke kan vide noget om.",
   "Added to your highlights.": "Føjet til dine højdepunkter.",
+  "in flights.": "i flyrejser.",
+  "in birthdays.": "i fødselsdage.",
+  "in days off.": "i fridage.",
+  "Your year,": "Dit år,",
 };

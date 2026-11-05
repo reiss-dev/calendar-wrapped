@@ -7,11 +7,15 @@ import { cardTiles, modelPersona } from './model.js';
 
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Inter", Helvetica, Arial, sans-serif';
 const EMOJI = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
-const BG = { w: '#0a5cff', p: '#ff2d55' };
+const DISPLAY = '"Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif';
+/** Card paper and ink for work and personal cards, matching the story's two-tone pages. */
+const CARD = { w: ['#2338e8', '#ffd9e6'], p: ['#ff4f8b', '#3a0619'] };
+export const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+export const isLightInk = (hex) => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150; };
 export const THEME_COLOURS = {
-  'c-black': ['#000000', '#ffffff'], 'c-graphite': ['#1c1c1e', '#ffffff'], 'c-blue': ['#0a5cff', '#ffffff'], 'c-indigo': ['#3a36c8', '#ffffff'],
-  'c-purple': ['#7a3ff2', '#ffffff'], 'c-pink': ['#ff2d55', '#ffffff'], 'c-orange': ['#ff6a00', '#ffffff'], 'c-green': ['#1fa65a', '#ffffff'],
-  'c-teal': ['#0098b8', '#ffffff'], 'c-yellow': ['#ffd60a', '#1d1d1f'], 'c-white': ['#f5f5f7', '#1d1d1f'],
+  'c-black': ['#121014', '#f2eee6'], 'c-graphite': ['#24212b', '#e9e3ff'], 'c-blue': ['#2338e8', '#ffd9e6'], 'c-indigo': ['#1e1a4d', '#b8b2ff'],
+  'c-purple': ['#c8b6ff', '#2b0e52'], 'c-pink': ['#ff4f8b', '#3a0619'], 'c-orange': ['#ff5a1f', '#2a0e00'], 'c-green': ['#a8f0c6', '#0b3b2b'],
+  'c-teal': ['#0d5c63', '#bdf5ee'], 'c-yellow': ['#ffd23f', '#2e1a05'], 'c-white': ['#f3f1ec', '#17151a'],
 };
 
 export const FORMATS = {
@@ -21,16 +25,19 @@ export const FORMATS = {
   wide: { label: () => t('Wide'), W: 1200, H: 630 },
 };
 
-const setFont = (ctx, weight, size, tracking = 0) => { ctx.font = `${weight} ${size}px ${FONT}`; ctx.letterSpacing = `${tracking}px`; };
+const setFont = (ctx, weight, size, tracking = 0, stretch = null) => {
+  ctx.font = `${weight} ${size}px ${stretch ? DISPLAY : FONT}`; ctx.letterSpacing = `${tracking}px`;
+  if ('fontStretch' in ctx) ctx.fontStretch = stretch || 'normal';
+};
 function rounded(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
 }
-function fitSize(ctx, text, maxWidth, weight, size, min, trackingRatio) {
+function fitSize(ctx, text, maxWidth, weight, size, min, trackingRatio, stretch = null) {
   let s = size;
-  while (s > min) { setFont(ctx, weight, s, trackingRatio * s); if (ctx.measureText(text).width <= maxWidth) break; s -= 2; }
-  setFont(ctx, weight, s, trackingRatio * s);
+  while (s > min) { setFont(ctx, weight, s, trackingRatio * s, stretch); if (ctx.measureText(text).width <= maxWidth) break; s -= 2; }
+  setFont(ctx, weight, s, trackingRatio * s, stretch);
   return s;
 }
 function wrap(ctx, text, maxWidth) {
@@ -56,10 +63,11 @@ export function renderCard(canvas, model, { format = 'portrait', watermark = tru
   const { W, H } = F;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  const ink = '#ffffff', mute = 'rgba(255,255,255,0.72)', rule = 'rgba(255,255,255,0.26)';
+  const [paper, ink] = CARD[model.m] || CARD.w;
+  const mute = hexA(ink, 0.74), rule = hexA(ink, 0.28);
   const pad = L.pad;
   const persona = modelPersona(model);
-  ctx.fillStyle = BG[model.m] || BG.w; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = paper; ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
 
   setFont(ctx, 600, L.brand, -0.3); ctx.fillStyle = ink;
@@ -70,8 +78,8 @@ export function renderCard(canvas, model, { format = 'portrait', watermark = tru
   const headW = format === 'wide' ? L.tiles.x - pad - 40 : W - pad * 2;
   ctx.fillStyle = ink;
   const l1 = t('Your {year},', { year: model.y }), l2 = model.m === 'w' ? t('in meetings.') : t('in plans.');
-  const size = Math.min(fitSize(ctx, l1, headW, 700, hs, hs * 0.6, -0.047), fitSize(ctx, l2, headW, 700, hs, hs * 0.6, -0.047));
-  setFont(ctx, 700, size, -size * 0.047);
+  const size = Math.min(fitSize(ctx, l1, headW, 800, hs * 1.12, hs * 0.6, -0.03, 'condensed'), fitSize(ctx, l2, headW, 800, hs * 1.12, hs * 0.6, -0.03, 'condensed'));
+  setFont(ctx, 800, size, -size * 0.03, 'condensed');
   ctx.fillText(l1, pad - 3, y1);
   ctx.fillText(l2, pad - 3, y2);
 
@@ -82,7 +90,7 @@ export function renderCard(canvas, model, { format = 'portrait', watermark = tru
   ctx.fillText(persona.emoji, pad, P.y + P.emojiDy);
   setFont(ctx, 500, P.cap, -0.3); ctx.fillStyle = mute;
   ctx.fillText(t('Your calendar persona'), pad + P.indent + 2, P.y + P.capDy);
-  ctx.fillStyle = ink; fitSize(ctx, persona.name, pw - P.indent - 8, 700, P.name, Math.round(P.name * 0.55), -0.036);
+  ctx.fillStyle = ink; fitSize(ctx, persona.name, pw - P.indent - 8, 800, P.name * 1.08, Math.round(P.name * 0.55), -0.025, 'semi-condensed');
   ctx.fillText(persona.name, pad + P.indent, P.y + P.nameDy);
 
   const T = L.tiles;
@@ -95,7 +103,7 @@ export function renderCard(canvas, model, { format = 'portrait', watermark = tru
     ctx.fillStyle = rule; ctx.fillRect(x, y, colW, 2);
     const numeric = /^[\d.,\s %]+$/.test(v);
     ctx.fillStyle = ink;
-    fitSize(ctx, v, colW - 8, numeric ? 700 : 600, numeric ? T.num : T.text, Math.round(T.text * 0.55), numeric ? -0.047 : -0.027);
+    fitSize(ctx, v, colW - 8, numeric ? 800 : 700, numeric ? T.num * 1.12 : T.text, Math.round(T.text * 0.55), numeric ? -0.025 : -0.02, numeric ? 'condensed' : 'semi-condensed');
     ctx.fillText(v, x, y + T.valueDy);
     ctx.fillStyle = mute; fitSize(ctx, l, colW - 4, 500, T.label, Math.round(T.label * 0.75), -0.01);
     ctx.fillText(l, x, y + T.labelDy);
@@ -106,7 +114,7 @@ export function renderCard(canvas, model, { format = 'portrait', watermark = tru
     const mx = M.x ?? pad, mw = (M.x ? W - pad - M.x : W - pad * 2), g = Math.round(mw / 100), bw = (mw - 11 * g) / 12;
     model.mo.forEach((v, i) => {
       const bh = Math.max(5, (v / 100) * M.h);
-      ctx.fillStyle = i === model.hi ? ink : 'rgba(255,255,255,0.38)';
+      ctx.fillStyle = i === model.hi ? ink : hexA(ink, 0.36);
       rounded(ctx, mx + i * (bw + g), M.y + M.h - bh, bw, bh, Math.min(5, bw / 4)); ctx.fill();
     });
     setFont(ctx, 500, M.label, 0); ctx.fillStyle = mute; ctx.textAlign = 'center';
@@ -128,8 +136,7 @@ export function renderSlideCard(canvas, spec, theme = 'c-blue') {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
   const [bg, ink] = THEME_COLOURS[theme] || THEME_COLOURS['c-blue'];
-  const dark = ink !== '#ffffff';
-  const mute = dark ? 'rgba(29,29,31,0.62)' : 'rgba(255,255,255,0.74)';
+  const mute = hexA(ink, 0.74);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
 
@@ -139,13 +146,13 @@ export function renderSlideCard(canvas, spec, theme = 'c-blue') {
   const maxW = W - pad * 2;
   const blocks = [];
   if (spec.emoji) blocks.push({ h: 200, draw: (y) => { ctx.font = `150px ${EMOJI}`; ctx.letterSpacing = '0px'; ctx.fillStyle = ink; ctx.fillText(spec.emoji, pad - 4, y + 160); } });
-  if (spec.cap) blocks.push({ h: 70, draw: (y) => { setFont(ctx, 500, 38, -0.4); ctx.fillStyle = mute; ctx.fillText(spec.cap, pad, y + 44); } });
+  if (spec.cap) blocks.push({ h: 70, draw: (y) => { setFont(ctx, 650, 30, 2.6); ctx.fillStyle = mute; ctx.fillText(spec.cap.toLocaleUpperCase(), pad, y + 44); } });
   if (spec.big != null && spec.big !== '') {
     blocks.push({ h: 330, draw: (y) => {
       ctx.fillStyle = ink;
-      const size = fitSize(ctx, String(spec.big), maxW - (spec.unit ? 180 : 0), 700, 340, 140, -0.06);
+      const size = fitSize(ctx, String(spec.big), maxW - (spec.unit ? 180 : 0), 800, 400, 140, -0.03, 'condensed');
       ctx.fillText(String(spec.big), pad - 8, y + 290);
-      if (spec.unit) { const w = ctx.measureText(String(spec.big)).width; setFont(ctx, 500, Math.round(size * 0.24), -1); ctx.fillStyle = mute; ctx.fillText(spec.unit, pad + w + 12, y + 290); }
+      if (spec.unit) { const w = ctx.measureText(String(spec.big)).width; setFont(ctx, 600, Math.round(size * 0.2), -1); ctx.fillStyle = mute; ctx.fillText(spec.unit, pad + w + 12, y + 290); }
     } });
   }
   if (spec.image && spec.image.width) {
@@ -154,9 +161,9 @@ export function renderSlideCard(canvas, spec, theme = 'c-blue') {
   }
   if (spec.line) {
     const size = spec.big ? 70 : (spec.image ? 76 : 110);
-    setFont(ctx, 700, size, -size * 0.03);
+    setFont(ctx, 750, size, -size * 0.02, 'semi-condensed');
     const lines = wrap(ctx, spec.line, maxW).slice(0, 4);
-    blocks.push({ h: lines.length * size * 1.1 + 30, draw: (y) => { setFont(ctx, 700, size, -size * 0.03); ctx.fillStyle = ink; lines.forEach((l, i) => ctx.fillText(l, pad, y + size + i * size * 1.1)); } });
+    blocks.push({ h: lines.length * size * 1.1 + 30, draw: (y) => { setFont(ctx, 750, size, -size * 0.02, 'semi-condensed'); ctx.fillStyle = ink; lines.forEach((l, i) => ctx.fillText(l, pad, y + size + i * size * 1.1)); } });
   }
   if (spec.note) {
     setFont(ctx, 500, 40, -0.4);

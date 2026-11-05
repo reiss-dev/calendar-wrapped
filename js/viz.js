@@ -206,7 +206,7 @@ export function travelArcs(places) {
 
 // ---------------------------------------------------------------- confetti
 /** A short burst over an element. Skipped when people prefer reduced motion. */
-export function confetti(host, { colours = ['#ffffff', '#ffd60a', '#34c759', '#0a84ff', '#ff2d55', '#bf5af2'], count = 140 } = {}) {
+export function confetti(host, { colours = ['#ffd9e6', '#ffd23f', '#a8f0c6', '#b8b2ff', '#ff5a1f', '#2338e8', '#ff4f8b'], count = 140 } = {}) {
   if (reduceMotion() || !host) return;
   const c = document.createElement('canvas');
   c.className = 'confetti';

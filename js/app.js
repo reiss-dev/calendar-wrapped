@@ -71,6 +71,7 @@ function initLanguagePicker() {
     state.options.week = null;
     track('lang_changed');
     translateDom();
+    initFlip();
     renderShowcase();
     rerender();
   };
@@ -84,7 +85,28 @@ function rerender() {
 }
 
 // ---------- landing ----------
+// The landing headline ends on a flip-calendar tile that cycles through what a year is made of.
+let flipTimer = null;
+function initFlip() {
+  const h1 = document.querySelector('.hero h1');
+  if (!h1) return;
+  clearInterval(flipTimer);
+  const words = [t('in meetings.'), t('in plans.'), t('in flights.'), t('in birthdays.'), t('in days off.')];
+  const word = h('span', { class: 'flip-word' }, words[0]);
+  const tile = h('span', { class: 'flip', 'aria-hidden': 'true' }, word);
+  h1.replaceChildren(t('Your year,'), h('br'), tile, h('span', { class: 'sr-only' }, words[0]));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let i = 0;
+  flipTimer = setInterval(() => {
+    if (document.hidden || state.view !== 'landing') return;
+    i = (i + 1) % words.length;
+    word.classList.remove('in'); word.classList.add('out');
+    setTimeout(() => { word.textContent = words[i]; word.classList.remove('out'); void word.offsetWidth; word.classList.add('in'); }, 230);
+  }, 2400);
+}
+
 function initLanding() {
+  initFlip();
   document.querySelectorAll('[data-brand-name]').forEach((n) => { n.textContent = CONFIG.brand.name; });
   document.title = CONFIG.brand.name;
   const input = document.getElementById('file-input');
@@ -377,6 +399,8 @@ async function showSummary({ push = true } = {}) {
   ));
   stagger(host);
   draw();
+  // The card is drawn on a canvas, which can't swap fonts by itself: redraw once the display face is in.
+  document.fonts?.load('800 100px "Bricolage Grotesque"').then(() => { if (canvas.isConnected) draw(); }).catch(() => {});
   host.querySelectorAll('canvas.globe').forEach((c) => createGlobe(c, s.travel.routes, { duration: 4200 }));
 }
 

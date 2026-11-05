@@ -14,6 +14,8 @@ import { highlights, showHighlights } from './extras.js';
 export const W = 1080, H = 1920, FPS = 30;
 const PAD = 96;
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Inter", Helvetica, Arial, sans-serif';
+const DISPLAY = '"Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif';
+const stretch = (ctx, v) => { if ('fontStretch' in ctx) ctx.fontStretch = v; };
 const EMOJI = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 const clamp = (x) => Math.max(0, Math.min(1, x));
 const easeOut = (x) => 1 - (1 - clamp(x)) ** 4;
@@ -28,9 +30,11 @@ function wrap(ctx, text, maxW) {
   return lines;
 }
 /** Text that rises and fades in. Returns the y below it. */
-function say(ctx, str, y, { size, weight = 700, colour, a = 1, rise = 0, maxW = W - PAD * 2, lh = 1.1, x = PAD, max = 4 }) {
+function say(ctx, str, y, { size, weight = 700, colour, a = 1, rise = 0, maxW = W - PAD * 2, lh = 1.1, x = PAD, max = 4, track = null }) {
   if (!str) return y;
-  ctx.font = `${weight} ${size}px ${FONT}`; ctx.letterSpacing = `${(-size * 0.025).toFixed(1)}px`;
+  const display = weight >= 700;
+  ctx.font = `${display ? Math.max(weight, 750) : weight} ${size}px ${display ? DISPLAY : FONT}`; ctx.letterSpacing = track != null ? `${track}px` : `${(-size * (display ? 0.018 : 0.012)).toFixed(1)}px`;
+  stretch(ctx, display ? 'semi-condensed' : 'normal');
   const lines = wrap(ctx, str, maxW).slice(0, max);
   ctx.globalAlpha = a; ctx.fillStyle = colour;
   lines.forEach((l, i) => ctx.fillText(l, x, y + size + i * size * lh + (1 - a) * rise));
@@ -43,14 +47,15 @@ function bigNumber(ctx, value, y, p, colour, mute, { unit = '', decimals = 0, pr
   const v = value * k;
   const str = `${prefix}${Number(v).toLocaleString(document.documentElement.lang || 'en', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${suffix}`;
   let size = 330;
-  ctx.font = `700 ${size}px ${FONT}`; ctx.letterSpacing = `${-size * 0.06}px`;
+  let size2 = size * 1.15; size = size2;
+  ctx.font = `800 ${size}px ${DISPLAY}`; ctx.letterSpacing = `${-size * 0.03}px`; stretch(ctx, 'condensed');
   const maxW = W - PAD * 2 - (unit ? 170 : 0);
   const full = `${prefix}${Number(value).toLocaleString(document.documentElement.lang || 'en', { maximumFractionDigits: decimals })}${suffix}`;
-  while (size > 150 && ctx.measureText(full).width > maxW) { size -= 10; ctx.font = `700 ${size}px ${FONT}`; ctx.letterSpacing = `${-size * 0.06}px`; }
+  while (size > 150 && ctx.measureText(full).width > maxW) { size -= 10; ctx.font = `800 ${size}px ${DISPLAY}`; ctx.letterSpacing = `${-size * 0.03}px`; }
   ctx.globalAlpha = enter(p, 0, 0.1); ctx.fillStyle = colour;
   ctx.fillText(str, PAD - 8, y + size * 0.86);
-  if (unit) { const w = ctx.measureText(str).width; ctx.font = `500 ${Math.round(size * 0.24)}px ${FONT}`; ctx.letterSpacing = '-1px'; ctx.fillStyle = mute; ctx.fillText(unit, PAD + w + 10, y + size * 0.86); }
-  ctx.globalAlpha = 1; ctx.letterSpacing = '0px';
+  if (unit) { const w = ctx.measureText(str).width; stretch(ctx, 'normal'); ctx.font = `600 ${Math.round(size * 0.2)}px ${FONT}`; ctx.letterSpacing = '-1px'; ctx.fillStyle = mute; ctx.fillText(unit, PAD + w + 10, y + size * 0.86); }
+  ctx.globalAlpha = 1; ctx.letterSpacing = '0px'; stretch(ctx, 'normal');
   return y + size * 0.95;
 }
 
@@ -75,8 +80,8 @@ function ring(ctx, pct, p, cx, cy, r, ink, base) {
   ctx.strokeStyle = base; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
   const k = easeOut((p - 0.06) / 0.45) * pct / 100;
   ctx.strokeStyle = ink; ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
-  ctx.fillStyle = ink; ctx.font = `700 150px ${FONT}`; ctx.letterSpacing = '-8px'; ctx.textAlign = 'center';
-  ctx.fillText(`${Math.round(k * 100)}%`, cx, cy + 52); ctx.textAlign = 'left'; ctx.letterSpacing = '0px';
+  ctx.fillStyle = ink; ctx.font = `800 170px ${DISPLAY}`; stretch(ctx, 'condensed'); ctx.letterSpacing = '-3px'; ctx.textAlign = 'center';
+  ctx.fillText(`${Math.round(k * 100)}%`, cx, cy + 58); ctx.textAlign = 'left'; ctx.letterSpacing = '0px'; stretch(ctx, 'normal');
 }
 function heatmap(ctx, daily, year, p, y, ink, base) {
   // Twelve small month calendars, 3 across, so the year fills a portrait frame.
@@ -180,7 +185,7 @@ export async function buildScenes(s) {
   const P = personaOf(s.persona);
   const scenes = [];
   const scene = (theme, dur, draw) => scenes.push({ theme, dur, draw });
-  const cap = (ctx, text, y, p, c) => say(ctx, text, y, { size: 44, weight: 500, colour: c.mute, a: enter(p, 0.02), rise: 30 });
+  const cap = (ctx, text, y, p, c) => say(ctx, String(text).toLocaleUpperCase(), y, { size: 34, weight: 600, colour: c.mute, a: enter(p, 0.02), rise: 30, track: 3 });
 
   scene('c-black', 2.2, (ctx, p, c) => {
     let y = 760;
@@ -337,7 +342,7 @@ export async function buildScenes(s) {
 // ---------------------------------------------------------------- frames
 function colours(theme) {
   const [bg, ink] = THEME_COLOURS[theme] || THEME_COLOURS['c-black'];
-  return { bg, ink, mute: rgba(ink, 0.72), base: rgba(ink, ink === '#ffffff' ? 0.2 : 0.12) };
+  return { bg, ink, mute: rgba(ink, 0.74), base: rgba(ink, 0.2) };
 }
 function frameRenderer(scenes) {
   const starts = []; let acc = 0;
@@ -436,6 +441,7 @@ async function encodeWithRecorder(renderer, canvas, ctx, { onProgress, preview }
 
 /** Make the video. Returns { blob, type, ext, seconds }. */
 export async function makeVideo(stats, { onProgress, preview } = {}) {
+  try { await Promise.all(['800 200px', '750 80px'].map((f) => document.fonts.load(`${f} "Bricolage Grotesque"`))); } catch { /* falls back to system type */ }
   const { scenes, cleanup } = await buildScenes(stats);
   try {
     const renderer = frameRenderer(scenes);

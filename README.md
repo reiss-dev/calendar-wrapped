@@ -34,7 +34,11 @@ npx wrangler pages dev . --kv BENCH --kv COUNTERS --kv SUBSCRIBERS --kv REFERRAL
 E2E_BASE=http://localhost:8788 npm run e2e
 ```
 
-No build step. Runtime dependencies are vendored: the ICS parser (`vendor/ical.js`, MPL-2.0), the MP4 muxer for story videos (`vendor/mp4-muxer.js`, MIT), and for link previews the resvg renderer (`functions/_vendor/resvg.wasm`, MPL-2.0) and Inter (`functions/_vendor/fonts.js`, SIL OFL).
+No build step. Runtime dependencies are vendored: the display typeface, Bricolage Grotesque (`fonts/`, SIL OFL; self-hosted so no font request goes to a third party), the ICS parser (`vendor/ical.js`, MPL-2.0), the MP4 muxer for story videos (`vendor/mp4-muxer.js`, MIT), and for link previews the resvg renderer (`functions/_vendor/resvg.wasm`, MPL-2.0) and Inter (`functions/_vendor/fonts.js`, SIL OFL).
+
+## Look and feel
+
+The year as a tear-off desk calendar. System text for reading, Bricolage Grotesque (condensed, heavy) for numbers and headlines, two-tone story pages (coloured ink on coloured paper, `.c-*` in `styles.css` and `THEME_COLOURS` in `js/card.js`), a tear-off page turn in the story, and a flip-calendar word on the landing page. Every story page is checked to fit a 375×667 phone in English and Dutch.
 
 ## What's where
 
