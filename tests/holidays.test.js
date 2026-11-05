@@ -135,3 +135,17 @@ test('things added by hand: time off, trips on the globe, and nothing counted as
   assert.equal(geo.resolvePlace('Lisbon').name, 'Lisbon');
   assert.equal(geo.resolvePlace('Atlantis'), null);
 });
+
+test('day-by-day coverage leaves out leave and public holidays', async () => {
+  const { dayCoverage } = await import('../js/stats.js');
+  const range = { rangeStart: new Date(2026, 0, 1), rangeEnd: new Date(2027, 0, 1) };
+  const now = new Date(2026, 10, 5, 12);
+  const work = parseICS(readFileSync(new URL('../sample/work.ics', import.meta.url), 'utf8'), range);
+  const w = computeStats(work.events, { ...range, selfEmail: guessSelfEmail(work.events, work.meta), now });
+  const cw = dayCoverage(w);
+  assert.equal(cw.of, w.workingDays - 14 - 6, 'working days less 14 days of leave and 6 bank holidays so far');
+  assert.equal(cw.n, cw.of, 'the demo has a stand-up every working day');
+  const p = parseICS(readFileSync(new URL('../sample/personal.ics', import.meta.url), 'utf8'), range);
+  const cp = dayCoverage(computeStats(p.events, { ...range, now }));
+  assert.ok(cp.n > 250 && cp.n < cp.of, `personal ${cp.n} of ${cp.of}`);
+});

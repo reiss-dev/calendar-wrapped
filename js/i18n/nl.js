@@ -815,4 +815,8 @@ export default {
   "in birthdays.": "in verjaardagen.",
   "in days off.": "in vrije dagen.",
   "Your year,": "Jouw jaar,",
+  "Meetings on {n} of your {d} working days.": "Vergaderingen op {n} van je {d} werkdagen.",
+  "Something on {n} of {d} days.": "Iets gepland op {n} van de {d} dagen.",
+  "A meeting on every single working day.": "Op elke werkdag een vergadering.",
+  "Something on every single day.": "Elke dag iets gepland.",
 };

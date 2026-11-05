@@ -7,6 +7,7 @@ import { fmt } from './ui.js';
 import { persona as personaOf, categoryLabel } from './copy.js';
 import { THEME_COLOURS } from './card.js';
 import { yoyChange } from './stats.js';
+import { coverageLine } from './slides.js';
 import { createGlobe } from './globe.js';
 import { hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlights, showHighlights } from './extras.js';
@@ -228,7 +229,7 @@ export async function buildScenes(s) {
     scene('c-black', 3.2, (ctx, p, c) => {
       let y = 270;
       y = cap(ctx, t('Day by day'), y, p, c);
-      y = say(ctx, t('Every square is a day.'), y + 10, { size: 76, colour: c.ink, a: enter(p, 0.06), rise: 40 });
+      y = say(ctx, coverageLine(s), y + 10, { size: 76, colour: c.ink, a: enter(p, 0.06), rise: 40 });
       heatmap(ctx, s.daily, s.year, p, y + 50, c.ink, c.base);
     });
   }

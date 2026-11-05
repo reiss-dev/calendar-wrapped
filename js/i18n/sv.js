@@ -815,4 +815,8 @@ export default {
   "in birthdays.": "i födelsedagar.",
   "in days off.": "i lediga dagar.",
   "Your year,": "Ditt år,",
+  "Meetings on {n} of your {d} working days.": "Möten på {n} av dina {d} arbetsdagar.",
+  "Something on {n} of {d} days.": "Något inplanerat {n} av {d} dagar.",
+  "A meeting on every single working day.": "Ett möte varenda arbetsdag.",
+  "Something on every single day.": "Något inplanerat varenda dag.",
 };

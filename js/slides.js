@@ -4,7 +4,7 @@ import { h, svg, fmt } from './ui.js';
 import { CONFIG } from './config.js';
 import { t, tn, monthName, weekdayName } from './i18n.js';
 import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js';
-import { yoyChange } from './stats.js';
+import { yoyChange, dayCoverage } from './stats.js';
 import { createGlobe } from './globe.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
@@ -81,6 +81,12 @@ const rich = (str) => str.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? h('b
 const hrs = () => t('hrs');
 
 const dayKey = (d) => { d = new Date(d); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+/** The day-by-day headline: how few days escaped. */
+export function coverageLine(s) {
+  const c = dayCoverage(s);
+  if (c.of && c.n >= c.of) return c.work ? t('A meeting on every single working day.') : t('Something on every single day.');
+  return c.work ? t('Meetings on {n} of your {d} working days.', { n: fmt.int(c.n), d: fmt.int(c.of) }) : t('Something on {n} of {d} days.', { n: fmt.int(c.n), d: fmt.int(c.of) });
+}
 function heatSlide(s) {
   const work = s.mode === 'work';
   const peakEntry = Object.entries(s.daily || {}).sort((a, b) => b[1] - a[1])[0];
@@ -88,7 +94,7 @@ function heatSlide(s) {
     theme: 'c-black',
     render: () => h('div', { class: 'wide' },
       cap(t('Day by day')),
-      line(t('Every square is a day.')),
+      line(coverageLine(s)),
       h('div', { class: 'viz-wrap fill', ...R() }, monthGrid(s.daily || {}, s.year, { unit: work ? 'h' : 'n', peak: peakEntry?.[0] })),
       h('div', R(), heatLegend()),
       peakEntry ? note(...rich(work

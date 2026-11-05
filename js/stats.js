@@ -808,6 +808,21 @@ export function yearOverYear(rawEvents, { year, selfEmail = null, mode, workHour
     : { year: year - 1, events: p.events, totalHours: p.totalHours, workingDays: p.workingDays };
 }
 
+/**
+ * How many days had something on, for the year-at-a-glance page. Work counts working days only,
+ * leaving out leave and public holidays, so a fortnight in Cornwall doesn't count against you.
+ */
+export function dayCoverage(s) {
+  const weekday = (k) => { const d = new Date(`${k}T12:00:00`).getDay(); return d !== 0 && d !== 6; };
+  const busy = Object.entries(s.daily || {}).filter(([, v]) => v > 0).map(([k]) => k);
+  if (s.mode !== 'work') return { n: busy.length, of: Math.max(busy.length, s.daysCovered || 0), work: false };
+  const end = s.range?.end ? new Date(s.range.end) : new Date();
+  const offDays = new Set(Object.entries(s.timeOff?.days || {}).filter(([k, v]) => (v === 'l' || v === 'h') && weekday(k) && new Date(`${k}T12:00:00`) < end).map(([k]) => k));
+  // Recurring invites often stay on the calendar through leave; those days still don't count.
+  const n = busy.filter((k) => weekday(k) && !offDays.has(k)).length;
+  return { n, of: Math.max(n, (s.workingDays || 0) - offDays.size), work: true };
+}
+
 /** Compare this year's pace with last year's full year: positive means more. */
 export function yoyChange(s) {
   if (!s.yoy) return null;
