@@ -117,6 +117,11 @@ function workCalendar() {
   ev.push(vevent({ title: 'OOO - holiday', start: at(8, 10), end: at(8, 22), allDay: true }));
   ev.push(vevent({ title: 'Bank holiday', start: at(5, 25), end: at(5, 26), allDay: true }));
   ev.push(vevent({ title: 'Annual leave', start: at(12, 22), end: at(12, 32), allDay: true }));
+  // A colleague's leave, sent to the whole team and accepted: it's in this calendar, but it isn't Alex's leave.
+  // Written out by hand so it doesn't use the random sequence and the rest of the demo stays the same.
+  ev.push(['BEGIN:VEVENT', `UID:${uid()}`, `DTSTAMP:${YEAR}0101T000000Z`, 'SUMMARY:Priya Shah - Parental leave', `DTSTART;VALUE=DATE:${fmtDate(at(5, 4))}`, `DTEND;VALUE=DATE:${fmtDate(at(5, 30))}`,
+    `ORGANIZER;CN=Priya Shah:mailto:${PEOPLE[0][1]}`, `ATTENDEE;CN=Alex Morgan;PARTSTAT=ACCEPTED:mailto:${SELF}`, `ATTENDEE;CN=Tom Hendricks;PARTSTAT=ACCEPTED:mailto:${PEOPLE[1][1]}`,
+    `ATTENDEE;CN=Maja Lindqvist;PARTSTAT=NEEDS-ACTION:mailto:${PEOPLE[2][1]}`, 'TRANSP:TRANSPARENT', 'X-MICROSOFT-CDO-BUSYSTATUS:OOF', 'STATUS:CONFIRMED', 'END:VEVENT'].join('\r\n'));
   // Team birthdays, the way people put them in a shared work calendar.
   for (const [m, dd, title] of [[3, 12, '🎂 Priya’s birthday'], [7, 3, 'Tom Hendricks birthday'], [10, 2, 'Maja’s birthday'], [10, 21, 'Jonas’ birthday'], [11, 19, 'Daniel turns 40']]) ev.push(vevent({ title, start: at(m, dd), end: at(m, dd + 1), allDay: true }));
   // Last year, lighter: a weekly sync and fewer ad-hoc meetings, so year-over-year has something to say.

@@ -402,6 +402,47 @@ await scenario('works offline after one visit: no network, full story from a fil
   await c.close();
 });
 
+await scenario('Google’s export zip, dropped as it comes: main calendar plus birthdays', async () => {
+  const { c, page } = await ctx('zip');
+  await page.goto(BASE);
+  assert.match(await page.locator('#export [data-panel="google"] a.export-go').getAttribute('href'), /calendar\.google\.com\/calendar\/u\/0\/r\/settings\/export/);
+  await page.setInputFiles('#file-input', join(ROOT, 'tests/fixtures/google-export.zip'));
+  await page.waitForSelector('.prep .btn-lg', { timeout: 20000 });
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.summary canvas');
+  const s = await page.evaluate(() => JSON.parse(JSON.parse(localStorage.getItem('cw:stats')).v));
+  assert.equal(s.mode, 'work');
+  assert.ok(s.meetings > 400, 'the main calendar was read');
+  assert.ok(s.birthdayInfo.list.some((b) => b.name === 'Freya Nilsson'), 'birthdays calendar was added');
+  // Something that isn't a calendar gets a clear message, not a crash.
+  await page.goto(BASE);
+  await page.setInputFiles('#file-input', { name: 'notes.zip', mimeType: 'application/zip', buffer: Buffer.from('not really a zip') });
+  await page.waitForSelector('.prep-error');
+  assert.match(await page.locator('.prep-error').textContent(), /Google’s export/);
+  errors.splice(0, errors.length, ...errors.filter((e) => !(/\[zip\]/.test(e) && /not_a_zip/.test(e)))); // logged on purpose
+  await c.close();
+});
+
+await scenario('on a phone: the guide leads with sending the link to a computer', async () => {
+  const { c, page } = await ctx('phone', { ...pw.devices['iPhone 14'] });
+  await c.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE.slice(0, -1) }).catch(() => {});
+  await page.goto(BASE);
+  await page.waitForSelector('#handoff:not([hidden])');
+  await shot(page, '17-phone-handoff', false);
+  await page.locator('#handoff-send').click();
+  await page.waitForTimeout(300);
+  const copied = await page.evaluate(() => navigator.clipboard.readText().catch(() => ''));
+  if (copied) assert.equal(copied, BASE);
+  await c.close();
+  // Not on a computer.
+  const desk = await ctx('desk');
+  await desk.page.goto(BASE);
+  assert.ok(await desk.page.locator('#handoff').isHidden());
+  await desk.c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

@@ -143,3 +143,23 @@ test('the work sample has a globe’s worth of routes', async () => {
   assert.ok(r.legs.length >= 14 && r.km > 20000, `${r.legs.length} legs, ${r.km} km`);
   assert.ok(r.legs.every((l) => Number.isFinite(l.from.lat) && Number.isFinite(l.to.lon)));
 });
+
+test('a Google Calendar export zip: main calendar plus birthdays, holidays and shared calendars skipped', async () => {
+  const { readZip, pickCalendars, calendarFromZip } = await import('../js/unzip.js');
+  const bytes = readFileSync(new URL('./fixtures/google-export.zip', import.meta.url));
+  const file = new Blob([bytes]);
+  const entries = readZip(await file.arrayBuffer());
+  assert.equal(entries.length, 4);
+  const pick = pickCalendars(entries);
+  assert.equal(pick.primary.name, 'alex.morgan@northwindlabs.com.ics');
+  assert.deepEqual(pick.birthdays.map((e) => e.name), ['addressbook#contacts@group.v.calendar.google.com.ics']);
+  assert.deepEqual(pick.skipped.sort(), ['c_9f2a1@group.calendar.google.com.ics', 'en.uk#holiday@group.v.calendar.google.com.ics']);
+  const out = await calendarFromZip(file);
+  assert.equal(out.name, 'alex.morgan@northwindlabs.com');
+  assert.equal(out.merged, 1);
+  assert.ok(out.text.includes("Freya Nilsson's birthday") && !out.text.includes('Christmas Day') && !out.text.includes('On call'));
+  const { events } = parseICS(out.text, range);
+  assert.ok(events.some((e) => /Freya/.test(e.title)), 'birthdays parse as events');
+  assert.ok(events.length > 900, 'the main calendar is all there');
+  assert.throws(() => readZip(new TextEncoder().encode('BEGIN:VCALENDAR').buffer), /not_a_zip/);
+});

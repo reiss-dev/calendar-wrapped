@@ -149,3 +149,21 @@ test('day-by-day coverage leaves out leave and public holidays', async () => {
   const cp = dayCoverage(computeStats(p.events, { ...range, now }));
   assert.ok(cp.n > 250 && cp.n < cp.of, `personal ${cp.n} of ${cp.of}`);
 });
+
+test('time off only counts the owner’s own leave, not colleagues’ notices', () => {
+  const own = _internal.isOwnEntry, me = 'reiss@example.com';
+  const team = (title, org, extra = []) => ({ title, organizer: { email: org, name: 'Stephan Xu' }, attendees: [{ email: org, status: 'ACCEPTED' }, { email: me, status: 'ACCEPTED' }, ...extra] });
+  assert.equal(own({ title: 'Annual leave', attendees: [], organizer: null }, me), true, 'a plain entry');
+  assert.equal(own({ title: 'OOO', organizer: { email: me }, attendees: [{ email: 'a@example.com', status: 'NEEDS-ACTION' }] }, me), true, 'organised by the owner');
+  assert.equal(own(team('Stephan Parental leave', 'stephan@example.com', [{ email: 'b@example.com', status: 'NEEDS-ACTION' }]), me), false, 'sent to the team, even when accepted');
+  assert.equal(own({ title: 'Stephan – parental leave', organizer: { email: 'stephan@example.com', name: 'Stephan Xu' }, attendees: [{ email: me, status: 'ACCEPTED' }] }, me), false, 'sent only to the owner but naming the sender');
+  assert.equal(own({ title: 'Annual leave (approved)', organizer: { email: 'no-reply@workday.com', name: 'Workday' }, attendees: [{ email: me, status: 'NEEDS-ACTION' }] }, me), true, 'an HR system booking it for the owner');
+  assert.equal(own({ title: 'Holiday', organizer: { email: me }, attendees: [{ email: me, status: 'DECLINED' }] }, me), false, 'declined');
+  // The work demo has a colleague's parental leave in it, accepted: still 14 days of Alex's own.
+  const range = { rangeStart: new Date(2026, 0, 1), rangeEnd: new Date(2026 + 1, 0, 1) };
+  const { events, meta } = parseICS(readFileSync(new URL('../sample/work.ics', import.meta.url), 'utf8'), range);
+  assert.ok(events.some((e) => /Priya Shah - Parental leave/.test(e.title)));
+  const s = computeStats(events, { ...range, selfEmail: guessSelfEmail(events, meta), now: new Date(2026, 10, 4, 12) });
+  assert.equal(s.timeOff.taken, 14);
+  assert.ok(!s.timeOff.breaks.some((b) => /Priya/.test(b.label || '')));
+});

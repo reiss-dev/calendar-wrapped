@@ -25,6 +25,7 @@ import { COUNTRIES, guessCountry } from './holidays.js';
 import { timeOffPanel, birthdayPanel, countryName } from './timeoff-ui.js';
 import { extrasBlock, loadExtras, highlightsPanel } from './extras.js';
 import { keep, recall, forgetAll, sweep, remembering, setRemembering, MAX_AGE_DAYS } from './vault.js';
+import { calendarFromZip } from './unzip.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -121,9 +122,9 @@ function initLanding() {
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('drop', (e) => {
     e.preventDefault(); depth = 0; overlay.classList.remove('is-active');
-    const files = [...(e.dataTransfer?.files || [])].filter((f) => /\.ics$/i.test(f.name) || f.type === 'text/calendar');
+    const files = [...(e.dataTransfer?.files || [])].filter(isCalendarFile);
     if (files.length) handleFiles(files);
-    else if (e.dataTransfer?.files?.length) toast(t('That isn’t an .ics calendar file.'));
+    else if (e.dataTransfer?.files?.length) toast(t('That isn’t a calendar file. Use the .ics file, or Google’s export .zip.'));
   });
 
   document.querySelectorAll('[data-action="demo"]').forEach((b) => b.addEventListener('click', () => { sound.prime(); loadDemo(); }));
@@ -137,6 +138,8 @@ function initLanding() {
   if (g && googleEnabled()) { g.hidden = false; preloadGoogle(); g.addEventListener('click', () => { sound.prime(); loadGoogle(); }); }
   const m = document.getElementById('microsoft-connect');
   if (m && microsoftEnabled()) { m.hidden = false; m.addEventListener('click', () => { sound.prime(); loadMicrosoft(); }); }
+  if (microsoftEnabled()) document.querySelectorAll('[data-show-if="microsoft"]').forEach((n) => { n.hidden = false; });
+  initHandoff();
 
   renderShowcase();
   const device = document.querySelector('.device-wrap');
@@ -147,13 +150,53 @@ function initLanding() {
   }
 }
 
-function handleFiles(files) {
-  if (files.length > 1) { openTeam(files); return; }
+const isZip = (f) => /\.zip$/i.test(f.name) || /zip/.test(f.type);
+const isCalendarFile = (f) => /\.ics$/i.test(f.name) || f.type === 'text/calendar' || isZip(f);
+
+/** Google's export arrives as a .zip with one file per calendar: read it here, no unzipping needed. */
+async function zipToCalendar(file, say) {
+  const tell = (msg) => Object.assign(new Error(msg), { userFacing: true });
+  if (typeof DecompressionStream !== 'function') throw tell(t('This browser can’t open zip files. Unzip it and choose the .ics file inside.'));
+  let out;
+  try { out = await calendarFromZip(file); } catch (err) {
+    if (err.message === 'zip_no_calendar') throw tell(t('That zip has no calendar in it. Use the export from Google Calendar’s settings.'));
+    if (err.message === 'zip_too_large') throw tell(t('That file is unusually large. Try exporting a single calendar.'));
+    throw err;
+  }
+  if (say && out.count > 1) await say(t('Found {n} calendars in the export. Using your main one: <b>{name}</b>', { n: out.count, name: escapeHtml(out.name) }), 450);
+  if (say && out.merged) await say(t('Added your birthdays calendar'), 300);
+  return out;
+}
+
+// On a phone, exporting a calendar is close to impossible: offer to carry on at a computer.
+const onPhone = () => matchMedia('(pointer: coarse)').matches && matchMedia('(max-width: 820px)').matches;
+function initHandoff() {
+  const card = document.getElementById('handoff');
+  if (!card || !onPhone()) return;
+  card.hidden = false;
+  document.getElementById('handoff-demo')?.addEventListener('click', () => { sound.prime(); loadDemo(); });
+  document.getElementById('handoff-send')?.addEventListener('click', async () => {
+    const url = siteRoot();
+    track('handoff_sent');
+    if (navigator.share) {
+      try { await navigator.share({ title: CONFIG.brand.name, text: t('Open this on your computer to make your Calendar Wrapped:'), url }); return; } catch { return; /* cancelled */ }
+    }
+    await copyText(url, t('Link copied. Paste it into an email or a note to yourself.'));
+  });
+}
+
+async function handleFiles(files) {
+  if (files.length > 1) {
+    // Several files are a team. A zip among them stands for its owner's main calendar.
+    const expanded = await Promise.all(files.map(async (f) => (isZip(f) ? new File([(await zipToCalendar(f).catch(() => null))?.text || ''], f.name.replace(/\.zip$/i, '.ics'), { type: 'text/calendar' }) : f)));
+    openTeam(expanded.filter((f) => f.size));
+    return;
+  }
   const file = files[0];
   if (!file) return;
   if (file.size > 80 * 1024 * 1024) { toast(t('That file is unusually large. Try exporting a single calendar.')); return; }
   track('file_loaded');
-  runPrep(file.name, async () => engine.loadText(await file.text()));
+  runPrep(file.name, async (say) => engine.loadText(isZip(file) ? (await zipToCalendar(file, say)).text : await file.text()));
 }
 
 function loadDemo() {
@@ -216,7 +259,7 @@ async function runPrep(label, loader, { demo = false } = {}) {
   try { summary = await loader(say); } catch (err) {
     console.error(err);
     const friendly = /google|microsoft|sign-in|cancel|organisation|blocked|refused/i.test(err.message || '');
-    return prepError(friendly ? escapeHtml(err.message) : t('That doesn’t look like a calendar file. It needs to be the <code>.ics</code> export, not the zip and not a CSV.'));
+    return prepError(friendly || err.userFacing ? escapeHtml(err.message) : t('That doesn’t look like a calendar file. Choose the <code>.ics</code> file, or Google’s export <code>.zip</code> as it is. A CSV won’t work.'));
   }
   state.summary = summary;
   if (!summary.count) return prepError(t('No events found in the last couple of years. Check you exported the right calendar and try again.'));

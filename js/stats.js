@@ -202,6 +202,27 @@ function breakLabel(title) {
  * languages or by Outlook's and Google's out-of-office status. Counts working days only, so weekends
  * and public holidays inside a holiday don't count against it. Splits taken (before today) from booked.
  */
+/**
+ * Is this out-of-office entry the calendar owner's own leave, or a colleague's that landed in their
+ * calendar? Teams often send leave notices to everyone ("Stephan – parental leave"), and people accept
+ * them to clear them, so accepting proves nothing. What counts: the owner made it, or nobody else is
+ * on it, or it was sent to the owner alone (an HR system booking it) without naming someone else.
+ */
+export function isOwnEntry(e, selfEmail) {
+  const self = (selfEmail || '').toLowerCase();
+  const me = (a) => !!self && (a.email || '').toLowerCase() === self;
+  if (self && (e.attendees || []).some((a) => me(a) && a.status === 'DECLINED')) return false;
+  const org = (e.organizer?.email || '').toLowerCase();
+  const people = (e.attendees || []).filter((a) => !a.isResource && !me(a) && (a.email || '').toLowerCase() !== org);
+  if (!org || (self && org === self)) return true; // made by the owner, or a plain entry with no organiser
+  if (people.length > 0) return false; // someone else's, sent to more people than the owner
+  if (!self && (e.attendees || []).filter((a) => !a.isResource).length > 1) return false;
+  // Sent to the owner alone: theirs, unless it names the person who sent it.
+  const first = (e.organizer?.name || org.split('@')[0] || '').split(/[\s._-]+/).find((w) => w.length > 1);
+  if (first && new RegExp(`(^|[^\\p{L}])${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^\\p{L}])`, 'iu').test(e.title)) return false;
+  return true;
+}
+
 function timeOffStats(yearAll, ctx) {
   const { rangeStart, rangeEnd, fullEnd, country = 'GB', mode, now = new Date() } = ctx;
   const year = rangeStart.getFullYear();
@@ -219,6 +240,7 @@ function timeOffStats(yearAll, ctx) {
     const stay = mode === 'personal' && e.allDay && HOTEL_RE.test(e.title);
     if (!ooo && !stay) continue;
     if (PUBLIC_HOLIDAY_TITLE.test(e.title)) continue;
+    if (!isOwnEntry(e, ctx.selfEmail)) continue; // a colleague's leave that landed in this calendar
     const isSick = SICK_TITLE.test(e.title);
     const label = breakLabel(e.title);
     const last = e.allDay ? e.end : new Date(e.end.getTime() - 1);
@@ -953,4 +975,4 @@ export function computeTeamStats(members, { rangeStart, rangeEnd, now = new Date
   };
 }
 
-export const _internal = { birthdayOf, breakLabel, normTitle, isMeeting, annotate, isoWeekKey, pickFeatured, MONTHS, WEEKDAYS, PERSONAL_CATEGORIES, OOO_TITLE, NON_MEETING_TITLE };
+export const _internal = { isOwnEntry, birthdayOf, breakLabel, normTitle, isMeeting, annotate, isoWeekKey, pickFeatured, MONTHS, WEEKDAYS, PERSONAL_CATEGORIES, OOO_TITLE, NON_MEETING_TITLE };
