@@ -501,6 +501,31 @@ await scenario('meeting types and hiding customers: groups recalculate, shared t
   await c.close();
 });
 
+await scenario('does this look right: odd numbers flagged, fixed in one tap', async () => {
+  const { oddCalendar } = await import('../fixtures/odd.mjs');
+  const file = join(tmpdir(), `odd-${Date.now()}.ics`);
+  writeFileSync(file, oddCalendar(new Date().getFullYear()));
+  const { c, page } = await ctx('checks');
+  await page.goto(BASE);
+  await page.setInputFiles('#file-input', file);
+  await page.waitForSelector('.prep .group', { timeout: 20000 });
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  await throughStory(page);
+  const panel = page.locator('.checks-panel');
+  await panel.waitFor();
+  assert.ok(await panel.locator('[data-check="leave"]').count() === 1);
+  assert.ok(await panel.locator('[data-check="notmine"]').count() === 1);
+  await shot(page, '20-checks', false);
+  await panel.locator('.lo-item', { hasText: 'OOO conference season' }).locator('input').uncheck();
+  await panel.locator('#ck-notmine').check();
+  await panel.getByRole('button', { name: 'Update my Wrapped' }).click();
+  await page.waitForFunction(() => JSON.parse(JSON.parse(localStorage.getItem('cw:stats')).v).checks.length === 0);
+  await page.waitForSelector('.summary canvas');
+  assert.equal(await page.locator('.checks-panel').count(), 0, 'nothing left to flag');
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

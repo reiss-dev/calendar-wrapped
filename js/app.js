@@ -28,6 +28,7 @@ import { keep, recall, forgetAll, sweep, remembering, setRemembering, MAX_AGE_DA
 import { calendarFromZip } from './unzip.js';
 import { askYoursOrTeam, calendarsBlock, leaveOutRow, leaveOutPanel, loadFilters, balancePanel } from './calendars-ui.js';
 import { mixPanel, loadGroups } from './mix-ui.js';
+import { checksPanel } from './checks-ui.js';
 import { maskStats, makeMasker, levelOf } from './privacy.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
@@ -470,6 +471,7 @@ async function showSummary({ push = true } = {}) {
         actions,
         h('p', { class: 'caption', style: 'margin-top:12px; text-align:center' }, unlocked ? t('Clean card, no watermark.') : t('The free card carries a small watermark. Links carry only the numbers on the card, never your calendar.'))),
       h('div', { class: 'stack' },
+        checksPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
         h('div', { class: 'panel', 'data-reveal': '' }, h('h3', {}, t('{year} at a glance', { year: s.year })), h('p', { class: 'sub' }, isWork ? t('Work calendar, {period}.', { period: s.isPartialYear ? t('1 January to {date}', { date: fmt.date(s.range.end) }) : t('the whole year') }) : t('Personal calendar, {period}.', { period: s.isPartialYear ? t('1 January to {date}', { date: fmt.date(s.range.end) }) : t('the whole year') })), h('div', { class: 'stat-grid', style: 'margin-top:14px' }, tiles.map(([v, l]) => h('div', { class: 'stat' }, h('b', {}, v), h('span', {}, l))))),
         h('div', { class: 'panel', 'data-reveal': '' },
           h('h3', {}, t('Your year, day by day')),

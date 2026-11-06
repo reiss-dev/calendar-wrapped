@@ -1011,3 +1011,11 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .share-level .lbl { font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .share-level .hide-words { width: 100%; }
 .share-level .seg button { padding-inline: 6px; }
+/* Does this look right? */
+.checks-panel { border: 1.5px solid color-mix(in srgb, var(--orange, #ff5a1f) 55%, transparent); background: color-mix(in srgb, var(--orange, #ff5a1f) 6%, var(--card)); transition: opacity 0.3s, transform 0.3s var(--ease); }
+.checks-panel.gone { opacity: 0; transform: scale(0.98); }
+.checks-kicker { margin: 0 0 6px; font-size: 13px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: color-mix(in srgb, var(--orange, #ff5a1f) 80%, var(--ink)); }
+.ck-block + .ck-block { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.ck-block h4 { font-size: 19px; margin: 0 0 4px; line-height: 1.25; }
+.ck-block .lo-list { margin-top: 10px; }
+.checks-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 16px; }

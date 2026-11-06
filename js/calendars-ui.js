@@ -7,10 +7,11 @@ import { track } from './analytics.js';
 // ---------------------------------------------------------------- what to leave out
 const FILTERS = 'cw:filters';
 export function loadFilters() {
-  try { const f = JSON.parse(recall(FILTERS) || '{}'); return { words: Array.isArray(f.words) ? f.words : [], titles: Array.isArray(f.titles) ? f.titles : [] }; } catch { return { words: [], titles: [] }; }
+  const arr = (x) => (Array.isArray(x) ? x.filter((v) => typeof v === 'string').slice(0, 60) : []);
+  try { const f = JSON.parse(recall(FILTERS) || '{}'); return { words: arr(f.words), titles: arr(f.titles), notMine: f.notMine === true, ok: arr(f.ok) }; } catch { return { words: [], titles: [], notMine: false, ok: [] }; }
 }
-export function saveFilters(f) { keep(FILTERS, JSON.stringify({ words: f.words || [], titles: f.titles || [] })); }
-export const hasFilters = (f) => !!f && (f.words.length + f.titles.length > 0);
+export function saveFilters(f) { keep(FILTERS, JSON.stringify({ words: f.words || [], titles: f.titles || [], notMine: !!f.notMine, ok: f.ok || [] })); }
+export const hasFilters = (f) => !!f && (f.words.length + f.titles.length > 0 || f.notMine);
 const parseWords = (text) => [...new Set(String(text).split(/[,;\n]/).map((w) => w.trim()).filter((w) => w.length >= 2))].slice(0, 30);
 
 /** The prep-screen row: words to leave out. */
@@ -35,7 +36,7 @@ export function leaveOutPanel(s, { canApply, onApply }) {
   const words = h('input', { type: 'text', id: 'lo-words', value: f.words.join(', '), placeholder: t('e.g. Focus, Lunch, Gym'), autocomplete: 'off', spellcheck: 'false' });
   const apply = h('button', { class: 'btn', disabled: !canApply, onClick: async () => {
     apply.disabled = true; apply.textContent = t('Updating…');
-    const next = { titles: boxes.filter((b) => !b.box.checked).map((b) => b.x.title), words: parseWords(words.value) };
+    const next = { ...loadFilters(), titles: boxes.filter((b) => !b.box.checked).map((b) => b.x.title), words: parseWords(words.value) };
     saveFilters(next);
     track('filters_applied');
     await onApply(next);

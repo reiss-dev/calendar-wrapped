@@ -89,7 +89,7 @@ export function createCore() {
     async compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40, country = 'GB', extras = null, exclude = null, groups = [] }) {
       const added = extras ? extraEvents(extras) : [];
       if (added.length && hasFlights(added)) await loadGeo();
-      const kept = exclude ? applyExclusions(events, exclude) : events;
+      const kept = exclude ? applyExclusions(events, exclude, selfEmail) : events;
       const all = added.length ? [...kept, ...added] : kept;
       const timezone = meta?.timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : null);
       const s = computeStats(all, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone, country, groups });

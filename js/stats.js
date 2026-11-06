@@ -136,8 +136,15 @@ function annotate(events, selfEmail) {
     const myStatus = self ? self.status : null;
     const organizedBySelf = !!(owner && e.organizer?.email === owner);
     const workingLocation = e.allDay && WORKING_LOCATION.test(e.title.trim());
-    return { ...e, others, myStatus, organizedBySelf, workingLocation, durationH: hours(e.end - e.start) };
+    return { ...e, owner, others, myStatus, organizedBySelf, workingLocation, durationH: hours(e.end - e.start) };
   });
+}
+
+/** On someone's calendar with other people on it, but not them: usually a shared calendar's entry. */
+function notInvitedTo(e) {
+  const owner = (e.owner || '').toLowerCase();
+  if (!owner || !e.others.length || e.organizedBySelf) return false;
+  return !e.attendees.some((a) => (a.email || '').toLowerCase() === owner);
 }
 
 function isMeeting(e, { attendeeInfoAvailable }) {
@@ -234,6 +241,7 @@ function timeOffStats(yearAll, ctx) {
   const leave = new Map(); // dayKey → { booked, labels }
   let sick = 0;
   const sickDays = new Set();
+  const sources = new Map(); // title → leave days it gave, for the "does this look right?" check
   for (const e of yearAll) {
     if (e.status === 'CANCELLED') continue;
     const durationH = (e.end - e.start) / HOUR;
@@ -253,6 +261,7 @@ function timeOffStats(yearAll, ctx) {
       if (isSick) { sickDays.add(k); continue; }
       const cur = leave.get(k) || { booked: d >= rangeEnd, labels: new Set() };
       if (label) cur.labels.add(label);
+      if (!e.manual) { const st = normTitle(e.title || '') || '—'; sources.set(st, (sources.get(st) || 0) + (leave.has(k) ? 0 : 1)); }
       leave.set(k, cur);
     }
   }
@@ -310,6 +319,7 @@ function timeOffStats(yearAll, ctx) {
   const planFrom = planYear === now.getFullYear() ? startOfDay(now) : new Date(planYear, 0, 1);
   return {
     country, taken, booked, sick, bank, typical, left: left > 0 && left < typical ? left : 0,
+    sources: [...sources.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([title, days]) => ({ title, days })),
     breaks: out.slice(0, 40), longest, longestGap: gap && gap.weeks >= 4 ? gap : null, days,
     planYear, plan: bestBreaks(country, planYear, { max: 5, from: planFrom }),
   };
@@ -516,6 +526,10 @@ function workStats(all, ctx) {
   const recurringHours = recurringSeries.reduce((s, x) => s + x.hours, 0);
 
   const collaborators = people(meetings, ctx.selfEmail);
+  const titleHours = new Map();
+  for (const e of meetings) { const k = normTitle(e.title); const cur = titleHours.get(k) || { title: k, count: 0, hours: 0 }; cur.count++; cur.hours += e.durationH; titleHours.set(k, cur); }
+  const longOnes = meetings.filter((e) => e.durationH >= 4);
+  const notInvited = meetings.filter(notInvitedTo);
   const mix = ctx.attendeeInfoAvailable ? meetingMix(meetings, { selfEmail: ctx.selfEmail, groups: ctx.groups }) : null;
   if (mix) { const home = homeTest(mix.homes); for (const p of collaborators) p.ext = !!p.email && !home(domainOf(p.email)); }
   const oneToOnes = meetings.filter((e) => e.others.length === 1);
@@ -566,6 +580,13 @@ function workStats(all, ctx) {
     collaborators: collaborators.slice(0, 8),
     colleagues: mix ? collaborators.filter((p) => !p.ext).slice(0, 8) : null,
     mix,
+    _check: {
+      titleHours: [...titleHours.values()].sort((a, b) => b.hours - a.hours).slice(0, 6).map((x) => ({ ...x, hours: round1(x.hours) })),
+      long: longOnes.length,
+      longShare: totalHours ? longOnes.reduce((n, e) => n + e.durationH, 0) / totalHours : 0,
+      longTitles: topN(longOnes.reduce((m, e) => m.set(normTitle(e.title), (m.get(normTitle(e.title)) || 0) + 1), new Map()), 5),
+      notInvited: notInvited.length,
+    },
     uniquePeople: collaborators.length,
     oneToOnes: oneToOnes.length,
     oneToOneHours: round1(oneToOnes.reduce((s, e) => s + e.durationH, 0)),
@@ -824,15 +845,38 @@ function leaveOutCandidates(all) {
 }
 
 /**
+ * "Does this look right?" Numbers that usually mean something in the file isn't what it seems,
+ * each with what's behind it, so one tap can leave it out.
+ */
+function sanityChecks(s, ctx) {
+  const out = [];
+  const o = s.timeOff;
+  const leave = o ? o.taken + o.booked : 0;
+  if (o && leave > (o.typical || 25) + 12 && o.sources?.length) out.push({ id: 'leave', n: leave, typical: o.typical, items: o.sources.map((x) => ({ title: x.title, days: x.days })) });
+  const c = s._check;
+  if (s.mode === 'work' && c) {
+    if (s.shareOfWork >= 70) out.push({ id: ctx.attendeeInfoAvailable ? 'share' : 'noattendees', n: s.shareOfWork, items: c.titleHours.map((x) => ({ title: x.title, hours: x.hours })) });
+    if (c.long >= 4 && c.longShare >= 0.15) out.push({ id: 'long', n: c.long, items: c.longTitles.map((x) => ({ title: x.key, count: x.count })) });
+    if (c.notInvited >= 10 && c.notInvited / Math.max(1, s.meetings) >= 0.05) out.push({ id: 'notmine', n: c.notInvited, items: [] });
+  }
+  return out;
+}
+
+/**
  * Takes out what someone asked to leave out: exact titles (as listed on the summary) and words.
  * Done before any counting, so everything (story, card, report) agrees.
  */
-export function applyExclusions(events, { titles = [], words = [] } = {}) {
+export function applyExclusions(events, { titles = [], words = [], notMine = false } = {}, selfEmail = null) {
   const t = new Set(titles.map((x) => normTitle(x).toLowerCase()));
   const w = words.map((x) => x.trim().toLowerCase()).filter((x) => x.length >= 2);
-  if (!t.size && !w.length) return events;
+  if (!t.size && !w.length && !notMine) return events;
   return events.filter((e) => {
     if (e.manual) return true;
+    if (notMine) {
+      const owner = (e.owner || selfEmail || '').toLowerCase();
+      const others = (e.attendees || []).filter((a) => !a.isResource && (a.email || '').toLowerCase() !== owner);
+      if (owner && others.length && (e.organizer?.email || '').toLowerCase() !== owner && !(e.attendees || []).some((a) => (a.email || '').toLowerCase() === owner)) return false;
+    }
     const title = normTitle(e.title || '').toLowerCase();
     return !t.has(title) && !w.some((x) => title.includes(x));
   });
@@ -860,6 +904,8 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   if (roles.has('work') && roles.has('personal')) stats.balance = balanceStats(everything, ctx);
   stats.calendars = [...roles];
   stats.leaveOutCandidates = leaveOutCandidates(all);
+  stats.checks = sanityChecks(stats, ctx);
+  delete stats._check;
   stats.travel.daysOff = stats.timeOff.taken;
   return {
     ...stats,
