@@ -498,6 +498,15 @@ await scenario('meeting types and hiding customers: groups recalculate, shared t
   await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
   const none = decode(await page.evaluate(() => navigator.clipboard.readText()));
   assert.ok(!none.n.pn && !none.n.tt, 'no names at all');
+  await page.locator('.card-custom summary').click();
+  await page.locator('.swatch').nth(2).click();
+  await page.locator('.tile-chip[data-tile="r"]').click();
+  await page.locator('.tile-chip[data-tile="cs"]').click();
+  await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
+  const custom = decode(await page.evaluate(() => navigator.clipboard.readText()));
+  assert.equal(custom.th, 'black');
+  assert.equal(custom.k[custom.k.length - 1], 'cs', 'the customer tile goes on the card, last');
+  assert.ok(!custom.k.includes('r'));
   await c.close();
 });
 

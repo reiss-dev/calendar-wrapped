@@ -5,7 +5,7 @@ import { createEngine } from './engine.js';
 import { buildSlides } from './slides.js';
 import { createStory } from './story.js';
 import { renderCard, canvasToBlob, FORMATS } from './card.js';
-import { cardModel, modelPersona, comparison } from './model.js';
+import { cardModel, modelPersona, comparison, CARD_THEMES, cardColours, availableTiles, cardTileKeys, tileFor } from './model.js';
 import { shareUrl, compareUrl, readShared, siteRoot } from './share.js';
 import { renderReport } from './report.js';
 import { planText } from './plan.js';
@@ -50,7 +50,8 @@ const state = {
 function cardPrefs(p) {
   const names = ['none', 'colleagues', 'all'].includes(p.names) ? p.names : p.hideNames === false ? 'all' : CONFIG.share.hideNamesByDefault ? 'none' : 'all';
   // Words to hide can be sensitive themselves ("Project Falcon"), so they live with the results.
-  return { format: p.format || 'portrait', who: p.who || '', names, hide: (recall(HIDE_KEY) || '').slice(0, 300) };
+  const pair = (x) => ({ w: x?.w ?? null, p: x?.p ?? null });
+  return { format: p.format || 'portrait', who: p.who || '', names, hide: (recall(HIDE_KEY) || '').slice(0, 300), tiles: pair(p.tiles), theme: pair(p.theme) };
 }
 const views = {};
 for (const id of ['landing', 'prep', 'story', 'summary', 'report', 'team', 'shared']) views[id] = document.getElementById(`view-${id}`);
@@ -403,11 +404,12 @@ function playStory() {
 }
 
 // ---------- summary ----------
-const saveCardPrefs = () => { store(PREFS_KEY, { format: state.card.format, names: state.card.names, who: state.card.who }); keep(HIDE_KEY, state.card.hide); };
+const saveCardPrefs = () => { store(PREFS_KEY, { format: state.card.format, names: state.card.names, who: state.card.who, tiles: state.card.tiles, theme: state.card.theme }); keep(HIDE_KEY, state.card.hide); };
 const hideWords = () => [...new Set(state.card.hide.split(/[,;\n]/).map((w) => w.trim()).filter((w) => w.length >= 2))].slice(0, 30);
 /** The stats as anything shared may show them: customers, or everyone, hidden as chosen. */
 const forSharing = (s = state.stats) => maskStats(s, state.card.names, hideWords());
-const myModel = (s = state.stats) => cardModel(forSharing(s), { hideNames: levelOf(s, state.card.names) === 'none', who: state.card.who, locale: locale() });
+const cardKind = (s) => (s.mode === 'work' ? 'w' : 'p');
+const myModel = (s = state.stats) => cardModel(forSharing(s), { hideNames: levelOf(s, state.card.names) === 'none', who: state.card.who, locale: locale(), tiles: state.card.tiles[cardKind(s)], theme: state.card.theme[cardKind(s)] });
 const ctxOf = (s) => ({ selfEmail: s.selfEmail, source: s.source });
 // Until the personal unlock is bought or earned, share links carry an anonymous invite id.
 const myLink = (s) => (isUnlocked('personal') ? shareUrl(myModel(s)) : withRef(shareUrl(myModel(s))));
@@ -466,6 +468,7 @@ async function showSummary({ push = true } = {}) {
     h('div', { class: 'summary-grid' },
       h('div', { class: 'card-preview', 'data-reveal': '' },
         h('div', { class: 'card-controls' }, formatPicker),
+        customiseBlock(s, draw),
         frame,
         h('div', { class: 'card-meta' }, namesToggle, whoInput),
         actions,
@@ -514,6 +517,41 @@ async function showSummary({ push = true } = {}) {
   // The card is drawn on a canvas, which can't swap fonts by itself: redraw once the display face is in.
   document.fonts?.load('800 100px "Bricolage Grotesque"').then(() => { if (canvas.isConnected) draw(); }).catch(() => {});
   host.querySelectorAll('canvas.globe').forEach((c) => createGlobe(c, s.travel.routes, { duration: 4200 }));
+}
+
+/** Choose the card's colour and which numbers it carries. Redraws as you go. */
+function customiseBlock(s, redraw) {
+  const kind = cardKind(s);
+  const body = h('div', { class: 'custom-body' });
+  const details = h('details', { class: 'card-custom' }, h('summary', {}, t('Customise card')), body);
+  const render = () => {
+    const model = myModel(s);
+    const shown = cardTileKeys(model);
+    const [paper] = cardColours(model);
+    const swatches = h('div', { class: 'swatches', role: 'group', 'aria-label': t('Card colour') }, Object.entries(CARD_THEMES).map(([key, [bg, ink]], i) => h('button', {
+      type: 'button', class: 'swatch', style: `--bg:${bg}; --ink:${ink}`, 'aria-pressed': String(bg === paper), 'aria-label': t('Colour {n}', { n: i + 1 }),
+      onClick: () => { state.card.theme[kind] = key; saveCardPrefs(); redraw(); render(); } }, h('i', { 'aria-hidden': 'true' }))));
+    const chips = availableTiles(model).map((k) => {
+      const [value, label] = tileFor(model, k);
+      const pos = shown.indexOf(k);
+      return h('button', { type: 'button', class: 'tile-chip', 'aria-pressed': String(pos >= 0), 'data-tile': k, onClick: () => {
+        const cur = cardTileKeys(myModel(s));
+        let next;
+        if (cur.includes(k)) { if (cur.length <= 1) return; next = cur.filter((x) => x !== k); }
+        else if (cur.length >= 6) { toast(t('Six at most. Take one off first.')); return; }
+        else next = [...cur, k];
+        state.card.tiles[kind] = next; saveCardPrefs(); redraw(); render();
+      } }, pos >= 0 ? h('b', { class: 'tile-pos' }, String(pos + 1)) : h('b', { class: 'tile-pos empty' }, '+'), h('span', { class: 'tile-v' }, value), h('span', { class: 'tile-l' }, label));
+    });
+    body.replaceChildren(
+      h('p', { class: 'lbl' }, t('Colour')), swatches,
+      h('p', { class: 'lbl' }, t('Numbers on the card')),
+      h('div', { class: 'tile-chips' }, chips),
+      h('p', { class: 'caption' }, t('Tap to add or take off, in the order you want them. Up to six; square and wide cards show the first four.')),
+      h('button', { type: 'button', class: 'link', onClick: () => { state.card.tiles[kind] = null; state.card.theme[kind] = null; saveCardPrefs(); redraw(); render(); } }, t('Back to the original')));
+  };
+  details.addEventListener('toggle', () => { if (details.open) { render(); track('card_customise'); } });
+  return details;
 }
 
 /** How much shared things show. Work: no names, colleagues only, or everything. Personal: names or not. */

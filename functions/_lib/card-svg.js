@@ -1,7 +1,7 @@
 // The wide (1200×630) share card as SVG, for link previews rendered on the server.
 // Same layout and wording as the canvas card, without emoji (the server font has none).
 import { useDictionary, t } from '../../js/i18n.js';
-import { cardTiles, modelPersona } from '../../js/model.js';
+import { cardTiles, modelPersona, cardColours } from '../../js/model.js';
 import nl from '../../js/i18n/nl.js';
 import sv from '../../js/i18n/sv.js';
 import nb from '../../js/i18n/nb.js';
@@ -17,7 +17,7 @@ export function cardSvg(model, { brand, domain }) {
   useDictionary(model.l in DICTS ? model.l : 'en', DICTS[model.l] || {});
   try {
     const W = 1200, H = 630, pad = 64, tx = 620;
-    const [bg, ink] = model.m === 'w' ? ['#2338e8', '#ffd9e6'] : ['#ff4f8b', '#3a0619']; // the app's two-tone card colours
+    const [bg, ink] = cardColours(model); // the app's two-tone card colours, or the one chosen
     const persona = modelPersona(model);
     const l1 = t('Your {year},', { year: model.y }), l2 = model.m === 'w' ? t('in meetings.') : t('in plans.');
     const hs = Math.min(fit(l1, 500, 64, 40, true), fit(l2, 500, 64, 40, true));

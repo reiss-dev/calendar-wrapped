@@ -3,13 +3,11 @@
 // Formats: portrait (LinkedIn/feeds), square, story (9:16), wide (Slack/Teams).
 import { CONFIG } from './config.js';
 import { t } from './i18n.js';
-import { cardTiles, modelPersona } from './model.js';
+import { cardTiles, modelPersona, cardColours } from './model.js';
 
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Inter", Helvetica, Arial, sans-serif';
 const EMOJI = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 const DISPLAY = '"Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif';
-/** Card paper and ink for work and personal cards, matching the story's two-tone pages. */
-const CARD = { w: ['#2338e8', '#ffd9e6'], p: ['#ff4f8b', '#3a0619'] };
 export const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
 export const isLightInk = (hex) => { const n = parseInt(hex.slice(1), 16); return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114 > 150; };
 export const THEME_COLOURS = {
@@ -63,7 +61,7 @@ export function renderCard(canvas, model, { format = 'portrait', watermark = tru
   const { W, H } = F;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  const [paper, ink] = CARD[model.m] || CARD.w;
+  const [paper, ink] = cardColours(model);
   const mute = hexA(ink, 0.74), rule = hexA(ink, 0.28);
   const pad = L.pad;
   const persona = modelPersona(model);

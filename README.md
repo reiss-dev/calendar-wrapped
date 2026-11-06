@@ -57,7 +57,7 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 | Flights globe: routes from flight entries, canvas globe | `js/geo.js`, `js/globe.js`, `js/geo/*` (data: `tools/make-geo.mjs`, credits in `js/geo/LICENSES.md`) |
 | Story, slides, sound and haptics, screen-reader narration | `js/slides.js`, `js/story.js`, `js/sound.js` |
 | One-tap actions: organiser messages, calendar blocks, settings steps | `js/actions.js`, `js/reclaim-ui.js` |
-| Share cards, links, comparisons | `js/card.js`, `js/model.js`, `js/share.js` |
+| Share cards, links, comparisons; choose the card's colour and numbers | `js/card.js`, `js/model.js`, `js/share.js` |
 | Meeting types (customers, internal, 1:1s, your own groups) | `js/meeting-mix.js`, `js/mix-ui.js` |
 | What shared things show: no names, hide customers, or everything | `js/privacy.js` |
 | Story video: 9:16 MP4 drawn and encoded on the device (WebCodecs, MediaRecorder fallback) | `js/video.js`, `js/video-ui.js` |
