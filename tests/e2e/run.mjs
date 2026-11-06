@@ -469,6 +469,38 @@ await scenario('work and personal calendars together, then leaving things out', 
   await c.close();
 });
 
+await scenario('meeting types and hiding customers: groups recalculate, shared things leave customers out', async () => {
+  const { c, page } = await ctx('customers');
+  await playDemo(page);
+  const caps = [];
+  await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
+  assert.ok(caps.includes('Who you met with'), 'the meeting-mix page appears');
+  const panel = page.locator('.mix-panel');
+  await panel.scrollIntoViewIfNeeded();
+  assert.ok(await panel.locator('.race-label', { hasText: 'Acme Customer' }).count() === 1, 'top customers listed');
+  await page.fill('#grp-name', 'Deals'); await page.fill('#grp-match', 'deal review, pricing');
+  await page.click('#grp-add');
+  await page.waitForFunction(() => JSON.parse(JSON.parse(localStorage.getItem('cw:stats')).v).mix.types.some((x) => x.name === 'Deals'));
+  await page.waitForSelector('.mix-panel .grp-row');
+  await shot(page, '19-meeting-mix', false);
+  const decode = (link) => JSON.parse(Buffer.from(link.split('/c/')[1].split('?')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+  await page.getByRole('button', { name: 'Names and titles' }).click();
+  await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
+  const all = decode(await page.evaluate(() => navigator.clipboard.readText()));
+  assert.ok(all.n.pn && all.n.tt, 'names and titles when asked for');
+  await page.getByRole('button', { name: 'Hide customers' }).click();
+  await page.fill('#share-hide', 'Daily standup'); await page.locator('#share-hide').blur();
+  await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
+  const hidden = decode(await page.evaluate(() => navigator.clipboard.readText()));
+  assert.ok(!/Acme|Contoso|Kate|Oliver|standup/i.test(JSON.stringify(hidden)), JSON.stringify(hidden.n));
+  assert.ok(hidden.n.pn, 'a colleague is still named');
+  await page.getByRole('button', { name: 'No names' }).click();
+  await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
+  const none = decode(await page.evaluate(() => navigator.clipboard.readText()));
+  assert.ok(!none.n.pn && !none.n.tt, 'no names at all');
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

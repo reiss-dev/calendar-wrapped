@@ -86,13 +86,13 @@ export function createCore() {
     },
     setCalendarRole({ id, role }) { const c = calendars.find((x) => x.id === id); if (c && (role === 'work' || role === 'personal')) c.role = role; rebuild(); return summary(); },
     removeCalendar({ id }) { if (calendars.length > 1) calendars = calendars.filter((c) => c.id !== id); rebuild(); return summary(); },
-    async compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40, country = 'GB', extras = null, exclude = null }) {
+    async compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40, country = 'GB', extras = null, exclude = null, groups = [] }) {
       const added = extras ? extraEvents(extras) : [];
       if (added.length && hasFlights(added)) await loadGeo();
       const kept = exclude ? applyExclusions(events, exclude) : events;
       const all = added.length ? [...kept, ...added] : kept;
       const timezone = meta?.timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : null);
-      const s = computeStats(all, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone, country });
+      const s = computeStats(all, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone, country, groups });
       s.yoy = yearOverYear(all, { year, selfEmail, mode: s.mode, workHoursPerWeek });
       return s;
     },

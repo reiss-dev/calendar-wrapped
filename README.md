@@ -58,6 +58,8 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 | Story, slides, sound and haptics, screen-reader narration | `js/slides.js`, `js/story.js`, `js/sound.js` |
 | One-tap actions: organiser messages, calendar blocks, settings steps | `js/actions.js`, `js/reclaim-ui.js` |
 | Share cards, links, comparisons | `js/card.js`, `js/model.js`, `js/share.js` |
+| Meeting types (customers, internal, 1:1s, your own groups) | `js/meeting-mix.js`, `js/mix-ui.js` |
+| What shared things show: no names, hide customers, or everything | `js/privacy.js` |
 | Story video: 9:16 MP4 drawn and encoded on the device (WebCodecs, MediaRecorder fallback) | `js/video.js`, `js/video-ui.js` |
 | Unlock by sharing: invite codes on share links, three friends unlock | `js/referral.js`, `functions/api/referral.js` |
 | Team mode | `js/team.js` |
@@ -89,6 +91,8 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 - **Things added by hand** on the prep screen are kept per year on the device. Time off becomes an out-of-office block; a trip becomes a flight out and a flight home (and time off when it was a holiday); moments only appear in the highlights. None of them ever count as meetings or plans.
 - **Highlights** are the moments someone added, plus up to three the calendar makes obvious: the longest break of five days or more, milestone birthdays, and the furthest trip of 1,500 km or more. The slide shows when there's one moment added, or three highlights in all.
 - **Birthdays** are entries with a birthday word in five languages, one per person per year. Names and ages come from titles like "Sam's birthday", "Grandma turns 90", "Verjaardag oma" or "Kim fylder 50". Ages ending in 0, and 18 and 21, are milestones.
+- **Meeting types.** A meeting with anyone from outside your organisation's email domain is a customer meeting (personal mail domains like Gmail never name a company). Only colleagues: internal, or a 1:1 with one of them. Your own groups ("AE meetings") match by title words, or by people's names or emails; a title match always wins, while people only claim meetings without customers, so a customer call your account executive joins stays a customer call. Companies are named from their domain (acme-customer.co.uk → Acme Customer).
+- **Hiding customers** blanks, in everything shared, the company names, the full, first and last names of outside people (unless a colleague shares that name), and any words added by hand. Outsiders drop out of "most seen", top customers become Customer A, B, C, and reclaim suggestions are reduced to their totals. The story you watch yourself shows everything.
 - **Reclaim** estimates are annualised and conservative. The free suggestion is the most specific one, usually a named meeting.
 - **Team** shared meetings are matched by event UID, which Google and Exchange keep identical across attendees.
 
@@ -102,7 +106,7 @@ For IT and security teams, `security.html` sets this out with the data flows and
 - Results (which include names and titles) are kept in the browser for 30 days, or only in the tab with **Keep results on this device** off. Start over clears them. See `js/vault.js`.
 - A service worker keeps a copy of the app, so it works with the network off: the simplest proof nothing is sent.
 - Error reports carry the error's shape only, scrubbed in the browser and again on the server (`js/scrub.js`). Worker request logging is off.
-- Share links carry a card's numbers, without names or titles unless switched on. The server reads a link only to draw its preview image, and stores nothing.
+- Share links carry a card's numbers, without names or titles unless switched on. A middle setting keeps colleagues' names and hides customers; slide images, the video and the carousel follow the same setting (`js/privacy.js`). The server reads a link only to draw its preview image, and stores nothing.
 - Benchmarks receive a few rounded numbers, only after someone taps **Compare with others**.
 - Until someone unlocks, their share links carry a random invite code. When a friend makes their own Wrapped from a real calendar (demos don't count), the server stores a count against that code and a salted hash of the friend's random code. Videos are made on the device.
 - Analytics are daily counts per event name, plus error messages and Web Vitals. There are no cookies, IDs or IP addresses.

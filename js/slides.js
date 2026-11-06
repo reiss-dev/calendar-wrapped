@@ -6,6 +6,7 @@ import { t, tn, monthName, weekdayName } from './i18n.js';
 import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js';
 import { yoyChange, dayCoverage } from './stats.js';
 import { createGlobe } from './globe.js';
+import { hasMix, mixSlide } from './mix-ui.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
 import { balanceSlide } from './calendars-ui.js';
@@ -199,9 +200,11 @@ function workSlides(s) {
     out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Most seen')), h('h2', { class: 'line lg', ...R() }, top.name), note(...rich(t('**{n} meetings** together, {h} hours. More than most people see their family.', { n: fmt.int(top.count), h: fmt.hours(top.hours) }))), h('div', { class: 'viz-wrap fill bubbles-wrap', ...R() }, bubbles(s.collaborators.map((p) => ({ label: p.name, value: p.count, sub: fmt.int(p.count) })), { max: 9 }))) });
   }
 
+  if (hasMix(s)) out.push(mixSlide(s));
+
   if (s.recurringCount) {
     const r = s.recurringSeries[0];
-    out.push({ theme: 'c-teal', render: () => h('div', {}, cap(t('Same time next week?')), bigPct(s.recurringShare), line(t('of your meeting time was on repeat.')), note(...rich(t('{n} recurring series. The heaviest: **“{title}”**, {h} hours across {c} sittings.', { n: fmt.int(s.recurringCount), title: r.title, h: fmt.hours(r.hours), c: fmt.int(r.count) }))), h('div', { class: 'viz-wrap fill', ...R() }, treemap(s.recurringSeries.map((x) => ({ label: x.title, value: x.hours, sub: t('{h} hrs', { h: fmt.hours(x.hours) }) })), { H: 300 }))) });
+    out.push({ theme: 'c-teal', render: () => h('div', {}, cap(t('Same time next week?')), bigPct(s.recurringShare), line(t('of your meeting time was on repeat.')), r.title ? note(...rich(t('{n} recurring series. The heaviest: **“{title}”**, {h} hours across {c} sittings.', { n: fmt.int(s.recurringCount), title: r.title, h: fmt.hours(r.hours), c: fmt.int(r.count) }))) : null, h('div', { class: 'viz-wrap fill', ...R() }, treemap(s.recurringSeries.map((x) => ({ label: x.title, value: x.hours, sub: t('{h} hrs', { h: fmt.hours(x.hours) }) })), { H: 300 }))) });
   }
 
   if (s.earliest && s.latest) {
@@ -287,7 +290,7 @@ function personalSlides(s) {
   if (s.balance) out.push(balanceSlide(s));
 
   const rec = s.recurringSeries[0];
-  out.push({ theme: 'c-yellow', render: () => h('div', {}, cap(t('Little things')), h('div', { class: 'duo', style: 'margin-top:0; border-top:0' }, hasBirthdays(s) ? tile(s.uniquePeople, t('people')) : tile(s.birthdays, t('birthdays remembered')), tile(s.longestBusyStreak.length, t('days in a row with plans'))), rec ? note(...rich(t('Your most faithful habit: **“{title}”**, {n} times.', { title: rec.title, n: fmt.int(rec.count) }))) : null, s.longestFreeStreak.length >= 3 ? note(t('Longest stretch of nothing at all: {n} days from {from}.', { n: fmt.int(s.longestFreeStreak.length), from: fmt.date(s.longestFreeStreak.start) })) : null) });
+  out.push({ theme: 'c-yellow', render: () => h('div', {}, cap(t('Little things')), h('div', { class: 'duo', style: 'margin-top:0; border-top:0' }, hasBirthdays(s) ? tile(s.uniquePeople, t('people')) : tile(s.birthdays, t('birthdays remembered')), tile(s.longestBusyStreak.length, t('days in a row with plans'))), rec?.title ? note(...rich(t('Your most faithful habit: **“{title}”**, {n} times.', { title: rec.title, n: fmt.int(rec.count) }))) : null, s.longestFreeStreak.length >= 3 ? note(t('Longest stretch of nothing at all: {n} days from {from}.', { n: fmt.int(s.longestFreeStreak.length), from: fmt.date(s.longestFreeStreak.start) })) : null) });
 
   if (showHighlights(s)) out.push(highlightsSlide(s));
   const plan = s.timeOff && planSlide(s);

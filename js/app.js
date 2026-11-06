@@ -27,6 +27,8 @@ import { extrasBlock, loadExtras, highlightsPanel } from './extras.js';
 import { keep, recall, forgetAll, sweep, remembering, setRemembering, MAX_AGE_DAYS } from './vault.js';
 import { calendarFromZip } from './unzip.js';
 import { askYoursOrTeam, calendarsBlock, leaveOutRow, leaveOutPanel, loadFilters, balancePanel } from './calendars-ui.js';
+import { mixPanel, loadGroups } from './mix-ui.js';
+import { maskStats, makeMasker, levelOf } from './privacy.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -34,14 +36,21 @@ import { withRef, captureReferrer, creditReferrer, referralProgress, GOAL } from
 
 const STATS_KEY = 'cw:stats';
 const PREFS_KEY = 'cw:card';
+const HIDE_KEY = 'cw:hide';
 const FRIEND_KEY = 'cw:friend';
 const COUNTRY_KEY = 'cw:country';
 const engine = createEngine();
 const state = {
   summary: null, stats: null, years: [], story: null, demoToggle: false, team: null, view: 'landing',
   options: { year: null, mode: 'auto', selfEmail: null, week: null, country: null },
-  card: { format: 'portrait', hideNames: CONFIG.share.hideNamesByDefault, who: '', ...storage(PREFS_KEY, {}) },
+  card: cardPrefs(storage(PREFS_KEY, {}) || {}),
 };
+/** Card and sharing choices. `names` is how much a shared thing shows: 'none', 'colleagues' or 'all'. */
+function cardPrefs(p) {
+  const names = ['none', 'colleagues', 'all'].includes(p.names) ? p.names : p.hideNames === false ? 'all' : CONFIG.share.hideNamesByDefault ? 'none' : 'all';
+  // Words to hide can be sensitive themselves ("Project Falcon"), so they live with the results.
+  return { format: p.format || 'portrait', who: p.who || '', names, hide: (recall(HIDE_KEY) || '').slice(0, 300) };
+}
 const views = {};
 for (const id of ['landing', 'prep', 'story', 'summary', 'report', 'team', 'shared']) views[id] = document.getElementById(`view-${id}`);
 
@@ -380,7 +389,7 @@ async function startStory() {
 
 /** Work out the year from what's loaded, with what the person added and what they left out. */
 async function recalc(o = state.options, extras = loadExtras(o.year)) {
-  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country, extras, exclude: loadFilters() });
+  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country, extras, exclude: loadFilters(), groups: loadGroups() });
   state.stats.moments = extras.moments;
   state.stats.source = state.summary?.meta?.source || 'unknown';
   state.stats.selfEmail = o.selfEmail;
@@ -389,12 +398,15 @@ async function recalc(o = state.options, extras = loadExtras(o.year)) {
 }
 function playStory() {
   show('story');
-  state.story = createStory(views.story, buildSlides(state.stats), { year: state.stats.year, onFinish: () => showSummary(), onExit: () => showSummary() });
+  state.story = createStory(views.story, buildSlides(state.stats), { year: state.stats.year, mask: makeMasker(state.stats, state.card.names, hideWords()), onFinish: () => showSummary(), onExit: () => showSummary() });
 }
 
 // ---------- summary ----------
-const saveCardPrefs = () => store(PREFS_KEY, { format: state.card.format, hideNames: state.card.hideNames, who: state.card.who });
-const myModel = (s = state.stats) => cardModel(s, { hideNames: state.card.hideNames, who: state.card.who, locale: locale() });
+const saveCardPrefs = () => { store(PREFS_KEY, { format: state.card.format, names: state.card.names, who: state.card.who }); keep(HIDE_KEY, state.card.hide); };
+const hideWords = () => [...new Set(state.card.hide.split(/[,;\n]/).map((w) => w.trim()).filter((w) => w.length >= 2))].slice(0, 30);
+/** The stats as anything shared may show them: customers, or everyone, hidden as chosen. */
+const forSharing = (s = state.stats) => maskStats(s, state.card.names, hideWords());
+const myModel = (s = state.stats) => cardModel(forSharing(s), { hideNames: levelOf(s, state.card.names) === 'none', who: state.card.who, locale: locale() });
 const ctxOf = (s) => ({ selfEmail: s.selfEmail, source: s.source });
 // Until the personal unlock is bought or earned, share links carry an anonymous invite id.
 const myLink = (s) => (isUnlocked('personal') ? shareUrl(myModel(s)) : withRef(shareUrl(myModel(s))));
@@ -416,16 +428,14 @@ async function showSummary({ push = true } = {}) {
   };
 
   const formatPicker = seg(Object.keys(FORMATS), state.card.format, (f) => { state.card.format = f; saveCardPrefs(); draw(); }, (f) => FORMATS[f].label(), { 'aria-label': t('Card format') });
-  const namesToggle = h('label', { class: 'switch' },
-    h('input', { type: 'checkbox', role: 'switch', checked: !state.card.hideNames, onChange: (e) => { state.card.hideNames = !e.target.checked; saveCardPrefs(); draw(); } }),
-    h('span', { class: 'track', 'aria-hidden': 'true' }), h('span', {}, isWork ? t('Show names and titles') : t('Show names')));
+  const namesToggle = shareLevelControl(s, draw);
   const whoInput = h('input', { class: 'who', type: 'text', maxlength: 20, value: state.card.who, placeholder: t('Your first name (optional)'), 'aria-label': t('Name shown when someone opens your link'), onInput: (e) => { state.card.who = e.target.value.trim(); saveCardPrefs(); } });
 
   const actions = h('div', { class: 'card-actions' },
     h('button', { class: 'btn', onClick: () => download(canvas, `calendar-wrapped-${s.year}-${state.card.format}.png`) }, t('Save image')),
     navigator.share ? h('button', { class: 'btn btn-secondary', onClick: () => shareCard(canvas, s) }, t('Share')) : null,
     h('button', { class: 'btn btn-secondary', onClick: () => copyLink(s) }, t('Copy link')),
-    videoSupported() ? h('button', { class: 'btn btn-secondary btn-video', onClick: () => openVideoModal(s) }, h('span', { class: 'play', 'aria-hidden': 'true' }), t('Make a video')) : null,
+    videoSupported() ? h('button', { class: 'btn btn-secondary btn-video', onClick: () => openVideoModal(forSharing(s)) }, h('span', { class: 'play', 'aria-hidden': 'true' }), t('Make a video')) : null,
   );
 
   const c = yoyChange(s);
@@ -483,6 +493,7 @@ async function showSummary({ push = true } = {}) {
         birthdayPanel(s),
         highlightsPanel(s, { onChange: () => saveStats(s) }),
         balancePanel(s),
+        mixPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
         leaveOutPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
         comparePanel(s),
         rec.suggestions.length ? emailPanel(s, unlocked) : null,
@@ -501,6 +512,26 @@ async function showSummary({ push = true } = {}) {
   // The card is drawn on a canvas, which can't swap fonts by itself: redraw once the display face is in.
   document.fonts?.load('800 100px "Bricolage Grotesque"').then(() => { if (canvas.isConnected) draw(); }).catch(() => {});
   host.querySelectorAll('canvas.globe').forEach((c) => createGlobe(c, s.travel.routes, { duration: 4200 }));
+}
+
+/** How much shared things show. Work: no names, colleagues only, or everything. Personal: names or not. */
+function shareLevelControl(s, onChange) {
+  const work = s.mode === 'work';
+  const canTell = work && !!s.mix;
+  const levels = canTell ? ['none', 'colleagues', 'all'] : ['none', 'all'];
+  const current = levelOf(s, state.card.names);
+  const label = (l) => ({ none: t('No names'), colleagues: canTell ? t('Hide customers') : '', all: work ? t('Names and titles') : t('Names') }[l]);
+  const explain = (l) => ({
+    none: work ? t('Cards, links, slides and the video leave out every name and meeting title.') : t('Cards, links, slides and the video leave out names.'),
+    colleagues: t('Colleagues’ names stay. Customers, their people and company names become •••.'),
+    all: t('Names and titles appear as they are in your calendar.'),
+  }[l]);
+  const caption = h('p', { class: 'caption', id: 'share-level-note' }, explain(current));
+  const hide = h('input', { class: 'hide-words', type: 'text', id: 'share-hide', value: state.card.hide, maxlength: 300, placeholder: t('Also hide, e.g. Project Falcon, Contoso'), 'aria-label': t('Other words to hide'), autocomplete: 'off', spellcheck: 'false',
+    onChange: (e) => { state.card.hide = e.target.value; saveCardPrefs(); onChange(); } });
+  const picker = seg(levels, current, (l) => { state.card.names = l; saveCardPrefs(); caption.textContent = explain(l); hide.hidden = l === 'all'; onChange(); }, label, { 'aria-label': t('What shared things show'), class: 'seg seg-sm share-seg' });
+  hide.hidden = current === 'all';
+  return h('div', { class: 'share-level' }, h('span', { class: 'lbl' }, t('What shared things show')), picker, caption, work ? hide : null);
 }
 
 // ---------- unlock by sharing ----------
@@ -669,7 +700,8 @@ async function shareCard(canvas, s) {
   } catch { /* cancelled */ }
 }
 async function copyLink(s) {
-  await copyText(myLink(s), state.card.hideNames ? t('Link copied. Names and titles are left out.') : t('Link copied.'));
+  const level = levelOf(s, state.card.names);
+  await copyText(myLink(s), level === 'none' ? t('Link copied. Names and titles are left out.') : level === 'colleagues' ? t('Link copied. Customer names are left out.') : t('Link copied.'));
   track('link_copied');
 }
 
@@ -745,7 +777,7 @@ function showTeamReport({ push = true } = {}) {
 }
 
 async function startOver() {
-  state.stats = null; state.team = null; state.summary = null;
+  state.stats = null; state.team = null; state.summary = null; state.card.hide = '';
   await clearTeam(engine);
   forgetAll();
   toast(t('Cleared from this device.'));

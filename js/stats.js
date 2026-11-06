@@ -4,6 +4,7 @@
 import { personaCopy, suggestionCopy, categoryLabel } from './copy.js';
 import { flightLegs } from './geo.js';
 import { holidayMap, bestBreaks, TYPICAL_LEAVE, fromKey } from './holidays.js';
+import { meetingMix, homeTest, domainOf } from './meeting-mix.js';
 
 const HOUR = 3600000;
 const DAY = 86400000;
@@ -515,6 +516,8 @@ function workStats(all, ctx) {
   const recurringHours = recurringSeries.reduce((s, x) => s + x.hours, 0);
 
   const collaborators = people(meetings, ctx.selfEmail);
+  const mix = ctx.attendeeInfoAvailable ? meetingMix(meetings, { selfEmail: ctx.selfEmail, groups: ctx.groups }) : null;
+  if (mix) { const home = homeTest(mix.homes); for (const p of collaborators) p.ext = !!p.email && !home(domainOf(p.email)); }
   const oneToOnes = meetings.filter((e) => e.others.length === 1);
   const large = meetings.filter((e) => e.others.length >= 8);
   const earliest = [...meetings].sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))[0] || null;
@@ -561,6 +564,8 @@ function workStats(all, ctx) {
     recurringHours: round1(recurringHours),
     recurringShare: totalHours ? Math.round((recurringHours / totalHours) * 100) : 0,
     collaborators: collaborators.slice(0, 8),
+    colleagues: mix ? collaborators.filter((p) => !p.ext).slice(0, 8) : null,
+    mix,
     uniquePeople: collaborators.length,
     oneToOnes: oneToOnes.length,
     oneToOneHours: round1(oneToOnes.reduce((s, e) => s + e.durationH, 0)),
@@ -834,7 +839,7 @@ export function applyExclusions(events, { titles = [], words = [] } = {}) {
 }
 
 // ---------- entry point ----------
-export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date(), timezone = null, country = 'GB' } = {}) {
+export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date(), timezone = null, country = 'GB', groups = [] } = {}) {
   const requestedEnd = rangeEnd;
   if (now < rangeEnd) rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const everything = annotate(rawEvents.filter((e) => e.start < rangeEnd && e.end > rangeStart), selfEmail);
@@ -849,7 +854,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   const detected = detectMode(all.filter((e) => !e.manual));
   const chosen = mode === 'auto' ? (roles.size && focus ? focus : detected.mode) : mode;
   const yearAll = rawEvents.filter((e) => e.start < requestedEnd && e.end > rangeStart);
-  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone, country, now, yearAll, mode: chosen, everything };
+  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone, country, now, yearAll, mode: chosen, everything, groups };
   const stats = chosen === 'work' ? workStats(all, ctx) : personalStats(all, ctx);
   Object.assign(stats, extraStats({ ...ctx, routes: stats.travel.routes }));
   if (roles.has('work') && roles.has('personal')) stats.balance = balanceStats(everything, ctx);

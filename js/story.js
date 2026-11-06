@@ -30,7 +30,7 @@ function specFromSlide(el, year) {
   return { year, cap: text('.cap'), big, unit, line: text('.line'), note, emoji: text('.persona-emoji'), image: el.querySelector('canvas.globe') || null };
 }
 
-export function createStory(host, slides, { onFinish, onExit, year } = {}) {
+export function createStory(host, slides, { onFinish, onExit, year, mask = (x) => x } = {}) {
   host.innerHTML = '';
   host.classList.add('story');
   host.setAttribute('role', 'region');
@@ -125,7 +125,10 @@ export function createStory(host, slides, { onFinish, onExit, year } = {}) {
   async function shareSlide() {
     const el = slideEl(index);
     const canvas = document.createElement('canvas');
-    renderSlideCard(canvas, specFromSlide(el, year), slides[index].theme || 'c-blue');
+    // A saved slide is a shared thing: it hides what the sharing choice hides.
+    const spec = specFromSlide(el, year);
+    for (const k of ['cap', 'big', 'unit', 'line', 'note']) spec[k] = mask(spec[k]);
+    renderSlideCard(canvas, spec, slides[index].theme || 'c-blue');
     const blob = await canvasToBlob(canvas);
     const file = new File([blob], `calendar-wrapped-${year}-${index + 1}.png`, { type: 'image/png' });
     track('slide_shared');
