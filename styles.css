@@ -540,16 +540,56 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .toast.in { opacity: 1; transform: none; }
 
 /* ---------- print ---------- */
+/* The printed report: an A4 document with a full-bleed cover in the card's two tones. */
+.report-cover { display: none; }
+@page { size: A4; margin: 16mm 15mm 18mm; }
+@page :first { margin: 0; }
 @media print {
-  :root { color-scheme: light; --bg: #fff; --bg-alt: #fff; --card: #fff; --ink: #1d1d1f; --ink-2: #6e6e73; --ink-3: #86868b; --line: #d2d2d7; --line-soft: rgba(0,0,0,0.08); --chart-ink: #1d1d1f; --chart-fill: rgba(0,0,0,0.22); --chart-line: rgba(0,0,0,0.08); --green: #248a3d; }
-  body { background: #fff; }
+  :root { color-scheme: light; --bg: #fff; --bg-alt: #f4f3f0; --card: #fff; --ink: #1d1d1f; --ink-2: #55555a; --ink-3: #86868b; --line: #d2d2d7; --line-soft: rgba(0,0,0,0.1); --chart-ink: #2338e8; --chart-fill: rgba(35,56,232,0.18); --chart-line: rgba(0,0,0,0.08); --green: #248a3d; --viz-ink: #2338e8; --viz-base: #e6e8fb; }
+  * { animation: none !important; transition: none !important; }
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
+  html, body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-size: 11pt; }
   .nav, .report-head .btn, .toasts, .no-print { display: none !important; }
   .view { display: none !important; }
   #view-report.is-active, #view-team.is-active { display: block !important; }
-  .locked-block, .unlock-panel { display: none !important; }
+  .locked-block, .unlock-panel, .actions { display: none !important; }
   .report { padding: 0; max-width: none; }
-  .report-sec { break-inside: avoid; }
-  .panel { border-color: #ddd; }
+  .report-personal { --chart-ink: #c2185b; --chart-fill: rgba(255,79,139,0.2); --viz-ink: #ff4f8b; --viz-base: #ffe1ec; }
+
+  .report-cover { display: flex; flex-direction: column; break-after: page; height: 297mm; width: 210mm; box-sizing: border-box; padding: 22mm 20mm 18mm; background: #2338e8; color: #ffd9e6; overflow: hidden; }
+  .report-personal .report-cover { background: #ff4f8b; color: #3a0619; }
+  .cover-brand { display: flex; justify-content: space-between; font-size: 13pt; font-weight: 600; margin: 0; }
+  .cover-brand span { opacity: 0.74; }
+  .report .report-cover h1 { font-family: var(--font-display); font-stretch: 75%; font-weight: 800; font-size: 74pt; line-height: 0.92; letter-spacing: -0.03em; margin: 34mm 0 0; color: inherit; }
+  .cover-persona { display: flex; align-items: center; gap: 6mm; margin-top: 16mm; padding-top: 7mm; border-top: 1.5px solid currentColor; }
+  .cover-emoji { font-size: 34pt; }
+  .cover-persona small { display: block; font-size: 11pt; opacity: 0.74; }
+  .cover-persona b { font-family: var(--font-display); font-stretch: 85%; font-size: 26pt; font-weight: 800; }
+  .cover-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm 10mm; margin-top: auto; }
+  .cover-stat { border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); padding-top: 3mm; display: grid; }
+  .cover-stat b { font-family: var(--font-display); font-stretch: 75%; font-size: 40pt; font-weight: 800; line-height: 1; }
+  .cover-stat span { font-size: 10.5pt; opacity: 0.8; margin-top: 1.5mm; }
+  .cover-foot { margin: 12mm 0 0; font-size: 9.5pt; opacity: 0.74; }
+
+  .report-head { margin-bottom: 8mm; }
+  .report h1 { font-family: var(--font-display); font-stretch: 85%; font-size: 30pt; }
+  .report .lede { font-size: 12pt; }
+  .report-sec { margin-top: 9mm; break-inside: auto; }
+  .report-sec > *:not(h2):not(.intro):not(.table-wrap):not(.panel), .reclaim-list li, .report .panel .reclaim-head, .table-wrap:has(tbody tr:nth-child(-n+8):last-child) { break-inside: avoid; }
+  .report-sec h2 { font-family: var(--font-display); font-stretch: 88%; font-size: 18pt; padding-top: 3mm; border-top: 2.5px solid var(--viz-ink); break-after: avoid; }
+  .report-sec p.intro { font-size: 10.5pt; break-after: avoid; }
+  .report-sec h2, .report-sec p.intro, .table thead { break-after: avoid-page; }
+  .table tbody tr:first-child { break-before: avoid-page; }
+  .report-sec:has(> .table-wrap) { break-inside: avoid-page; }
+  .table { font-size: 10pt; }
+  .table tr { break-inside: avoid; }
+  .panel { border: 1px solid #e3e3e6; box-shadow: none; background: #fff; }
+  .stat b { font-size: 18pt; }
+  .awards-light { grid-template-columns: 1fr 1fr; }
+  .awards-light .award-medal { background: var(--viz-base); }
+  a { color: inherit; text-decoration: none; }
+}
 }
 
 /* ==========================================================================

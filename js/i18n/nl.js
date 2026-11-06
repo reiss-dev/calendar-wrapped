@@ -1017,4 +1017,6 @@ export default {
   "Your calendar is read on your own device. Nothing is uploaded.": "Je agenda wordt op je eigen apparaat gelezen. Er wordt niets geüpload.",
   "And {n} trip away.": "En {n} reis weg.",
   "And {n} trips away.": "En {n} reizen weg.",
+  "Kind": "Soort",
+  "Customer": "Klant",
 };

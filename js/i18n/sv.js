@@ -1017,4 +1017,6 @@ export default {
   "Your calendar is read on your own device. Nothing is uploaded.": "Din kalender läses på din egen enhet. Inget laddas upp.",
   "And {n} trip away.": "Och {n} resa bort.",
   "And {n} trips away.": "Och {n} resor bort.",
+  "Kind": "Typ",
+  "Customer": "Kund",
 };

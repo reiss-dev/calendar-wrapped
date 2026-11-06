@@ -119,6 +119,12 @@ await scenario('work demo: story with visuals, summary, actions, formats, link',
   await page.getByRole('button', { name: 'Open full report' }).click();
   await page.waitForSelector('.report .reclaim-list');
   await shot(page, '04-report');
+  assert.ok(await page.locator('.report-cover').isHidden(), 'the cover is for paper only');
+  await page.emulateMedia({ media: 'print' });
+  assert.ok(await page.locator('.report-cover').isVisible(), 'printing starts with the cover');
+  assert.ok(await page.locator('.report .awards .award').count() >= 3, 'awards in the report');
+  assert.ok(await page.locator('.report .mix').count() === 1, 'who you met with in the report');
+  await page.emulateMedia({ media: 'screen' });
   await c.close();
 });
 

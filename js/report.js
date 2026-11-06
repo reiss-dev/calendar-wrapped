@@ -7,6 +7,9 @@ import { categoryLabel } from './copy.js';
 import { yoyChange } from './stats.js';
 import { reclaimList } from './reclaim-ui.js';
 import { breakRows, birthdayRows, holidayLabel } from './timeoff-ui.js';
+import { persona as personaOf } from './copy.js';
+import { typeLabel, mixBar } from './mix-ui.js';
+import { awardCopy, hasAwards } from './awards-ui.js';
 
 const stat = (v, l) => h('div', { class: 'stat' }, h('b', {}, v), h('span', {}, l));
 const sec = (title, intro, ...body) => h('section', { class: 'report-sec' }, h('h2', {}, title), intro ? h('p', { class: 'intro' }, intro) : null, ...body);
@@ -50,7 +53,39 @@ export function renderReport(host, s, { onBack, unlocked, ctx = {} }) {
   const foot = h('p', { class: 'caption', style: 'margin-top:56px' },
     t('Meetings are timed events with at least one other attendee that you didn’t decline. Working time assumes a {n}-hour week. Travel and time off are detected from titles, so treat them as a best guess.', { n: fmt.num(s.workHoursPerWeek || 40) }),
     unlocked?.preview ? ` ${t('Preview unlock: payments aren’t configured on this host.')}` : '');
-  host.append(h('div', { class: 'report' }, head, ...(isWork ? workBody(s, ctx) : personalBody(s, ctx)), foot));
+  host.append(h('div', { class: `report ${isWork ? 'report-work' : 'report-personal'}` }, cover(s, period), head, ...(isWork ? workBody(s, ctx) : personalBody(s, ctx)), foot));
+}
+
+/** The printed cover: a full page in the card's two tones. Only shows on paper. */
+function cover(s, period) {
+  const work = s.mode === 'work';
+  const P = personaOf(s.persona);
+  const big = (v, l) => h('div', { class: 'cover-stat' }, h('b', {}, v), h('span', {}, l));
+  return h('section', { class: 'report-cover', 'aria-hidden': 'true' },
+    h('p', { class: 'cover-brand' }, CONFIG.brand.name, h('span', {}, String(s.year))),
+    h('h1', {}, t('Your {year},', { year: s.year }), h('br'), work ? t('in meetings.') : t('in plans.')),
+    h('div', { class: 'cover-persona' }, h('span', { class: 'cover-emoji' }, P.emoji), h('div', {}, h('small', {}, t('Your calendar persona')), h('b', {}, P.name))),
+    h('div', { class: 'cover-stats' }, work
+      ? [big(fmt.int(s.meetings), t('meetings')), big(fmt.int(s.totalHours), t('hours in meetings')), big(`${s.shareOfWork}%`, t('of working time')), big(fmt.int(s.reclaim?.totalHours || 0), t('hours to win back next year'))]
+      : [big(fmt.int(s.events), t('plans in the diary')), big(fmt.int(s.totalHours), t('hours of planned life')), big(fmt.int(s.travel?.trips || 0), t('trips away')), big(fmt.int(s.birthdays || 0), t('birthdays remembered'))]),
+    h('p', { class: 'cover-foot' }, `${period}. ${t('Generated on your device.')} ${fmt.date(new Date())}`));
+}
+
+function mixSection(s) {
+  const mix = s.mix;
+  if (!mix || mix.types.length < 2) return null;
+  return sec(t('Who you met with'), t('Customers are anyone from outside {domain}. Internal means only colleagues.', { domain: mix.home }),
+    h('div', { class: 'viz-light' }, mixBar(mix.types)),
+    h('div', { class: 'two', style: 'margin-top:20px' },
+      table([[t('Kind')], [t('Meetings'), 1], [t('Hours'), 1], ['%', 1]], mix.types.map((x) => [typeLabel(x), fmt.int(x.count), fmt.hours(x.hours), `${x.pct}%`])),
+      mix.customers.length ? table([[t('Customer')], [t('Meetings'), 1], [t('Hours'), 1]], mix.customers.slice(0, 10).map((c) => [c.name, fmt.int(c.count), fmt.hours(c.hours)])) : null));
+}
+function awardsSection(s) {
+  if (!hasAwards(s)) return null;
+  return sec(t('Awards'), null, h('ol', { class: 'awards awards-light' }, s.awards.map((a) => {
+    const [title, line] = awardCopy(a);
+    return h('li', { class: 'award' }, h('span', { class: 'award-medal', 'aria-hidden': 'true' }, a.emoji), h('span', { class: 'award-text' }, h('b', {}, title), h('span', {}, line)));
+  })));
 }
 
 function yoyStats(s) {
@@ -68,7 +103,9 @@ function workBody(s, ctx) {
       stat(fmt.num(s.avgPerWorkingDay), t('per working day')), stat(t('{n} min', { n: fmt.int(s.avgLengthMin) }), t('average length')), stat(fmt.int(s.uniquePeople), t('different people')),
       stat(fmt.int(s.organized), t('you organised')), stat(fmt.int(s.declined), t('you declined')), stat(fmt.int(s.unanswered), t('never answered')),
       ...yoyStats(s))),
+    awardsSection(s),
     sec(t('Reclaim'), null, reclaimPanel(s, ctx)),
+    mixSection(s),
     sec(t('Through the year'), bi >= 0 ? (qi >= 0 ? t('{a} was the heaviest month, {b} the lightest.', { a: monthName(bi), b: monthName(qi) }) : t('{a} was the heaviest month.', { a: monthName(bi) })) : null,
       charts.monthChart(s.monthly, bi),
       h('div', { class: 'two', style: 'margin-top:20px' },
@@ -98,6 +135,7 @@ function personalBody(s, ctx) {
   const bi = idx(s, s.busiestMonth);
   return [
     sec(t('At a glance'), null, h('div', { class: 'stat-grid' }, stat(fmt.int(s.events), t('plans')), stat(t('{h} hrs', { h: fmt.hours(s.totalHours) }), t('planned time')), stat(fmt.int(s.uniquePeople), t('people')), stat(t('{a} of {b}', { a: s.freeWeekends, b: s.totalWeekends }), t('free weekends')), stat(fmt.int(s.eveningEvents), t('weeknight plans')), stat(fmt.int(s.birthdays), t('birthdays')), ...yoyStats(s))),
+    awardsSection(s),
     sec(t('Nudges'), null, reclaimPanel(s, ctx)),
     sec(t('Where the time went'), null, h('div', { class: 'panel' }, h('div', { style: 'display:grid; gap:10px' }, s.categories.map((c) => h('div', { style: 'display:grid; grid-template-columns: 170px 1fr 110px; gap:12px; align-items:center; font-size:14px' }, h('span', {}, categoryLabel(c.key)), h('div', { class: 'bar' }, h('i', { style: `--v:${c.count / max}; animation:none` })), h('span', { style: 'text-align:right; color:var(--ink-2)' }, t('{n}, {h} hrs', { n: fmt.int(c.count), h: fmt.hours(c.hours) }))))))),
     sec(t('Through the year'), bi >= 0 ? t('{a} was the busiest month.', { a: monthName(bi) }) : null, charts.monthChart(s.monthly, bi), h('div', { class: 'two', style: 'margin-top:20px' }, h('div', { class: 'panel' }, h('h3', {}, t('Hours by weekday')), weekdayChart(s.byWeekday)), h('div', { class: 'panel' }, h('h3', {}, t('Plans by hour of day')), charts.heatStrip(s.byHour)))),
