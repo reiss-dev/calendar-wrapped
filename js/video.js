@@ -12,6 +12,7 @@ import { createGlobe } from './globe.js';
 import { hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlights, showHighlights } from './extras.js';
 import { hasAwards, awardCopy } from './awards-ui.js';
+import { hasHealth, bandLabel, partCopy } from './health-ui.js';
 import { renderSoundtrack, audioChunks, pickAudioCodec, SAMPLE_RATE } from './soundtrack.js';
 
 export const W = 1080, H = 1920, FPS = 30;
@@ -308,6 +309,23 @@ export async function buildScenes(s) {
         say(ctx, x.title, yy + 10, { size: 52, colour: c.ink, a, x: PAD + 290, maxW: W - PAD * 2 - 290, max: 2, lh: 1.15 });
       });
       ctx.globalAlpha = 1;
+    });
+  }
+  if (hasHealth(s)) {
+    const H = s.health;
+    scene('c-white', 3.2, (ctx, p, c) => {
+      let y = 330;
+      y = cap(ctx, t('Calendar health'), y, p, c);
+      // The gauge sweeps round as the number counts up.
+      const k = easeOut(clamp((p - 0.08) / 0.5)), cx = W / 2, cy = y + 470, r = 360;
+      ctx.lineCap = 'round'; ctx.lineWidth = 64;
+      ctx.strokeStyle = c.base; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = c.ink; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, Math.PI + Math.PI * (H.score / 100) * Math.max(0.001, k)); ctx.stroke();
+      ctx.font = `800 300px ${DISPLAY}`; stretch(ctx, 'condensed'); ctx.letterSpacing = '-9px'; ctx.fillStyle = c.ink; ctx.textAlign = 'center';
+      ctx.fillText(String(Math.round(H.score * k)), cx, cy - 10); ctx.textAlign = 'left'; ctx.letterSpacing = '0px';
+      y = say(ctx, bandLabel(H.band, s.mode), cy + 90, { size: 110, colour: c.ink, a: enter(p, 0.45), rise: 30 });
+      const worst = H.drags[0] && H.parts.find((x) => x.key === H.drags[0]);
+      if (worst) say(ctx, t('Costing you most: {part}.', { part: partCopy(worst)[0].toLowerCase() }), y + 20, { size: 46, weight: 500, colour: c.mute, a: enter(p, 0.55) });
     });
   }
   if (hasAwards(s)) {

@@ -31,6 +31,7 @@ import { mixPanel, loadGroups } from './mix-ui.js';
 import { checksPanel } from './checks-ui.js';
 import { awardsPanel } from './awards-ui.js';
 import { wherePanel } from './where-ui.js';
+import { healthPanel } from './health-ui.js';
 import { openCarouselModal } from './carousel-ui.js';
 import { maskStats, makeMasker, levelOf } from './privacy.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
@@ -479,6 +480,7 @@ async function showSummary({ push = true } = {}) {
         h('p', { class: 'caption', style: 'margin-top:12px; text-align:center' }, unlocked ? t('Clean card, no watermark.') : t('The free card carries a small watermark. Links carry only the numbers on the card, never your calendar.'))),
       h('div', { class: 'stack' },
         checksPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
+        healthPanel(s),
         h('div', { class: 'panel', 'data-reveal': '' }, h('h3', {}, t('{year} at a glance', { year: s.year })), h('p', { class: 'sub' }, isWork ? t('Work calendar, {period}.', { period: s.isPartialYear ? t('1 January to {date}', { date: fmt.date(s.range.end) }) : t('the whole year') }) : t('Personal calendar, {period}.', { period: s.isPartialYear ? t('1 January to {date}', { date: fmt.date(s.range.end) }) : t('the whole year') })), h('div', { class: 'stat-grid', style: 'margin-top:14px' }, tiles.map(([v, l]) => h('div', { class: 'stat' }, h('b', {}, v), h('span', {}, l))))),
         awardsPanel(s),
         h('div', { class: 'panel', 'data-reveal': '' },
@@ -819,7 +821,20 @@ async function openTeam(files) {
 function showTeamReport({ push = true } = {}) {
   if (!state.team) { openTeam(); return; }
   show('team', { push, hash: '#team-report' });
-  renderTeamReport(views.team, state.team, { onBack: () => openTeam(), onChanged: () => showTeamReport({ push: false }) });
+  renderTeamReport(views.team, state.team, {
+    onBack: () => openTeam(), onChanged: () => showTeamReport({ push: false }),
+    // The team story and carousel carry no names or titles, so they're free: they're how teams find us.
+    onStory: async () => {
+      const { buildTeamSlides } = await import('./team-story.js');
+      show('story');
+      track('team_story_started');
+      state.story = createStory(views.story, buildTeamSlides(state.team), { year: state.team.year, onFinish: () => showTeamReport(), onExit: () => showTeamReport() });
+    },
+    onCarousel: async () => {
+      const { teamCarouselPages } = await import('./team-story.js');
+      openCarouselModal(state.team, { build: teamCarouselPages, title: t('Our {year} in meetings', { year: state.team.year }), file: `team-wrapped-${state.team.year}-carousel.pdf` });
+    },
+  });
 }
 
 async function startOver() {

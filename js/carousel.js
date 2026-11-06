@@ -9,14 +9,15 @@ import { imagesToPdf } from './pdf.js';
 import { hasMix, lead, headline, typeLabel } from './mix-ui.js';
 import { hasAwards, awardCopy } from './awards-ui.js';
 import { hasWhere, whereHeadline, whereLabel } from './where-ui.js';
+import { hasHealth, bandLabel, partCopy } from './health-ui.js';
 
 export const W = 1080, H = 1350;
-const PAD = 96;
+export const PAD = 96;
 const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "Inter", Helvetica, Arial, sans-serif';
 const DISPLAY = '"Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif';
 const EMOJI = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
 
-function font(ctx, weight, size, display = false, stretchTo = 'normal') {
+export function font(ctx, weight, size, display = false, stretchTo = 'normal') {
   ctx.font = `${weight} ${size}px ${display ? DISPLAY : FONT}`;
   ctx.letterSpacing = `${(-size * (display ? 0.025 : 0.01)).toFixed(1)}px`;
   if ('fontStretch' in ctx) ctx.fontStretch = display ? stretchTo : 'normal';
@@ -28,7 +29,7 @@ function wrap(ctx, text, maxW) {
   return lines;
 }
 /** Writes wrapped text and returns the y below it. */
-function text(ctx, str, y, { size, weight = 500, display = false, colour, maxW = W - PAD * 2, lh = 1.15, max = 4, x = PAD, stretch = 'semi-condensed' }) {
+export function text(ctx, str, y, { size, weight = 500, display = false, colour, maxW = W - PAD * 2, lh = 1.15, max = 4, x = PAD, stretch = 'semi-condensed' }) {
   if (!str) return y;
   font(ctx, weight, size, display, stretch);
   ctx.fillStyle = colour;
@@ -37,14 +38,14 @@ function text(ctx, str, y, { size, weight = 500, display = false, colour, maxW =
   return y + size + (lines.length - 1) * size * lh + size * 0.45;
 }
 /** A big number, shrunk to fit. */
-function big(ctx, str, y, colour, { size = 300, unit = '' } = {}) {
+export function big(ctx, str, y, colour, { size = 300, unit = '' } = {}) {
   let s = size;
   for (; s > 120; s -= 8) { font(ctx, 800, s, true, 'condensed'); if (ctx.measureText(str).width <= W - PAD * 2 - (unit ? 180 : 0)) break; }
   ctx.fillStyle = colour; ctx.fillText(str, PAD - 6, y + s * 0.82);
   if (unit) { const w = ctx.measureText(str).width; font(ctx, 700, 56, true); ctx.fillText(unit, PAD + w + 18, y + s * 0.82); }
   return y + s * 0.82 + 40;
 }
-function bars(ctx, values, { y, h, colour, base, hi = -1, labels = null, mute }) {
+export function bars(ctx, values, { y, h, colour, base, hi = -1, labels = null, mute }) {
   const n = values.length, gap = n > 20 ? 4 : 12, bw = (W - PAD * 2 - gap * (n - 1)) / n;
   const top = Math.max(1, ...values);
   values.forEach((v, i) => {
@@ -55,7 +56,7 @@ function bars(ctx, values, { y, h, colour, base, hi = -1, labels = null, mute })
   if (labels) { font(ctx, 500, 26); ctx.fillStyle = mute; ctx.textAlign = 'center'; labels.forEach((l, i) => ctx.fillText(l, PAD + i * (bw + gap) + bw / 2, y + h + 40)); ctx.textAlign = 'left'; }
   return y + h + (labels ? 70 : 30);
 }
-function ring(ctx, pct, cx, cy, r, colour, base) {
+export function ring(ctx, pct, cx, cy, r, colour, base) {
   ctx.lineWidth = 34; ctx.lineCap = 'round';
   ctx.strokeStyle = base; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeStyle = colour; ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * Math.min(100, pct)) / 100); ctx.stroke();
@@ -185,6 +186,26 @@ export function carouselPages(s) {
     bars(ctx, s.monthly.map((m) => m.value), { y: H - 640, h: 400, colour: c.ink, base: c.base, hi: bi, labels: s.monthly.map((_, i) => monthName(i, 'narrow')), mute: c.mute });
   });
 
+  if (hasHealth(s)) {
+    const Hh = s.health;
+    page('c-white', (ctx, c) => {
+      text(ctx, t('Calendar health'), 220, { size: 34, weight: 650, colour: c.mute });
+      const cx = W / 2, cy = 640, r = 300;
+      ctx.lineCap = 'round'; ctx.lineWidth = 54;
+      ctx.strokeStyle = c.base; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = c.ink; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, Math.PI + Math.PI * (Hh.score / 100)); ctx.stroke();
+      font(ctx, 800, 250, true, 'condensed'); ctx.fillStyle = c.ink; ctx.textAlign = 'center'; ctx.fillText(String(Hh.score), cx, cy - 10);
+      font(ctx, 800, 80, true, 'semi-condensed'); ctx.fillText(bandLabel(Hh.band, s.mode), cx, cy + 110); ctx.textAlign = 'left';
+      let y = cy + 170;
+      for (const p of Hh.parts) {
+        const [name] = partCopy(p);
+        text(ctx, name, y, { size: 30, weight: 600, colour: c.ink, maxW: 380 });
+        ctx.fillStyle = c.base; ctx.beginPath(); ctx.roundRect(PAD + 400, y + 12, W - PAD * 2 - 400, 18, 9); ctx.fill();
+        ctx.fillStyle = c.ink; ctx.beginPath(); ctx.roundRect(PAD + 400, y + 12, Math.max(18, (W - PAD * 2 - 400) * p.score / 100), 18, 9); ctx.fill();
+        y += 52;
+      }
+    });
+  }
   if (hasAwards(s)) {
     page('c-yellow', (ctx, c) => {
       let y = text(ctx, t('Awards'), 220, { size: 34, weight: 650, colour: c.mute });
@@ -236,16 +257,16 @@ export function drawPage(canvas, pg, i, total) {
 
 const toJpeg = (canvas) => new Promise((resolve, reject) => canvas.toBlob((b) => (b ? b.arrayBuffer().then((a) => resolve(new Uint8Array(a))) : reject(new Error('jpeg'))), 'image/jpeg', 0.9));
 
-/** The carousel as a PDF Blob. */
-export async function makeCarousel(stats) {
+/** The carousel as a PDF Blob. `build` makes the pages (the person's year by default; the team's for a team). */
+export async function makeCarousel(stats, { build = carouselPages, title = null } = {}) {
   try { await Promise.all(['800 200px', '700 80px'].map((f) => document.fonts.load(`${f} "Bricolage Grotesque"`))); } catch { /* system type */ }
-  const pages = carouselPages(stats);
+  const pages = build(stats);
   const canvas = document.createElement('canvas');
   const out = [];
   for (let i = 0; i < pages.length; i++) {
     drawPage(canvas, pages[i], i, pages.length);
     out.push({ jpeg: await toJpeg(canvas), w: W, h: H });
   }
-  const title = stats.mode === 'work' ? t('My {year} in meetings', { year: stats.year }) : t('My {year} in plans', { year: stats.year });
+  title = title || (stats.mode === 'work' ? t('My {year} in meetings', { year: stats.year }) : t('My {year} in plans', { year: stats.year }));
   return { blob: new Blob([imagesToPdf(out, { title })], { type: 'application/pdf' }), pages: pages.length };
 }

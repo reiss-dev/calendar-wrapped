@@ -183,6 +183,22 @@ await scenario('team: build, unlock monthly plan, quarters, survives reload', as
   assert.equal(await page.locator('.quarters .q').count(), 4);
   assert.ok(await page.locator('.team-report .viz-bubbles').count() === 1);
   await shot(page, '09-team');
+  // The team story: numbers and personas, never names.
+  await page.click('#team-story');
+  await page.waitForSelector('.slide.is-current');
+  const teamCaps = [];
+  const teamText = [];
+  const n = await page.locator('.story-progress i').count();
+  for (let i = 0; i < n - 1; i++) { await page.waitForTimeout(150); teamCaps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); teamText.push(await page.locator('.slide.is-current').textContent()); await page.mouse.click(1000, 430); }
+  assert.ok(teamCaps.includes('Team health') && teamCaps.includes('The team, by persona'), teamCaps.join(' | '));
+  assert.ok(!/Priya|Tom |Maja|Alex/.test(teamText.join(' ')), 'no names in the team story');
+  await page.waitForTimeout(400);
+  await page.locator('.slide.is-current .slide-cta .btn').click();
+  await page.waitForSelector('.team-report .lever');
+  await page.click('#team-carousel');
+  await page.waitForSelector('#carousel-save', { timeout: 20000 });
+  assert.ok(await page.locator('.carousel-page').count() >= 7);
+  await page.keyboard.press('Escape');
   await page.reload(); await page.waitForSelector('.team-report');
   await c.close();
 });
@@ -483,6 +499,8 @@ await scenario('meeting types and hiding customers: groups recalculate, shared t
   assert.ok(caps.includes('Who you met with'), 'the meeting-mix page appears');
   assert.ok(caps.includes('Awards'), 'the awards page appears');
   assert.ok(caps.includes('Where you met'), 'the where-you-met page appears');
+  assert.ok(caps.includes('Calendar health'), 'the health page appears');
+  assert.match(await page.locator('.health-panel h3').textContent(), /^Calendar health: /);
   assert.ok(await page.locator('.where-panel .mixbar i').count() === 3, 'online, office and on site on the summary');
   assert.ok(await page.locator('.awards-panel .award').count() >= 3, 'awards on the summary');
   const panel = page.locator('.mix-panel');
@@ -510,13 +528,13 @@ await scenario('meeting types and hiding customers: groups recalculate, shared t
   assert.ok(!none.n.pn && !none.n.tt, 'no names at all');
   await page.locator('.card-custom summary').click();
   await page.locator('.swatch').nth(2).click();
-  await page.locator('.tile-chip[data-tile="r"]').click();
+  await page.locator('.tile-chip[data-tile="b"]').click();
   await page.locator('.tile-chip[data-tile="cs"]').click();
   await page.getByRole('button', { name: 'Copy link' }).click(); await page.waitForTimeout(200);
   const custom = decode(await page.evaluate(() => navigator.clipboard.readText()));
   assert.equal(custom.th, 'black');
-  assert.equal(custom.k[custom.k.length - 1], 'cs', 'the customer tile goes on the card, last');
-  assert.ok(!custom.k.includes('r'));
+  assert.equal(custom.k?.[custom.k.length - 1], 'cs', 'the customer tile goes on the card, last');
+  assert.ok(!custom.k.includes('b') && custom.k[0] === 'hs', 'health stays first');
   await c.close();
 });
 

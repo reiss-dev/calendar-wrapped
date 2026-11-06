@@ -4,7 +4,7 @@ import { t } from './i18n.js';
 import { h, toast } from './ui.js';
 import { track } from './analytics.js';
 
-export function openCarouselModal(stats) {
+export function openCarouselModal(stats, { build = null, title = null, file: fileName = null } = {}) {
   const root = h('div', { class: 'modal-root', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'carousel-title' });
   const opener = document.activeElement;
   const close = () => {
@@ -29,10 +29,11 @@ export function openCarouselModal(stats) {
   (async () => {
     try {
       const { carouselPages, drawPage, makeCarousel } = await import('./carousel.js');
-      const pages = carouselPages(stats);
+      const make = build || carouselPages;
+      const pages = make(stats);
       pages.forEach((pg, i) => { const cv = drawPage(document.createElement('canvas'), pg, i, pages.length); cv.className = 'carousel-page'; cv.setAttribute('aria-hidden', 'true'); strip.append(cv); });
-      const { blob, pages: n } = await makeCarousel(stats);
-      const name = `calendar-wrapped-${stats.year}-carousel.pdf`;
+      const { blob, pages: n } = await makeCarousel(stats, { build: make, title });
+      const name = fileName || `calendar-wrapped-${stats.year}-carousel.pdf`;
       status.textContent = t('{n} pages, ready.', { n });
       const file = new File([blob], name, { type: 'application/pdf' });
       buttons.append(

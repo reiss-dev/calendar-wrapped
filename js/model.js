@@ -19,12 +19,12 @@ export const cardColours = (m) => CARD_THEMES[m.th] || (m.m === 'p' ? CARD_THEME
 
 /** Every tile a card can carry, by mode, in the order offered. */
 export const TILE_KEYS = {
-  w: ['h', 'c', 's', 'ws', 'pn', 'tt', 'b', 'r', 'd', 'cs', 'co', 'os', 'ip', 'to', 'tr', 'fr', 'rc'],
-  p: ['e', 'h', 'cat', 'pn', 'fw', 'tr', 'bd', 'ls', 'to'],
+  w: ['hs', 'h', 'c', 's', 'ws', 'pn', 'tt', 'b', 'r', 'd', 'cs', 'co', 'os', 'ip', 'to', 'tr', 'fr', 'rc'],
+  p: ['hs', 'e', 'h', 'cat', 'pn', 'fw', 'tr', 'bd', 'ls', 'to'],
 };
 const N_KEYS = {
-  w: ['h', 'c', 's', 'wh', 'b', 'r', 'd', 'pc', 'tc', 'cs', 'co', 'os', 'ip', 'to', 'tr', 'fr', 'rc'],
-  p: ['e', 'h', 'cc', 'ls', 'fw', 'tw', 'tr', 'bd', 'pc', 'to'],
+  w: ['hs', 'h', 'c', 's', 'wh', 'b', 'r', 'd', 'pc', 'tc', 'cs', 'co', 'os', 'ip', 'to', 'tr', 'fr', 'rc'],
+  p: ['hs', 'e', 'h', 'cc', 'ls', 'fw', 'tw', 'tr', 'bd', 'pc', 'to'],
 };
 
 /** Reduce stats to a card model. Names and titles are dropped when hideNames is set. */
@@ -38,6 +38,7 @@ export function cardModel(s, { hideNames = true, who = '', locale = 'en', tiles 
     e: s.events, h: Math.round(s.totalHours), cat: s.categories[0]?.key || '', cc: s.categories[0]?.count || 0,
     ls: s.longestBusyStreak.length, fw: s.freeWeekends, tw: s.totalWeekends, tr: s.travel.trips, bd: s.birthdays, to: s.timeOff?.taken || 0,
   };
+  if (s.health) n.hs = s.health.score;
   if (work && s.mix) { n.cs = s.mix.customerShare; n.co = s.mix.companies; }
   if (work && s.where) { n.os = s.where.onsite.days; n.ip = s.where.inPersonShare; }
   if (!hideNames) {
@@ -68,7 +69,7 @@ export function sanitizeModel(x) {
   if (!Number.isInteger(y) || y < 2000 || y > 2100) return null;
   if (!Array.isArray(x.mo) || x.mo.length !== 12 || typeof x.n !== 'object' || !x.n) return null;
   const n = {};
-  for (const k of N_KEYS[x.m]) if (x.n[k] != null) n[k] = num(x.n[k], k === 's' || k === 'r' || k === 'cs' || k === 'ip' ? 100 : 1e6);
+  for (const k of N_KEYS[x.m]) if (x.n[k] != null) n[k] = num(x.n[k], k === 's' || k === 'r' || k === 'cs' || k === 'ip' || k === 'hs' ? 100 : 1e6);
   if (x.m === 'w' && /^\d{4}-\d{2}-\d{2}$/.test(x.n.ws || '')) n.ws = x.n.ws;
   if (x.m === 'p' && CATS.includes(x.n.cat)) n.cat = x.n.cat;
   if (x.n.pn) n.pn = clip(x.n.pn, 24);
@@ -95,6 +96,7 @@ function tile(m, key) {
   const n = m.n;
   if (m.m === 'w') {
     switch (key) {
+      case 'hs': return n.hs != null ? [`${fmt.int(n.hs)}/100`, t('calendar health')] : null;
       case 'h': return [fmt.int(n.h), t('hours in meetings')];
       case 'c': return [fmt.int(n.c), t('meetings')];
       case 's': return [`${fmt.int(n.s)}%`, t('of working time')];
@@ -116,6 +118,7 @@ function tile(m, key) {
     }
   }
   switch (key) {
+    case 'hs': return n.hs != null ? [`${fmt.int(n.hs)}/100`, t('calendar health')] : null;
     case 'e': return [fmt.int(n.e), t('plans in the diary')];
     case 'h': return [fmt.int(n.h), t('hours of planned life')];
     case 'cat': return n.cat ? [categoryLabel(n.cat), t('top category, {n} times', { n: fmt.int(n.cc) })] : null;
@@ -133,8 +136,8 @@ function tile(m, key) {
 export function defaultTiles(m) {
   const n = m.n;
   return m.m === 'w'
-    ? ['h', 'c', 's', n.ws ? 'ws' : 'b', n.pn ? 'pn' : 'b', n.tt ? 'tt' : 'r']
-    : ['e', 'h', 'cat', n.pn ? 'pn' : 'ls', 'fw', n.tr ? 'tr' : 'bd'];
+    ? [n.hs != null ? 'hs' : 'r', 'h', 'c', 's', n.ws ? 'ws' : 'b', n.pn ? 'pn' : n.tt ? 'tt' : 'b']
+    : [n.hs != null ? 'hs' : 'bd', 'e', 'h', 'cat', n.pn ? 'pn' : 'ls', 'fw'];
 }
 /** Tiles this card has something for, in the order offered. */
 export const availableTiles = (m) => TILE_KEYS[m.m].filter((k) => tile(m, k));

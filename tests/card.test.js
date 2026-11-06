@@ -14,7 +14,7 @@ const work = load('work');
 test('the card carries the tiles you pick, in your order, and falls back to the defaults', () => {
   const plain = cardModel(work, { hideNames: true });
   assert.equal(plain.k, undefined);
-  assert.deepEqual(cardTileKeys(plain), ['h', 'c', 's', 'ws', 'b', 'r']);
+  assert.deepEqual(cardTileKeys(plain), ['hs', 'h', 'c', 's', 'ws', 'b'], 'health leads');
   const picked = cardModel(work, { hideNames: true, tiles: ['cs', 'rc', 'nonsense', 'cs', 'to'] });
   assert.deepEqual(picked.k, ['cs', 'rc', 'to'], 'unknown and repeated keys dropped');
   assert.deepEqual(cardTileKeys(picked).slice(0, 3), ['cs', 'rc', 'to']);

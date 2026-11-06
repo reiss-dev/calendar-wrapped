@@ -7,6 +7,7 @@ import { holidayMap, bestBreaks, TYPICAL_LEAVE, fromKey } from './holidays.js';
 import { meetingMix, homeTest, domainOf, companyName } from './meeting-mix.js';
 import { whereStats } from './where.js';
 import { computeAwards } from './awards.js';
+import { computeHealth } from './health.js';
 
 const HOUR = 3600000;
 const DAY = 86400000;
@@ -923,6 +924,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
     totalEventsInRange: everything.filter((e) => !e.manual).length,
   };
   result.awards = computeAwards(result);
+  result.health = computeHealth(result);
   return result;
 }
 
@@ -1065,6 +1067,7 @@ export function computeTeamStats(members, { rangeStart, rangeEnd, now = new Date
   return {
     mode: 'team',
     year: rangeStart.getFullYear(),
+    workHoursPerWeek,
     isPartialYear: people[0]?.stats.isPartialYear || false,
     range: people[0]?.stats.range,
     size: people.length,
@@ -1079,6 +1082,7 @@ export function computeTeamStats(members, { rangeStart, rangeEnd, now = new Date
       name: p.name, email: p.email, meetings: p.stats.meetings, hours: p.stats.totalHours, share: p.stats.shareOfWork,
       backToBackDays: p.stats.backToBackDays, fragmentedDays: p.stats.fragmentedDays, persona: p.stats.persona,
       reclaimHours: p.stats.reclaim.totalHours,
+      health: p.stats.health?.score ?? null,
     })).sort((a, b) => b.hours - a.hours),
     sharedSeries: sharedSeries.slice(0, 15),
     lever,

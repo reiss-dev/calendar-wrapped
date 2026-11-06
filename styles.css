@@ -1103,3 +1103,27 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .carousel-page:nth-child(n) { animation-delay: calc(var(--k, 0) * 60ms); }
 @keyframes page-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
 .btn-carousel, .btn-video { flex-basis: calc(50% - 4px) !important; }
+/* Calendar health */
+.gauge { position: relative; width: min(320px, 78vw); }
+.gauge svg { width: 100%; height: auto; display: block; overflow: visible; }
+.gauge path { fill: none; stroke-width: 18; stroke-linecap: round; }
+.gauge .g-track { stroke: var(--viz-base); }
+.gauge .g-fill { stroke: var(--viz-ink); stroke-dasharray: var(--len); stroke-dashoffset: var(--len); animation: gauge-fill 1.6s var(--spring) forwards; animation-delay: 300ms; }
+@keyframes gauge-fill { to { stroke-dashoffset: calc(var(--len) * (1 - var(--p))); } }
+.gauge .g-num { position: absolute; left: 0; right: 0; bottom: 0; text-align: center; font-family: var(--font-display); font-stretch: 75%; font-weight: 800; font-size: clamp(72px, 18vw, 120px); line-height: 0.8; letter-spacing: -0.03em; color: var(--viz-ink); }
+.gauge .g-num small { font-size: 0.24em; font-stretch: 100%; font-weight: 600; letter-spacing: 0; opacity: 0.6; margin-left: 4px; }
+.gauge-light { width: 170px; flex: none; }
+.gauge-light path { stroke-width: 16; }
+.gauge-light .g-num { font-size: 56px; }
+.health-head { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.health-head > div:last-child { flex: 1; min-width: 200px; }
+.health-parts { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 22px; }
+.health-parts li { display: grid; gap: 5px; }
+.hp-top { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; }
+.hp-top span { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hp-bar { height: 8px; border-radius: 4px; background: var(--fill); overflow: hidden; }
+.hp-bar i { display: block; height: 100%; width: calc(var(--v) * 100%); border-radius: 4px; background: var(--green); transform-origin: left; animation: grow 0.9s var(--spring) both; animation-delay: 300ms; }
+.health-parts li.low .hp-bar i { background: var(--orange); }
+.health-parts small { font-size: 12.5px; color: var(--ink-3); line-height: 1.35; }
+@media (prefers-reduced-motion: reduce) { .gauge .g-fill { animation: none; stroke-dashoffset: calc(var(--len) * (1 - var(--p))); } }
+@media print { .gauge .g-fill { stroke-dashoffset: calc(var(--len) * (1 - var(--p))) !important; } }

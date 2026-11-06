@@ -130,7 +130,8 @@ test('card model hides names by default and round-trips through a link', () => {
   assert.equal(cmp.type, 'compare');
   const tiles = cardTiles(hidden);
   assert.equal(tiles.length, 6);
-  assert.match(tiles[0][1], /hours in meetings/);
+  assert.match(tiles[0][1], /calendar health/);
+  assert.match(tiles[1][1], /hours in meetings/);
   assert.equal(modelPersona(hidden).name, s.persona.name);
 });
 

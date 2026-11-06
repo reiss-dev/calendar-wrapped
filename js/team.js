@@ -84,7 +84,7 @@ function quarterChart(quarters) {
     h('b', {}, q.future ? '—' : t('{h} hrs', { h: fmt.int(q.hours) })), h('span', {}, `Q${q.q}`))));
 }
 
-export async function renderTeamReport(host, team, { onBack, onChanged }) {
+export async function renderTeamReport(host, team, { onBack, onChanged, onStory, onCarousel }) {
   host.innerHTML = '';
   const unlocked = isUnlocked('team') && await checkTeamEntitlement();
   const L = team.lever;
@@ -125,6 +125,8 @@ export async function renderTeamReport(host, team, { onBack, onChanged }) {
       h('div', {}, h('p', { class: 'caption' }, t('{brand}, team report', { brand: CONFIG.brand.name })), h('h1', {}, t('Your team’s {year}, in meetings.', { year: team.year })), h('p', { class: 'lede' }, t('{n} people, {period}. Read in this browser, nothing uploaded.', { n: team.size, period: team.isPartialYear ? t('1 January to {date}', { date: fmt.date(team.range.end) }) : t('the whole year') }))),
       h('div', { class: 'no-print', style: 'display:flex; gap:10px; flex-wrap:wrap' },
         h('button', { class: 'btn btn-secondary', onClick: onBack }, t('Edit team')),
+        onStory ? h('button', { class: 'btn', id: 'team-story', onClick: onStory }, t('Play the team story')) : null,
+        onCarousel ? h('button', { class: 'btn btn-secondary', id: 'team-carousel', onClick: onCarousel }, t('LinkedIn carousel')) : null,
         unlocked ? h('button', { class: 'btn', onClick: () => window.print() }, t('Save as PDF')) : null,
         unlocked && hasBilling() ? h('button', { class: 'btn btn-quiet', onClick: openBillingPortal }, t('Manage plan')) : null),
     ),

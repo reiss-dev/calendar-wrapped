@@ -9,6 +9,7 @@ import { createGlobe } from './globe.js';
 import { hasMix, mixSlide } from './mix-ui.js';
 import { hasWhere, whereSlide } from './where-ui.js';
 import { hasAwards, awardsSlide } from './awards-ui.js';
+import { hasHealth, healthSlide } from './health-ui.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
 import { balanceSlide } from './calendars-ui.js';
@@ -242,6 +243,7 @@ function workSlides(s) {
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
+  if (hasHealth(s)) out.push(healthSlide(s));
   if (hasAwards(s)) out.push(awardsSlide(s));
   out.push(personaSlide(s, P));
 
@@ -300,6 +302,7 @@ function personalSlides(s) {
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
+  if (hasHealth(s)) out.push(healthSlide(s));
   if (hasAwards(s)) out.push(awardsSlide(s));
   out.push(personaSlide(s, P));
 
@@ -312,4 +315,4 @@ export function buildSlides(stats) {
   return stats.mode === 'work' ? workSlides(stats) : personalSlides(stats);
 }
 
-export const charts = { monthChart, weekStrip, heatStrip };
+export const charts = { monthChart, weekStrip, heatStrip, ring };

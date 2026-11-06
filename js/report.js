@@ -11,6 +11,7 @@ import { persona as personaOf } from './copy.js';
 import { typeLabel, mixBar } from './mix-ui.js';
 import { awardCopy, hasAwards } from './awards-ui.js';
 import { hasWhere, whereLabel } from './where-ui.js';
+import { hasHealth, healthPanel } from './health-ui.js';
 
 const stat = (v, l) => h('div', { class: 'stat' }, h('b', {}, v), h('span', {}, l));
 const sec = (title, intro, ...body) => h('section', { class: 'report-sec' }, h('h2', {}, title), intro ? h('p', { class: 'intro' }, intro) : null, ...body);
@@ -111,6 +112,7 @@ function workBody(s, ctx) {
       stat(fmt.num(s.avgPerWorkingDay), t('per working day')), stat(t('{n} min', { n: fmt.int(s.avgLengthMin) }), t('average length')), stat(fmt.int(s.uniquePeople), t('different people')),
       stat(fmt.int(s.organized), t('you organised')), stat(fmt.int(s.declined), t('you declined')), stat(fmt.int(s.unanswered), t('never answered')),
       ...yoyStats(s))),
+    hasHealth(s) ? h('section', { class: 'report-sec' }, healthPanel(s)) : null,
     awardsSection(s),
     sec(t('Reclaim'), null, reclaimPanel(s, ctx)),
     mixSection(s),
@@ -144,6 +146,7 @@ function personalBody(s, ctx) {
   const bi = idx(s, s.busiestMonth);
   return [
     sec(t('At a glance'), null, h('div', { class: 'stat-grid' }, stat(fmt.int(s.events), t('plans')), stat(t('{h} hrs', { h: fmt.hours(s.totalHours) }), t('planned time')), stat(fmt.int(s.uniquePeople), t('people')), stat(t('{a} of {b}', { a: s.freeWeekends, b: s.totalWeekends }), t('free weekends')), stat(fmt.int(s.eveningEvents), t('weeknight plans')), stat(fmt.int(s.birthdays), t('birthdays')), ...yoyStats(s))),
+    hasHealth(s) ? h('section', { class: 'report-sec' }, healthPanel(s)) : null,
     awardsSection(s),
     sec(t('Nudges'), null, reclaimPanel(s, ctx)),
     sec(t('Where the time went'), null, h('div', { class: 'panel' }, h('div', { style: 'display:grid; gap:10px' }, s.categories.map((c) => h('div', { style: 'display:grid; grid-template-columns: 170px 1fr 110px; gap:12px; align-items:center; font-size:14px' }, h('span', {}, categoryLabel(c.key)), h('div', { class: 'bar' }, h('i', { style: `--v:${c.count / max}; animation:none` })), h('span', { style: 'text-align:right; color:var(--ink-2)' }, t('{n}, {h} hrs', { n: fmt.int(c.count), h: fmt.hours(c.hours) }))))))),
