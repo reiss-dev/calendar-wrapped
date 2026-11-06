@@ -443,6 +443,32 @@ await scenario('on a phone: the guide leads with sending the link to a computer'
   await desk.c.close();
 });
 
+await scenario('work and personal calendars together, then leaving things out', async () => {
+  const { c, page } = await ctx('combine');
+  await page.goto(BASE);
+  await page.setInputFiles('#file-input', [join(ROOT, 'sample/work.ics'), join(ROOT, 'sample/personal.ics')]);
+  await page.locator('#yt-mine').click();
+  await page.waitForSelector('.prep .cals .cal-row >> nth=1', { timeout: 20000 });
+  const roles = await page.locator('.cal-row .seg button[aria-pressed="true"]').allTextContents();
+  assert.deepEqual(roles, ['Work', 'Personal']);
+  await shot(page, '18-two-calendars', false);
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  const caps = [];
+  await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
+  assert.ok(caps.includes('Work and life'), 'the work-and-life page appears');
+  const before = await page.evaluate(() => JSON.parse(JSON.parse(localStorage.getItem('cw:stats')).v));
+  assert.ok(before.balance.lifeHours > 0 && before.travel.routes.legs.some((l) => l.to.name === 'Lisbon'));
+  const panel = page.locator('.leave-out-panel');
+  await panel.scrollIntoViewIfNeeded();
+  await panel.locator('.lo-item', { hasText: 'Daily standup' }).locator('input').uncheck();
+  await panel.getByRole('button', { name: 'Update my Wrapped' }).click();
+  await page.waitForFunction((m) => JSON.parse(JSON.parse(localStorage.getItem('cw:stats')).v).meetings < m - 150, before.meetings);
+  await page.waitForSelector('.leave-out-panel');
+  assert.equal(await page.locator('.leave-out-panel .lo-item', { hasText: 'Daily standup' }).locator('input').isChecked(), false, 'stays left out');
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

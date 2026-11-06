@@ -1,6 +1,6 @@
 // Client for the engine. Uses a module worker when the browser can start one; otherwise
 // (or if the worker dies) it replays the session into an in-page copy and carries on.
-const MUTATING = new Set(['loadText', 'loadEvents', 'addMember', 'removeMember', 'clearMembers']);
+const MUTATING = new Set(['loadText', 'loadEvents', 'addCalendar', 'setCalendarRole', 'removeCalendar', 'addMember', 'removeMember', 'clearMembers']);
 
 export function createEngine({ forceLocal = false } = {}) {
   let worker = null;
@@ -66,8 +66,11 @@ export function createEngine({ forceLocal = false } = {}) {
 
   return {
     get mode() { return worker ? 'worker' : 'local'; },
-    loadText: (text) => call('loadText', { text }),
-    loadEvents: (events, meta) => call('loadEvents', { events, meta }),
+    loadText: (text, label) => call('loadText', { text, label }),
+    loadEvents: (events, meta, label) => call('loadEvents', { events, meta, label }),
+    addCalendar: (text, label) => call('addCalendar', { text, label }),
+    setCalendarRole: (id, role) => call('setCalendarRole', { id, role }),
+    removeCalendar: (id) => call('removeCalendar', { id }),
     compute: (opts) => call('compute', opts),
     addMember: (text, label) => call('addMember', { text, label }),
     removeMember: (id) => call('removeMember', { id }),

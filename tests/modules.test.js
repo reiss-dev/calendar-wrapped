@@ -163,3 +163,40 @@ test('a Google Calendar export zip: main calendar plus birthdays, holidays and s
   assert.ok(events.length > 900, 'the main calendar is all there');
   assert.throws(() => readZip(new TextEncoder().encode('BEGIN:VCALENDAR').buffer), /not_a_zip/);
 });
+
+test('work and personal calendars combined: meetings from work, travel, leave and birthdays from both', async () => {
+  const core = createCore();
+  await core.loadText({ text: read('sample/work.ics'), label: 'work.ics' });
+  const workOnly = await core.compute({ year: Y, selfEmail: 'alex.morgan@northwindlabs.com' });
+  const sum = await core.addCalendar({ text: read('sample/personal.ics'), label: 'personal.ics' });
+  assert.deepEqual(sum.calendars.map((c) => c.role), ['work', 'personal']);
+  const both = await core.compute({ year: Y, selfEmail: sum.selfEmail });
+  assert.equal(both.mode, 'work');
+  assert.equal(both.meetings, workOnly.meetings, 'dinners with friends are never meetings');
+  assert.ok(both.travel.routes.legs.some((l) => l.to.name === 'Lisbon'), 'holiday flights from the personal calendar reach the globe');
+  assert.ok(both.birthdayInfo.count > workOnly.birthdayInfo.count, 'birthdays from both');
+  assert.ok(both.timeOff.taken >= workOnly.timeOff.taken);
+  assert.ok(both.balance && both.balance.lifeHours > 100 && both.balance.workHours > 300, JSON.stringify(both.balance));
+  assert.ok(both.totalEventsInRange > workOnly.totalEventsInRange);
+  // Told the other way round, the story is about the personal calendar.
+  const life = await core.compute({ year: Y, selfEmail: sum.selfEmail, mode: 'personal' });
+  assert.equal(life.mode, 'personal');
+  assert.ok(!life.people.some((p) => /northwindlabs/.test(p.email || '')), 'colleagues stay out of the personal story');
+  // Re-tag and remove.
+  const swapped = await core.setCalendarRole({ id: sum.calendars[1].id, role: 'work' });
+  assert.deepEqual(swapped.calendars.map((c) => c.role), ['work', 'work']);
+  const one = await core.removeCalendar({ id: sum.calendars[1].id });
+  assert.equal(one.calendars.length, 1);
+});
+
+test('leave things out: by word or by exact title, before anything is counted', async () => {
+  const core = createCore();
+  await core.loadText({ text: read('sample/work.ics') });
+  const all = await core.compute({ year: Y, selfEmail: 'alex.morgan@northwindlabs.com' });
+  assert.ok(all.leaveOutCandidates.some((c) => c.title === 'Daily standup'));
+  const noStandup = await core.compute({ year: Y, selfEmail: 'alex.morgan@northwindlabs.com', exclude: { titles: ['Daily standup'] } });
+  assert.ok(noStandup.meetings < all.meetings - 150, `${noStandup.meetings} vs ${all.meetings}`);
+  assert.ok(!noStandup.topTitles.some((x) => x.key === 'Daily standup'));
+  const noSync = await core.compute({ year: Y, selfEmail: 'alex.morgan@northwindlabs.com', exclude: { words: ['SYNC'] } });
+  assert.ok(!noSync.topTitles.some((x) => /sync/i.test(x.key)), 'words match regardless of case');
+});

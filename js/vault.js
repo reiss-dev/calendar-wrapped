@@ -8,7 +8,7 @@ const PREF = 'cw:remember';
 export const MAX_AGE_DAYS = 30;
 const MAX_AGE = MAX_AGE_DAYS * 86400000;
 /** Keys that can hold calendar-derived details: names, titles, places, moments. */
-export const RESULT_KEYS = ['cw:stats', 'cw:team', 'cw:extras', 'cw:friend'];
+export const RESULT_KEYS = ['cw:stats', 'cw:team', 'cw:extras', 'cw:friend', 'cw:filters'];
 
 const local = () => { try { return window.localStorage; } catch { return null; } };
 const session = () => { try { return window.sessionStorage; } catch { return null; } };

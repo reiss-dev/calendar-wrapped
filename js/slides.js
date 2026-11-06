@@ -8,6 +8,7 @@ import { yoyChange, dayCoverage } from './stats.js';
 import { createGlobe } from './globe.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
+import { balanceSlide } from './calendars-ui.js';
 import { monthGrid, heatLegend, radialClock, bubbles, treemap, pictogram, travelArcs, confetti, dotMatrix, weeksBar, chain, barRace, hourBlocks, personaStamp } from './viz.js';
 import { sound } from './sound.js';
 
@@ -219,6 +220,7 @@ function workSlides(s) {
     out.push({ theme: 'c-purple', render: () => h('div', {}, cap(t('On the move')), line(tr.trips ? tn('{n} trip this year.', '{n} trips this year.', tr.trips) : t('Time away.'), true), h('div', { class: 'duo' }, tr.flights ? tile(tr.flights, t('flights')) : tile(tr.trains, t('train journeys')), tr.hotelNights ? tile(tr.hotelNights, t('nights in hotels')) : tile(tr.daysOff, t('days off'))), tr.places.length >= 2 ? h('div', { class: 'viz-wrap', ...R() }, travelArcs(tr.places)) : tr.places.length ? h('div', { class: 'chips', ...R() }, tr.places.map((p) => h('span', {}, p.key))) : null, tr.daysOff && tr.hotelNights && !hasTimeOff(s) ? note(...rich(t('Plus **{n}** of actual time off. Keep those.', { n: tn('{n} day', '{n} days', tr.daysOff) }))) : null) });
   }
   if (hasTimeOff(s)) out.push(timeOffSlide(s));
+  if (s.balance) out.push(balanceSlide(s));
   if (hasBirthdays(s)) out.push(birthdaySlide(s));
 
   const free = s.longestFreeStreak.length;
@@ -282,6 +284,7 @@ function personalSlides(s) {
     out.push({ theme: 'c-purple', render: () => h('div', {}, cap(t('Away')), line(tr.trips ? tn('{n} trip this year.', '{n} trips this year.', tr.trips) : t('Time away.'), true), h('div', { class: 'duo' }, tr.flights ? tile(tr.flights, t('flights')) : tile(tr.trains, t('train journeys')), tr.hotelNights ? tile(tr.hotelNights, t('nights away')) : tile(tr.daysOff, t('days off'))), tr.places.length >= 2 ? h('div', { class: 'viz-wrap', ...R() }, travelArcs(tr.places)) : tr.places.length ? h('div', { class: 'chips', ...R() }, tr.places.map((p) => h('span', {}, p.key))) : null) });
   }
   if (hasTimeOff(s)) out.push(timeOffSlide(s));
+  if (s.balance) out.push(balanceSlide(s));
 
   const rec = s.recurringSeries[0];
   out.push({ theme: 'c-yellow', render: () => h('div', {}, cap(t('Little things')), h('div', { class: 'duo', style: 'margin-top:0; border-top:0' }, hasBirthdays(s) ? tile(s.uniquePeople, t('people')) : tile(s.birthdays, t('birthdays remembered')), tile(s.longestBusyStreak.length, t('days in a row with plans'))), rec ? note(...rich(t('Your most faithful habit: **“{title}”**, {n} times.', { title: rec.title, n: fmt.int(rec.count) }))) : null, s.longestFreeStreak.length >= 3 ? note(t('Longest stretch of nothing at all: {n} days from {from}.', { n: fmt.int(s.longestFreeStreak.length), from: fmt.date(s.longestFreeStreak.start) })) : null) });

@@ -128,10 +128,12 @@ export function detectMode(events) {
 
 function annotate(events, selfEmail) {
   return events.map((e) => {
-    const self = selfEmail ? e.attendees.find((a) => a.email === selfEmail) : null;
-    const others = e.attendees.filter((a) => a.email !== selfEmail && !a.isResource);
+    // With work and personal calendars combined, each event belongs to its own calendar's owner.
+    const owner = e.owner || selfEmail;
+    const self = owner ? e.attendees.find((a) => a.email === owner) : null;
+    const others = e.attendees.filter((a) => a.email !== owner && !a.isResource);
     const myStatus = self ? self.status : null;
-    const organizedBySelf = !!(selfEmail && e.organizer?.email === selfEmail);
+    const organizedBySelf = !!(owner && e.organizer?.email === owner);
     const workingLocation = e.allDay && WORKING_LOCATION.test(e.title.trim());
     return { ...e, others, myStatus, organizedBySelf, workingLocation, durationH: hours(e.end - e.start) };
   });
@@ -240,7 +242,7 @@ function timeOffStats(yearAll, ctx) {
     const stay = mode === 'personal' && e.allDay && HOTEL_RE.test(e.title);
     if (!ooo && !stay) continue;
     if (PUBLIC_HOLIDAY_TITLE.test(e.title)) continue;
-    if (!isOwnEntry(e, ctx.selfEmail)) continue; // a colleague's leave that landed in this calendar
+    if (!isOwnEntry(e, e.owner || ctx.selfEmail)) continue; // a colleague's leave that landed in this calendar
     const isSick = SICK_TITLE.test(e.title);
     const label = breakLabel(e.title);
     const last = e.allDay ? e.end : new Date(e.end.getTime() - 1);
@@ -587,7 +589,7 @@ function workStats(all, ctx) {
     grid: weekGrid(meetings),
     longestFreeStreak: st.longestFree,
     longestBusyStreak: st.longestBusy,
-    travel: travelStats(all, ctx),
+    travel: travelStats(ctx.everything || all, ctx),
     attendeeInfoAvailable: ctx.attendeeInfoAvailable,
   };
   stats.persona = workPersona(stats);
@@ -735,7 +737,7 @@ function personalStats(all, ctx) {
     latest: latest ? { title: latest.title, end: latest.end } : null,
     recurringSeries: recurringSeries.slice(0, 8),
     notSeenLately: missed,
-    travel: travelStats(all, ctx),
+    travel: travelStats(ctx.everything || all, ctx),
     attendeeInfoAvailable: ctx.attendeeInfoAvailable,
   };
   stats.persona = personalPersona(stats);
@@ -785,20 +787,74 @@ function extraStats(ctx) {
   return { timeOff, birthdayInfo, birthdays: birthdayInfo.count };
 }
 
+// ---------- work and life ----------
+/** Work meetings against personal plans, when both calendars are in. */
+function balanceStats(everything, ctx) {
+  const workMeetings = everything.filter((e) => e.src === 'work' && isMeeting(e, ctx));
+  const life = everything.filter((e) => e.src === 'personal' && !e.allDay && !e.manual && e.status !== 'CANCELLED' && e.myStatus !== 'DECLINED' && e.durationH <= 12);
+  const workHours = workMeetings.reduce((t, e) => t + e.durationH, 0);
+  const lifeHours = life.reduce((t, e) => t + e.durationH, 0);
+  const evening = workMeetings.filter((e) => !isWeekend(e.start) && (e.start.getHours() >= 18 || e.start.getHours() < 7)).length;
+  const weekend = workMeetings.filter((e) => isWeekend(e.start)).length;
+  // Double-booked: a personal plan overlapping a work meeting.
+  const sorted = [...workMeetings].sort((a, b) => a.start - b.start);
+  let clashes = 0;
+  for (const p of life) if (sorted.some((m) => m.start < p.end && m.end > p.start)) clashes++;
+  return { workHours: round1(workHours), lifeHours: round1(lifeHours), lifeEvents: life.length, evening, weekend, clashes,
+    lifeShare: workHours + lifeHours ? Math.round((lifeHours / (workHours + lifeHours)) * 100) : 0 };
+}
+
+/** The titles that take the most time, for the "leave things out" list. */
+function leaveOutCandidates(all) {
+  const map = new Map();
+  for (const e of all) {
+    if (e.manual || e.status === 'CANCELLED') continue;
+    const title = normTitle(e.title);
+    if (!title) continue;
+    const cur = map.get(title) || { title, count: 0, hours: 0 };
+    cur.count++; cur.hours += e.allDay ? 0 : e.durationH;
+    map.set(title, cur);
+  }
+  return [...map.values()].sort((a, b) => b.hours - a.hours || b.count - a.count).slice(0, 14).map((x) => ({ ...x, hours: round1(x.hours) }));
+}
+
+/**
+ * Takes out what someone asked to leave out: exact titles (as listed on the summary) and words.
+ * Done before any counting, so everything (story, card, report) agrees.
+ */
+export function applyExclusions(events, { titles = [], words = [] } = {}) {
+  const t = new Set(titles.map((x) => normTitle(x).toLowerCase()));
+  const w = words.map((x) => x.trim().toLowerCase()).filter((x) => x.length >= 2);
+  if (!t.size && !w.length) return events;
+  return events.filter((e) => {
+    if (e.manual) return true;
+    const title = normTitle(e.title || '').toLowerCase();
+    return !t.has(title) && !w.some((x) => title.includes(x));
+  });
+}
+
 // ---------- entry point ----------
 export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null, mode = 'auto', workHoursPerWeek = 40, now = new Date(), timezone = null, country = 'GB' } = {}) {
   const requestedEnd = rangeEnd;
   if (now < rangeEnd) rangeEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const all = annotate(rawEvents.filter((e) => e.start < rangeEnd && e.end > rangeStart), selfEmail);
+  const everything = annotate(rawEvents.filter((e) => e.start < rangeEnd && e.end > rangeStart), selfEmail);
+  // Work and personal calendars combined: the story is about one of them (meetings only ever come
+  // from the work calendar), while travel, time off and birthdays come from both.
+  const roles = new Set(everything.map((e) => e.src).filter(Boolean));
+  const focus = mode !== 'auto' ? mode : roles.has('work') ? 'work' : roles.size ? 'personal' : null;
+  const all = roles.size && focus ? everything.filter((e) => !e.src || e.src === focus) : everything;
   const timed = all.filter((e) => !e.allDay);
   const withAttendees = timed.filter((e) => e.attendees.length > 0).length;
   const attendeeInfoAvailable = timed.length === 0 || withAttendees / timed.length >= 0.1;
   const detected = detectMode(all.filter((e) => !e.manual));
-  const chosen = mode === 'auto' ? detected.mode : mode;
+  const chosen = mode === 'auto' ? (roles.size && focus ? focus : detected.mode) : mode;
   const yearAll = rawEvents.filter((e) => e.start < requestedEnd && e.end > rangeStart);
-  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone, country, now, yearAll, mode: chosen };
+  const ctx = { rangeStart, rangeEnd, fullEnd: requestedEnd, selfEmail, workHoursPerWeek, attendeeInfoAvailable, timezone, country, now, yearAll, mode: chosen, everything };
   const stats = chosen === 'work' ? workStats(all, ctx) : personalStats(all, ctx);
   Object.assign(stats, extraStats({ ...ctx, routes: stats.travel.routes }));
+  if (roles.has('work') && roles.has('personal')) stats.balance = balanceStats(everything, ctx);
+  stats.calendars = [...roles];
+  stats.leaveOutCandidates = leaveOutCandidates(all);
   stats.travel.daysOff = stats.timeOff.taken;
   return {
     ...stats,
@@ -808,7 +864,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
     isPartialYear: rangeEnd < requestedEnd,
     year: rangeStart.getFullYear(),
     generatedAt: new Date(),
-    totalEventsInRange: all.filter((e) => !e.manual).length,
+    totalEventsInRange: everything.filter((e) => !e.manual).length,
   };
 }
 

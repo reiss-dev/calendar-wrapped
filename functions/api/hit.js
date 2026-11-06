@@ -12,7 +12,7 @@ export const EVENTS = new Set([
   'file_loaded', 'demo_loaded', 'google_connected', 'microsoft_connected', 'story_started', 'story_finished',
   'card_saved', 'card_shared', 'link_copied', 'slide_shared', 'shared_link_opened', 'shared_cta', 'compare_opened',
   'unlock_opened', 'unlock_paid', 'plan_emailed', 'action_used', 'bench_joined', 'lang_changed', 'team_started', 'team_built',
-  'video_started', 'video_made', 'video_saved', 'video_shared', 'video_failed', 'referral_link_copied', 'referral_credited', 'referral_unlocked', 'extra_added', 'handoff_sent',
+  'video_started', 'video_made', 'video_saved', 'video_shared', 'video_failed', 'referral_link_copied', 'referral_credited', 'referral_unlocked', 'extra_added', 'handoff_sent', 'filters_applied',
 ]);
 const num = (v, max) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : undefined);
 

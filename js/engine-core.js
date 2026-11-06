@@ -1,7 +1,7 @@
 // The heavy lifting, kept free of DOM so it can run in a Web Worker, on the page, or in tests.
 // It holds the parsed events itself, so only small summaries cross between threads.
 import { parseICS, guessSelfEmail } from './ics.js';
-import { computeStats, computeTeamStats, yearOverYear } from './stats.js';
+import { computeStats, computeTeamStats, yearOverYear, detectMode, applyExclusions, _internal } from './stats.js';
 import { hasFlights, loadGeo } from './geo.js';
 
 const day = (k, plus = 0) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d + plus); };
@@ -27,25 +27,70 @@ export function extraEvents(extras = {}) {
 
 const loadRange = (now = new Date()) => ({ rangeStart: new Date(now.getFullYear() - 2, 0, 1), rangeEnd: new Date(now.getFullYear() + 1, 0, 1) });
 
+const guessRole = (events, owner) => detectMode(_internal.annotate(events, owner)).mode;
+
 export function createCore() {
   let events = [];
   let meta = null;
+  // One person's calendars (work and personal). Each event carries its calendar's role and owner.
+  let calendars = [];
+  let nextCal = 1;
+  const rebuild = () => {
+    events = calendars.length > 1
+      ? calendars.flatMap((c) => c.events.map((e) => ({ ...e, src: c.role, owner: c.owner || undefined })))
+      : (calendars[0]?.events || []);
+  };
+  const calendarList = () => calendars.map((c) => ({ id: c.id, label: c.label, role: c.role, count: c.events.length, owner: c.owner }));
   const members = new Map();
   let nextId = 1;
 
   function summary() {
     const perYear = {};
     for (const e of events) perYear[e.start.getFullYear()] = (perYear[e.start.getFullYear()] || 0) + 1;
-    return { meta, count: events.length, perYear, selfEmail: guessSelfEmail(events, meta) };
+    return { meta, count: events.length, perYear, selfEmail: calendars[0]?.owner ?? guessSelfEmail(events, meta), calendars: calendarList() };
   }
 
   return {
-    async loadText({ text }) { ({ events, meta } = parseICS(text, loadRange())); if (hasFlights(events)) await loadGeo(); return summary(); },
-    async loadEvents({ events: ev, meta: m }) { events = ev.map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) })); meta = m; if (hasFlights(events)) await loadGeo(); return summary(); },
-    async compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40, country = 'GB', extras = null }) {
+    async loadText({ text, label = null }) {
+      const parsed = parseICS(text, loadRange());
+      meta = parsed.meta;
+      const owner = guessSelfEmail(parsed.events, meta);
+      calendars = [{ id: nextCal++, label: label || owner || meta?.calendarName || 'Calendar', events: parsed.events, owner, role: guessRole(parsed.events, owner) }];
+      rebuild();
+      if (hasFlights(events)) await loadGeo();
+      return summary();
+    },
+    async loadEvents({ events: ev, meta: m, label = null }) {
+      const list = ev.map((e) => ({ ...e, start: new Date(e.start), end: new Date(e.end) }));
+      meta = m;
+      const owner = guessSelfEmail(list, meta);
+      calendars = [{ id: nextCal++, label: label || owner || meta?.calendarName || 'Calendar', events: list, owner, role: guessRole(list, owner) }];
+      rebuild();
+      if (hasFlights(events)) await loadGeo();
+      return summary();
+    },
+    /** Add another of the same person's calendars, e.g. personal alongside work. */
+    async addCalendar({ text, label = null }) {
+      const parsed = parseICS(text, loadRange());
+      if (!parsed.events.length) return { error: 'empty' };
+      const owner = guessSelfEmail(parsed.events, parsed.meta);
+      const role = guessRole(parsed.events, owner);
+      // Two of the same kind: assume the newcomer is the other one; it can be switched on the prep screen.
+      const taken = new Set(calendars.map((c) => c.role));
+      const finalRole = taken.has(role) && calendars.length === 1 ? (role === 'work' ? 'personal' : 'work') : role;
+      calendars.push({ id: nextCal++, label: label || owner || parsed.meta?.calendarName || 'Calendar', events: parsed.events, owner, role: finalRole });
+      if (!meta?.timezone && parsed.meta?.timezone) meta = { ...meta, timezone: parsed.meta.timezone };
+      rebuild();
+      if (hasFlights(events)) await loadGeo();
+      return summary();
+    },
+    setCalendarRole({ id, role }) { const c = calendars.find((x) => x.id === id); if (c && (role === 'work' || role === 'personal')) c.role = role; rebuild(); return summary(); },
+    removeCalendar({ id }) { if (calendars.length > 1) calendars = calendars.filter((c) => c.id !== id); rebuild(); return summary(); },
+    async compute({ year, mode = 'auto', selfEmail = null, workHoursPerWeek = 40, country = 'GB', extras = null, exclude = null }) {
       const added = extras ? extraEvents(extras) : [];
       if (added.length && hasFlights(added)) await loadGeo();
-      const all = added.length ? [...events, ...added] : events;
+      const kept = exclude ? applyExclusions(events, exclude) : events;
+      const all = added.length ? [...kept, ...added] : kept;
       const timezone = meta?.timezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : null);
       const s = computeStats(all, { rangeStart: new Date(year, 0, 1), rangeEnd: new Date(year + 1, 0, 1), selfEmail, mode, workHoursPerWeek, timezone, country });
       s.yoy = yearOverYear(all, { year, selfEmail, mode: s.mode, workHoursPerWeek });

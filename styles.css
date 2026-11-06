@@ -954,3 +954,29 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .handoff p { margin: 0; color: var(--ink-2); font-size: 15px; line-height: 1.4; }
 .handoff-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .handoff-actions .btn { flex: 1; }
+
+/* ---------- several calendars, leaving things out, work and life ---------- */
+.cals { width: 100%; text-align: left; display: grid; gap: 8px; }
+.cal-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--bg-elev); border: 1px solid var(--line-soft); border-radius: var(--r-sm); }
+.cal-icon { font-size: 20px; }
+.cal-name { flex: 1; min-width: 0; display: grid; }
+.cal-name b { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-name span { font-size: 13px; color: var(--ink-3); }
+.seg-sm button { padding: 5px 10px; font-size: 13px; }
+.cals .chip-add { justify-self: start; }
+.cals .caption { margin: 0; }
+.row input#leave-out { font: inherit; font-size: 16px; border: 0; background: none; text-align: right; color: var(--ink-2); width: min(280px, 55vw); outline: none; }
+.row input#leave-out:focus { color: var(--ink); }
+@media (max-width: 560px) { .row input#leave-out { width: 100%; text-align: left; color: var(--ink); } }
+.lo-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 6px 18px; margin-top: 14px; }
+.lo-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); cursor: pointer; min-width: 0; }
+.lo-item input { width: 18px; height: 18px; accent-color: var(--blue); flex: none; }
+.lo-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.lo-item input:not(:checked) ~ .lo-title { text-decoration: line-through; color: var(--ink-3); }
+.lo-meta { font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; flex: none; }
+.leave-out-panel #lo-words { font: inherit; font-size: 16px; color: var(--ink); background: var(--bg-alt); border: 1px solid transparent; border-radius: 12px; padding: 10px 12px; width: 100%; }
+.split { display: flex; height: 22px; border-radius: 11px; overflow: hidden; gap: 3px; }
+.split i { flex: var(--w) 1 0; min-width: 6px; transform-origin: left; animation: grow 1s var(--spring) both; animation-delay: 400ms; }
+.split-work { background: var(--viz-ink); }
+.split-life { background: color-mix(in srgb, var(--viz-ink) 40%, transparent); }
+.split-labels { display: flex; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 14px; color: var(--viz-text); }

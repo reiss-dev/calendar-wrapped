@@ -26,6 +26,7 @@ import { timeOffPanel, birthdayPanel, countryName } from './timeoff-ui.js';
 import { extrasBlock, loadExtras, highlightsPanel } from './extras.js';
 import { keep, recall, forgetAll, sweep, remembering, setRemembering, MAX_AGE_DAYS } from './vault.js';
 import { calendarFromZip } from './unzip.js';
+import { askYoursOrTeam, calendarsBlock, leaveOutRow, leaveOutPanel, loadFilters, balancePanel } from './calendars-ui.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -185,8 +186,27 @@ function initHandoff() {
   });
 }
 
+const fileText = async (f, say) => (isZip(f) ? (await zipToCalendar(f, say)).text : f.text());
+
+/** One person's calendars, read together: the first sets the scene, the rest join it. */
+function loadMine(files) {
+  track('file_loaded');
+  runPrep(files.map((f) => f.name).join(' + '), async (say) => {
+    let sum = await engine.loadText(await fileText(files[0], say), files[0].name);
+    for (const f of files.slice(1)) {
+      sum = await engine.addCalendar(await fileText(f, say), f.name);
+      if (sum.error) throw Object.assign(new Error(t('{name} has no events in it.', { name: f.name })), { userFacing: true });
+      await say(t('Added <b>{name}</b>', { name: escapeHtml(f.name) }), 300);
+    }
+    return sum;
+  });
+}
+
 async function handleFiles(files) {
   if (files.length > 1) {
+    const choice = await askYoursOrTeam(files.length);
+    if (!choice) return;
+    if (choice === 'mine') { loadMine(files); return; }
     // Several files are a team. A zip among them stands for its owner's main calendar.
     const expanded = await Promise.all(files.map(async (f) => (isZip(f) ? new File([(await zipToCalendar(f).catch(() => null))?.text || ''], f.name.replace(/\.zip$/i, '.ics'), { type: 'text/calendar' }) : f)));
     openTeam(expanded.filter((f) => f.size));
@@ -196,7 +216,7 @@ async function handleFiles(files) {
   if (!file) return;
   if (file.size > 80 * 1024 * 1024) { toast(t('That file is unusually large. Try exporting a single calendar.')); return; }
   track('file_loaded');
-  runPrep(file.name, async (say) => engine.loadText(isZip(file) ? (await zipToCalendar(file, say)).text : await file.text()));
+  runPrep(file.name, async (say) => engine.loadText(await fileText(file, say), file.name));
 }
 
 function loadDemo() {
@@ -306,6 +326,28 @@ function renderPrepOptions(inner, probe) {
   if (!weeks.includes(state.options.week)) weeks.push(state.options.week);
   const weekRow = workOnly(h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Working week')), seg(weeks.sort((a, b) => a - b), state.options.week, (w) => { state.options.week = w; }, (w) => t('{n} hrs', { n: fmt.num(w) }))));
   const extras = extrasBlock({ year: state.options.year, mode: () => state.options.mode });
+  let cals;
+  const drawCals = () => {
+    const next = calendarsBlock({
+      calendars: state.summary?.calendars || [],
+      onAdd: (files) => {
+        runPrep(t('Your calendars'), async (say) => {
+          let sum = state.summary;
+          for (const f of files) {
+            sum = await engine.addCalendar(await fileText(f, say), f.name);
+            if (sum.error) throw Object.assign(new Error(t('{name} has no events in it.', { name: f.name })), { userFacing: true });
+            await say(t('Added <b>{name}</b>', { name: escapeHtml(f.name) }), 300);
+          }
+          return sum;
+        });
+      },
+      onRole: async (id, role) => { state.summary = { ...state.summary, ...(await engine.setCalendarRole(id, role)) }; drawCals(); },
+      onRemove: async (id) => { state.summary = { ...state.summary, ...(await engine.removeCalendar(id)) }; drawCals(); },
+    });
+    if (cals) cals.replaceWith(next);
+    cals = next;
+  };
+  if (!state.demo) drawCals();
   const group = h('div', { class: 'group', 'data-reveal': '' },
     h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Year')), seg(state.years, state.options.year, (y) => { state.options.year = y; extras.setYear(y); })),
     h('div', { class: 'row' }, h('span', { class: 'lbl' }, t('Calendar type')), seg(['work', 'personal'], state.options.mode, (m) => { state.options.mode = m; group.querySelectorAll('[data-work-only]').forEach((r) => { r.style.display = m === 'work' ? '' : 'none'; }); }, (m) => (m === 'work' ? t('Work') : t('Personal')))),
@@ -313,6 +355,7 @@ function renderPrepOptions(inner, probe) {
     h('div', { class: 'row' }, h('label', { class: 'lbl', for: 'country' }, t('Public holidays')),
       h('div', { class: 'select-wrap' }, h('select', { id: 'country', onChange: (e) => { state.options.country = e.target.value; store(COUNTRY_KEY, e.target.value); } },
         COUNTRIES.map((c) => h('option', { value: c, selected: c === state.options.country }, countryName(c)))))),
+    leaveOutRow(),
     h('div', { class: 'row' }, h('label', { class: 'lbl', for: 'remember' }, t('Keep results on this device')),
       h('label', { class: 'switch' }, h('input', { type: 'checkbox', role: 'switch', id: 'remember', checked: remembering(), onChange: (e) => { setRemembering(e.target.checked); keepNote.textContent = keepText(); } }), h('span', { class: 'track', 'aria-hidden': 'true' }))),
   );
@@ -321,7 +364,7 @@ function renderPrepOptions(inner, probe) {
   const warn = !probe.attendeeInfoAvailable ? h('p', { class: 'prep-warn', 'data-reveal': '' }, t('This export has no attendee details, so every timed event is treated as a meeting. Outlook’s published calendars often leave them out.')) : null;
   const play = h('button', { class: 'btn btn-lg', 'data-reveal': '', onClick: () => { sound.prime(); startStory(); } }, t('Play my Wrapped'));
   const privacy = h('p', { class: 'caption', 'data-reveal': '' }, t('Still nothing has left your browser.'));
-  inner.append(...[group, keepNote, extras.el, warn, play, privacy].filter(Boolean));
+  inner.append(...[cals, group, keepNote, extras.el, warn, play, privacy].filter(Boolean));
   stagger(inner);
   play.focus({ preventScroll: true });
 }
@@ -330,14 +373,19 @@ function renderPrepOptions(inner, probe) {
 async function startStory() {
   const o = state.options;
   const extras = loadExtras(o.year);
-  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country, extras });
+  await recalc(o, extras);
+  track('story_started');
+  playStory();
+}
+
+/** Work out the year from what's loaded, with what the person added and what they left out. */
+async function recalc(o = state.options, extras = loadExtras(o.year)) {
+  state.stats = await engine.compute({ year: o.year, mode: o.mode, selfEmail: o.selfEmail, workHoursPerWeek: o.week, country: o.country, extras, exclude: loadFilters() });
   state.stats.moments = extras.moments;
   state.stats.source = state.summary?.meta?.source || 'unknown';
   state.stats.selfEmail = o.selfEmail;
   state.stats.demo = !!state.demo;
   saveStats(state.stats);
-  track('story_started');
-  playStory();
 }
 function playStory() {
   show('story');
@@ -434,6 +482,8 @@ async function showSummary({ push = true } = {}) {
         timeOffPanel(s),
         birthdayPanel(s),
         highlightsPanel(s, { onChange: () => saveStats(s) }),
+        balancePanel(s),
+        leaveOutPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
         comparePanel(s),
         rec.suggestions.length ? emailPanel(s, unlocked) : null,
       ),
