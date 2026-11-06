@@ -7,6 +7,7 @@ import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js'
 import { yoyChange, dayCoverage } from './stats.js';
 import { createGlobe } from './globe.js';
 import { hasMix, mixSlide } from './mix-ui.js';
+import { hasAwards, awardsSlide } from './awards-ui.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
 import { balanceSlide } from './calendars-ui.js';
@@ -239,6 +240,7 @@ function workSlides(s) {
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
+  if (hasAwards(s)) out.push(awardsSlide(s));
   out.push(personaSlide(s, P));
 
   const rec = s.reclaim;
@@ -296,6 +298,7 @@ function personalSlides(s) {
   const plan = s.timeOff && planSlide(s);
   if (plan) out.push(plan);
 
+  if (hasAwards(s)) out.push(awardsSlide(s));
   out.push(personaSlide(s, P));
 
   out.push({ theme: 'c-green', render: () => h('div', {}, cap(t('Next year')), line(t('A few gentle nudges.'), true), note(tn('{n} small idea drawn from your own year, waiting on your summary. No guilt, just patterns.', '{n} small ideas drawn from your own year, waiting on your summary. No guilt, just patterns.', s.reclaim.suggestions.length))), cta: ({ finish }) => h('button', { class: 'btn btn-lg', onClick: finish }, t('See my card')) });

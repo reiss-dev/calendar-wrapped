@@ -475,6 +475,8 @@ await scenario('meeting types and hiding customers: groups recalculate, shared t
   const caps = [];
   await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
   assert.ok(caps.includes('Who you met with'), 'the meeting-mix page appears');
+  assert.ok(caps.includes('Awards'), 'the awards page appears');
+  assert.ok(await page.locator('.awards-panel .award').count() >= 3, 'awards on the summary');
   const panel = page.locator('.mix-panel');
   await panel.scrollIntoViewIfNeeded();
   assert.ok(await panel.locator('.race-label', { hasText: 'Acme Customer' }).count() === 1, 'top customers listed');

@@ -5,6 +5,7 @@ import { personaCopy, suggestionCopy, categoryLabel } from './copy.js';
 import { flightLegs } from './geo.js';
 import { holidayMap, bestBreaks, TYPICAL_LEAVE, fromKey } from './holidays.js';
 import { meetingMix, homeTest, domainOf } from './meeting-mix.js';
+import { computeAwards } from './awards.js';
 
 const HOUR = 3600000;
 const DAY = 86400000;
@@ -907,7 +908,7 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
   stats.checks = sanityChecks(stats, ctx);
   delete stats._check;
   stats.travel.daysOff = stats.timeOff.taken;
-  return {
+  const result = {
     ...stats,
     detectedMode: detected.mode,
     range: { start: rangeStart, end: rangeEnd, requestedEnd },
@@ -917,6 +918,8 @@ export function computeStats(rawEvents, { rangeStart, rangeEnd, selfEmail = null
     generatedAt: new Date(),
     totalEventsInRange: everything.filter((e) => !e.manual).length,
   };
+  result.awards = computeAwards(result);
+  return result;
 }
 
 

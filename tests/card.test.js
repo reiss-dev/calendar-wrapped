@@ -44,3 +44,20 @@ test('personal cards have their own tiles', () => {
   assert.deepEqual(p.k, ['to', 'h'], 'no customer tile on a personal card');
   assert.deepEqual(cardColours(p), CARD_THEMES.pink);
 });
+
+test('awards: the year’s superlatives, rarest first, masked when shared', async () => {
+  const { maskStats } = await import('../js/privacy.js');
+  const { awardCopy } = await import('../js/awards-ui.js');
+  const ids = work.awards.map((a) => a.id);
+  assert.ok(work.awards.length >= 3 && work.awards.length <= 6, ids.join());
+  assert.ok(ids.includes('marathon') && ids.includes('flyer'));
+  for (const a of work.awards) { const [title, line] = awardCopy(a); assert.ok(title && line && !/[{}]/.test(title + line), a.id); }
+  const none = maskStats(work, 'none');
+  const m = none.awards.find((a) => a.id === 'marathon');
+  assert.equal(m.title, '');
+  assert.ok(!/Stockholm|workshop/.test(awardCopy(m)[1]), 'no title when names are off');
+  const sk = none.awards.find((a) => a.id === 'sidekick');
+  if (sk) assert.match(awardCopy(sk)[1], /^One person/);
+  const p = load('personal').awards.map((a) => a.id);
+  assert.ok(p.includes('regular') && !p.includes('marathon'));
+});

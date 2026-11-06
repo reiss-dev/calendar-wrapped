@@ -78,6 +78,7 @@ export function maskStats(s, level, extra = []) {
     for (const k of ['earliest', 'latest']) if (s[k]) out[k] = { ...s[k], title: title(s[k].title) };
   }
   if (none && s.birthdayInfo) out.birthdayInfo = { ...s.birthdayInfo, list: s.birthdayInfo.list.map((b) => ({ ...b, name: '' })), upcoming: [], milestones: [] };
+  if (s.awards) out.awards = s.awards.map((a) => ({ ...a, ...(a.title != null ? { title: title(a.title) } : {}), ...(a.name != null ? { name: none ? '' : mask(a.name) } : {}) }));
   if (s.moments) out.moments = s.moments.map((m) => ({ ...m, title: mask(m.title) }));
   if (s.highlights) out.highlights = s.highlights.map((m) => ({ ...m, title: mask(m.title) }));
   // Shared things only ever need the reclaim totals; the suggestions name series and organisers.

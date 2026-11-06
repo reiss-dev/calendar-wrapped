@@ -11,6 +11,7 @@ import { coverageLine } from './slides.js';
 import { createGlobe } from './globe.js';
 import { hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlights, showHighlights } from './extras.js';
+import { hasAwards, awardCopy } from './awards-ui.js';
 
 export const W = 1080, H = 1920, FPS = 30;
 const PAD = 96;
@@ -308,6 +309,29 @@ export async function buildScenes(s) {
       ctx.globalAlpha = 1;
     });
   }
+  if (hasAwards(s)) {
+    const list = s.awards.slice(0, 5);
+    scene('c-yellow', 3.4, (ctx, p, c) => {
+      let y = 330;
+      y = cap(ctx, t('Awards'), y, p, c);
+      y = say(ctx, t('The year gave you {n} awards.', { n: list.length }), y + 10, { size: 84, colour: c.ink, a: enter(p, 0.05), rise: 40 });
+      y += 70;
+      list.forEach((x, i) => {
+        const a = enter(p, 0.14 + i * 0.08, 0.16), yy = y + i * 200;
+        const [title, line] = awardCopy(x);
+        ctx.globalAlpha = a;
+        // Medals pop in with a little overshoot.
+        const pop = a < 1 ? 0.6 + 0.5 * Math.sin(a * Math.PI * 0.75) : 1;
+        ctx.save(); ctx.translate(PAD + 62, yy + 62); ctx.scale(pop, pop);
+        ctx.fillStyle = c.base; ctx.beginPath(); ctx.arc(0, 0, 62, 0, Math.PI * 2); ctx.fill();
+        ctx.font = `64px ${EMOJI}`; ctx.textAlign = 'center'; ctx.fillStyle = c.ink; ctx.fillText(x.emoji, 0, 22); ctx.textAlign = 'left';
+        ctx.restore();
+        say(ctx, title, yy + 6, { size: 56, colour: c.ink, a, x: PAD + 160, maxW: W - PAD * 2 - 160, max: 1, weight: 800 });
+        say(ctx, line, yy + 76, { size: 38, weight: 500, colour: c.mute, a, x: PAD + 160, maxW: W - PAD * 2 - 160, max: 2, lh: 1.2 });
+      });
+      ctx.globalAlpha = 1;
+    });
+  }
   scene('c-pink', 3, (ctx, p, c) => {
     // The persona lands like a rubber stamp: big and tilted, then slammed down with a jolt.
     const k = clamp((p - 0.08) / 0.16), land = 1 - (1 - k) ** 3;
@@ -356,7 +380,7 @@ function colours(theme) {
   const [bg, ink] = THEME_COLOURS[theme] || THEME_COLOURS['c-black'];
   return { bg, ink, mute: rgba(ink, 0.74), base: rgba(ink, 0.2) };
 }
-function frameRenderer(scenes) {
+export function frameRenderer(scenes) {
   const starts = []; let acc = 0;
   for (const s of scenes) { starts.push(acc); acc += s.dur; }
   const total = acc, FADE = 0.3;
