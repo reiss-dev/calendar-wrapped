@@ -819,4 +819,12 @@ export default {
   "Something on {n} of {d} days.": "Noe på planen {n} av {d} dager.",
   "A meeting on every single working day.": "Et møte hver eneste arbeidsdag.",
   "Something on every single day.": "Noe på planen hver eneste dag.",
+  "Keep results on this device": "Lagre resultater på denne enheten",
+  "Kept in this browser for {n} days, then cleared. Turn it off and nothing outlives this tab.": "Lagres i denne nettleseren i {n} dager, og slettes deretter. Slå det av, så forsvinner alt med fanen.",
+  "Private: your results disappear when you close this tab.": "Privat: resultatene forsvinner når du lukker fanen.",
+  "Kept in this browser for {n} days. Start over clears it now.": "Lagres i denne nettleseren i {n} dager. Start på nytt sletter det med en gang.",
+  "Cleared from this device.": "Slettet fra denne enheten.",
+  "Copied": "Kopiert",
+  "Don’t take our word for it: open this page, switch off your Wi-Fi, then drop your calendar in.": "Ikke ta vårt ord for det: åpne siden, slå av wifi og slipp så inn kalenderen din.",
+  "Security": "Sikkerhet",
 };

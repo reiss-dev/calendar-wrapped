@@ -819,4 +819,12 @@ export default {
   "Something on {n} of {d} days.": "Något inplanerat {n} av {d} dagar.",
   "A meeting on every single working day.": "Ett möte varenda arbetsdag.",
   "Something on every single day.": "Något inplanerat varenda dag.",
+  "Keep results on this device": "Spara resultat på den här enheten",
+  "Kept in this browser for {n} days, then cleared. Turn it off and nothing outlives this tab.": "Sparas i den här webbläsaren i {n} dagar och rensas sedan. Stäng av det så försvinner allt med fliken.",
+  "Private: your results disappear when you close this tab.": "Privat: dina resultat försvinner när du stänger fliken.",
+  "Kept in this browser for {n} days. Start over clears it now.": "Sparas i den här webbläsaren i {n} dagar. Börja om rensar det direkt.",
+  "Cleared from this device.": "Rensat från den här enheten.",
+  "Copied": "Kopierat",
+  "Don’t take our word for it: open this page, switch off your Wi-Fi, then drop your calendar in.": "Ta inte vårt ord för det: öppna sidan, stäng av wifi och släpp sedan in din kalender.",
+  "Security": "Säkerhet",
 };

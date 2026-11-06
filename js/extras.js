@@ -5,20 +5,22 @@ import { h, fmt, toast, storage, store } from './ui.js';
 import { t, monthName } from './i18n.js';
 import { loadGeo, searchPlaces, resolvePlace } from './geo.js';
 import { track } from './analytics.js';
+import { keep, recall } from './vault.js';
 
 const KEY = 'cw:extras';
 export const EMOJI = ['🎉', '💼', '🏠', '💍', '👶', '🎓', '🏃', '🐶', '✈️', '❤️', '🏆', '🌱'];
 const empty = () => ({ off: [], trips: [], moments: [] });
 
+const readAll = () => { try { return JSON.parse(recall(KEY) || '{}') || {}; } catch { return {}; } };
 export function loadExtras(year) {
-  const all = storage(KEY, {}) || {};
+  const all = readAll();
   const x = all[year] || {};
   return { off: Array.isArray(x.off) ? x.off : [], trips: Array.isArray(x.trips) ? x.trips : [], moments: Array.isArray(x.moments) ? x.moments : [] };
 }
 export function saveExtras(year, x) {
-  const all = storage(KEY, {}) || {};
+  const all = readAll();
   all[year] = x;
-  store(KEY, all);
+  keep(KEY, JSON.stringify(all));
 }
 export const hasExtras = (x) => !!x && (x.off.length + x.trips.length + x.moments.length > 0);
 

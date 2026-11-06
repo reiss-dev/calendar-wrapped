@@ -6,6 +6,7 @@
 // No cookies, no IPs, no IDs.
 // GET /api/hit?token=STATS_TOKEN → { totals, days }
 import { loki } from '../_lib/util.js';
+import { scrubMessage } from '../../js/scrub.js';
 
 export const EVENTS = new Set([
   'file_loaded', 'demo_loaded', 'google_connected', 'microsoft_connected', 'story_started', 'story_finished',
@@ -20,7 +21,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
   const later = (p) => (waitUntil ? waitUntil(p) : p);
   if (raw.startsWith('{')) {
     let d; try { d = JSON.parse(raw); } catch { return new Response(null, { status: 204 }); }
-    if (d.e === 'error') later(loki(env, { kind: 'error' }, { message: String(d.m || '').slice(0, 160), frame: String(d.f || '').slice(0, 80) }));
+    // Scrubbed again here, so an older or modified client can't put calendar text into the logs.
+    if (d.e === 'error') later(loki(env, { kind: 'error' }, { message: scrubMessage(d.m), frame: String(d.f || '').replace(/[^\w./:-]/g, '').slice(0, 80) }));
     if (d.e === 'vitals') later(loki(env, { kind: 'vitals' }, { lcp: num(d.lcp, 60000), cls: num(d.cls, 10), inp: num(d.inp, 60000) }));
     return new Response(null, { status: 204 });
   }

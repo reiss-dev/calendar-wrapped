@@ -939,3 +939,5 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .slide .weeks-wrap { align-items: stretch; max-height: min(42vh, 420px); }
 .slide .weeks-wrap .chart-weeks { margin-top: 0; }
 .report .chart .bar-rect.worst { animation: none; }
+.keep-note { max-width: 46ch; margin: -6px auto 0; text-align: center; }
+.summary .keep-note { margin-top: 10px; }

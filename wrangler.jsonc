@@ -15,7 +15,8 @@
   },
   // Keeps variables set in the dashboard (secrets always survive a deploy).
   "keep_vars": true,
-  "observability": { "enabled": true }
+  // Request logging off: share links carry a card's numbers in the address, and we promise not to keep them.
+  "observability": { "enabled": false }
   // "kv_namespaces": [
   //   { "binding": "SUBSCRIBERS", "id": "<id>" },
   //   { "binding": "COUNTERS", "id": "<id>" },

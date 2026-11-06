@@ -7,16 +7,17 @@ import { isUnlocked, openUnlockModal, priceLabel, checkTeamEntitlement, hasBilli
 import { persona as personaOf } from './copy.js';
 import { bubbles, treemap } from './viz.js';
 import { track } from './analytics.js';
+import { keep, recall, forget } from './vault.js';
 
 const KEY = 'cw:team';
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 const members = []; // { id, name, count }
 
 export function savedTeam() {
-  try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw, (k, v) => (typeof v === 'string' && ISO.test(v) ? new Date(v) : v)) : null; } catch { return null; }
+  try { const raw = recall(KEY); return raw ? JSON.parse(raw, (k, v) => (typeof v === 'string' && ISO.test(v) ? new Date(v) : v)) : null; } catch { return null; }
 }
-function saveTeam(team) { try { localStorage.setItem(KEY, JSON.stringify(team)); } catch { /* quota */ } }
-export async function clearTeam(engine) { members.length = 0; try { localStorage.removeItem(KEY); } catch { /* ignore */ } await engine?.clearMembers(); }
+function saveTeam(team) { try { keep(KEY, JSON.stringify(team)); } catch { /* quota */ } }
+export async function clearTeam(engine) { members.length = 0; forget(KEY); await engine?.clearMembers(); }
 
 export async function addFiles(engine, files) {
   for (const f of files) {

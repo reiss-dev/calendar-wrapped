@@ -28,7 +28,8 @@ const results = [];
 const errors = [];
 
 async function ctx(name, opts = {}) {
-  const c = await browser.newContext({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 1, acceptDownloads: true, ...opts });
+  // Service workers are off by default so route mocks see every request; the offline scenario turns them on.
+  const c = await browser.newContext({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 1, acceptDownloads: true, serviceWorkers: 'block', ...opts });
   await c.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: BASE.slice(0, -1) });
   const page = await c.newPage();
   page.on('console', (m) => { if (m.type() === 'error' && !/status of 50[03]|Failed to load resource/.test(m.text())) errors.push(`[${name}] ${m.text()}`); });
@@ -329,7 +330,7 @@ await scenario('things the calendar missed: time off, a trip and a moment feed t
   await page.waitForSelector('.slide.is-current');
   await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
   assert.ok(caps.includes('Highlights'), 'story has a highlights slide');
-  const s = await page.evaluate(() => JSON.parse(localStorage.getItem('cw:stats')));
+  const s = await page.evaluate(() => JSON.parse(JSON.parse(localStorage.getItem('cw:stats')).v));
   assert.equal(s.timeOff.taken, 19, '14 from the calendar and 5 added');
   assert.ok(s.travel.routes.legs.some((l) => l.to.name === 'Lisbon'), 'Lisbon is on the globe');
   assert.equal(s.moments[0].title, 'Promoted to team lead');
@@ -338,6 +339,66 @@ await scenario('things the calendar missed: time off, a trip and a moment feed t
   assert.match(await panel.textContent(), /Promoted to team lead/);
   await panel.getByRole('button', { name: 'Remove Promoted to team lead' }).click();
   assert.doesNotMatch(await panel.textContent(), /Promoted to team lead/);
+  await c.close();
+});
+
+await scenario('security headers: the browser is told where it may connect', async () => {
+  const { c, page } = await ctx('headers');
+  const res = await page.goto(BASE);
+  const csp = res.headers()['content-security-policy'] || '';
+  assert.match(csp, /default-src 'self'/);
+  assert.match(csp, /connect-src 'self' https:\/\/www\.googleapis\.com/);
+  assert.equal(res.headers()['referrer-policy'], 'no-referrer');
+  assert.equal(res.headers()['x-frame-options'], 'DENY');
+  // A script trying to send data elsewhere is stopped by the browser.
+  const blocked = await page.evaluate(async () => { try { await fetch('https://example.com/collect', { method: 'POST', body: 'x' }); return false; } catch { return true; } });
+  assert.ok(blocked, 'requests to other sites are refused');
+  errors.splice(0, errors.length, ...errors.filter((e) => !/\[headers\]/.test(e))); // that refusal is logged on purpose
+  await c.close();
+});
+
+await scenario('private mode: results live only in this tab, start over clears them', async () => {
+  const { c, page } = await ctx('private');
+  await page.goto(BASE);
+  await page.locator('.hero [data-action="demo"]').click();
+  await page.waitForSelector('.prep .group', { timeout: 20000 });
+  await page.locator('.switch:has(#remember)').click();
+  assert.equal(await page.locator('#remember').isChecked(), false);
+  assert.match(await page.locator('.prep .keep-note').textContent(), /disappear when you close this tab/);
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.summary canvas');
+  const where = await page.evaluate(() => ({ local: localStorage.getItem('cw:stats'), session: sessionStorage.getItem('cw:stats') }));
+  assert.equal(where.local, null, 'nothing kept in the browser');
+  assert.ok(where.session, 'kept for this tab');
+  await page.getByRole('button', { name: 'Start over' }).click();
+  await page.waitForSelector('.hero');
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('cw:stats') || localStorage.getItem('cw:stats')), null);
+  await c.close();
+});
+
+await scenario('works offline after one visit: no network, full story from a file', async () => {
+  const { c, page } = await ctx('offline', { serviceWorkers: 'allow' });
+  await page.goto(BASE);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await page.reload();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 15000 });
+  // Let the worker finish caching every file, then cut the network.
+  await page.waitForFunction(async () => { const keys = await caches.keys(); if (!keys.length) return false; const c = await caches.open(keys[0]); return (await c.keys()).length >= 50; }, null, { timeout: 30000 });
+  await c.setOffline(true);
+  const sent = [];
+  page.on('requestfailed', (r) => sent.push(r.url()));
+  await page.reload();
+  await page.setInputFiles('#file-input', join(ROOT, 'sample/work.ics'));
+  await page.waitForSelector('.prep .btn-lg', { timeout: 20000 });
+  await page.locator('.prep .btn-lg').click();
+  await page.waitForSelector('.slide.is-current');
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.summary canvas');
+  assert.ok(await page.locator('.summary .travel-panel canvas.globe').count() === 1, 'even the flights globe works offline');
+  await c.setOffline(false);
+  errors.splice(0, errors.length, ...errors.filter((e) => !/\[offline\]/.test(e) || !/Failed to fetch|ERR_INTERNET_DISCONNECTED|net::/.test(e)));
   await c.close();
 });
 

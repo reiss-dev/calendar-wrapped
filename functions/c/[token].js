@@ -4,6 +4,7 @@
 import { decodeModel } from '../../js/share.js';
 import { CONFIG } from '../../js/config.js';
 import { cardMeta } from '../_lib/card-svg.js';
+import { withSecurityHeaders } from '../../js/security-headers.js';
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -34,5 +35,5 @@ export async function onRequestGet({ params, request, env }) {
   if (!model) return Response.redirect(new URL('/', url).href, 302);
   const page = await env.ASSETS.fetch(new URL('/', url)); // '/' rather than '/index.html', which redirects
   const html = withCardMeta(await page.text(), { origin: url.origin, token, model });
-  return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } });
+  return withSecurityHeaders(new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' } }));
 }

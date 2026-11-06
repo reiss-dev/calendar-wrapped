@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Security · Calendar Wrapped</title>
+  <meta name="description" content="Where your calendar goes when you use Calendar Wrapped, and how to check it yourself. Written for IT and security teams." />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .legal { max-width: 760px; margin: 0 auto; padding: 48px var(--gutter) 100px; }
+    .legal h1 { font-size: clamp(34px, 5vw, 48px); margin-bottom: 8px; }
+    .legal h2 { font-size: 22px; margin: 40px 0 10px; }
+    .legal p, .legal li { color: var(--ink-2); font-size: 17px; line-height: 1.55; }
+    .legal ul, .legal ol { padding-left: 22px; display: grid; gap: 8px; }
+    .legal b { color: var(--ink); font-weight: 600; }
+    .legal code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg-alt); padding: 2px 5px; border-radius: 5px; color: var(--ink); overflow-wrap: anywhere; }
+    .legal pre { font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg-alt); color: var(--ink); padding: 14px 16px; border-radius: 12px; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .flows { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+    .flows th, .flows td { text-align: left; vertical-align: top; padding: 11px 10px 11px 0; border-top: 1px solid var(--line-soft); color: var(--ink-2); }
+    .flows th { color: var(--ink); font-weight: 600; width: 32%; }
+    .flows td b { color: var(--ink); }
+    .tag { display: inline-block; font-size: 12px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 980px; margin-bottom: 4px; }
+    .tag.never { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--ink); }
+    .tag.ask { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--ink); }
+    .table-wrap { overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <main class="legal">
+    <p><a href="./">‹ Calendar Wrapped</a></p>
+    <h1>Security</h1>
+    <p class="caption">For IT and security teams · Last updated 6 November 2026</p>
+
+    <h2>The short version</h2>
+    <p>Calendar Wrapped reads calendars <b>in the browser, on the person’s own device</b>. The calendar is never uploaded: our servers have no endpoint that accepts one. The browser is told, through a Content Security Policy, that it may only talk to this site, and to Google or Microsoft when someone chooses to sign in with them. Anyone can check this by using the app with the network switched off.</p>
+
+    <h2>Where calendar data goes</h2>
+    <div class="table-wrap">
+    <table class="flows">
+      <tr><th>A calendar file (.ics)</th><td><span class="tag never">Never leaves the device</span><br>Read and analysed in the browser, in a background thread. Every chart, card, image and video is made on the device.</td></tr>
+      <tr><th>Google sign-in</th><td><span class="tag never">Browser ↔ Google only</span><br>Read-only scope <code>calendar.events.readonly</code>. The browser fetches events straight from Google. The token is kept in memory, never stored, and revoked once the events have loaded. Our servers never see the token or the events.</td></tr>
+      <tr><th>Outlook sign-in</th><td><span class="tag never">Browser ↔ Microsoft only</span><br>Read-only scopes <code>Calendars.Read</code> and <code>User.Read</code>, with the PKCE flow and no client secret. The token is kept in memory and discarded when the events have loaded.</td></tr>
+      <tr><th>Results on the device</th><td><span class="tag never">Stays on the device</span><br>The summary (which includes names and meeting titles) is kept in the browser for <b>30 days</b> and then cleared. With <b>Keep results on this device</b> switched off, it lives only in that tab and is gone when the tab closes. <b>Start over</b> clears it immediately.</td></tr>
+      <tr><th>Share links</th><td><span class="tag ask">Only when someone shares</span><br>The link carries the numbers on the card. Names and meeting titles are left out unless the person switches them on. The server reads the numbers to draw a link-preview image and stores nothing. Request logging is off.</td></tr>
+      <tr><th>Emailing the plan</th><td><span class="tag ask">Only when someone asks</span><br>The plan text, which includes meeting titles, is sent to our email provider to deliver it, and is not kept. This is the only feature that sends calendar-derived text.</td></tr>
+      <tr><th>Compare with others</th><td><span class="tag ask">Only when someone taps it</span><br>Three rounded numbers (share of time in meetings, meetings a day, wall-to-wall days) join an anonymous pool. Nothing that identifies the person.</td></tr>
+      <tr><th>Usage counts</th><td>Event names such as “story finished”, counted per day. No cookies, no identifiers, no IP addresses.</td></tr>
+      <tr><th>Error reports</th><td>The error’s type and shape only. Anything quoted, any name, address, email or number is removed in the browser, and again on the server, before it is logged.</td></tr>
+    </table>
+    </div>
+
+    <h2>How it’s enforced</h2>
+    <ul>
+      <li><b>Content Security Policy</b> on every page. Outgoing connections are limited to this site, Google’s calendar and sign-in hosts, and Microsoft’s. A script that tried to send data anywhere else would be blocked by the browser:</li>
+    </ul>
+    <pre id="csp">default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com https://graph.microsoft.com https://login.microsoftonline.com; frame-src https://accounts.google.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'</pre>
+    <ul>
+      <li><b>No third parties in the page.</b> No analytics companies, tag managers, ad networks, CDNs or hosted fonts. Every script, font and library is served from this site.</li>
+      <li><b>Libraries are vendored and pinned:</b> ical.js (MPL-2.0) to read calendar files, mp4-muxer (MIT) for the story video, and the Bricolage Grotesque typeface (SIL OFL). There are no runtime package downloads.</li>
+      <li><b>Other headers:</b> <code>Referrer-Policy: no-referrer</code>, <code>X-Content-Type-Options: nosniff</code>, <code>X-Frame-Options: DENY</code>, HSTS, and a Permissions-Policy that turns off camera, microphone, location, payment and USB.</li>
+      <li><b>No accounts.</b> There is nothing to sign up for and no profile on our side. Purchases are confirmed by Stripe and recorded on the device.</li>
+    </ul>
+
+    <h2>Check it yourself</h2>
+    <ol>
+      <li>Open the site once, so the browser keeps a copy of the app.</li>
+      <li>Switch off Wi-Fi (or use your browser’s offline mode).</li>
+      <li>Drop a calendar file in. The whole story, summary, report, cards and video still work, because nothing needs the network.</li>
+    </ol>
+    <p>Or keep the network on and watch your browser’s developer tools (Network tab) while you use it: the only requests are for the app’s own files.</p>
+    <p>For a support case, the <a href="diagnose.html">diagnostics page</a> makes a redacted report and an anonymised copy of a calendar, with names, emails, titles and locations replaced, on the device.</p>
+
+    <h2>Who runs what</h2>
+    <ul>
+      <li><b>Cloudflare</b> hosts the site and runs the small server part: payments, share-link previews, the anonymous benchmark pool and counts.</li>
+      <li><b>Stripe</b> handles payments. We never see card details.</li>
+      <li><b>Resend</b> sends the plan email, only when someone asks for it.</li>
+      <li><b>Grafana Cloud</b> holds the anonymous daily counts and scrubbed error reports.</li>
+    </ul>
+
+    <h2>Highly sensitive and classified calendars</h2>
+    <p>The design keeps calendars on the device, but Calendar Wrapped is not accredited for classified or government security-marked information. If your calendar is under a classification scheme, exporting it to a laptop is a handling decision your policy already covers, and we’d recommend not using this or any unapproved tool with it.</p>
+    <p>For confidential business calendars, the safest way to use it is:</p>
+    <ul>
+      <li>switch off <b>Keep results on this device</b>, so nothing outlives the tab;</li>
+      <li>leave names and titles off share cards (the default), and don’t use the email feature;</li>
+      <li>if you want certainty, load the page and then go offline before adding your calendar.</li>
+    </ul>
+
+    <h2>Reporting a problem</h2>
+    <p>Security questions or a vulnerability report: <b>security@calendarwrapped.app</b>. We reply within two working days.</p>
+  </main>
+</body>
+</html>

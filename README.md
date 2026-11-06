@@ -15,11 +15,12 @@ npm run dev
 Open http://localhost:4173 and click **See a demo**. Add `?demo=personal` for the personal sample and `?lang=nl` (or `sv`, `nb`, `da`) for another language. Drop one `.ics` for a personal story, or several for a team report.
 
 ```bash
-npm test                         # 58 unit tests
+npm test                         # 66 unit tests
 npm run e2e                      # headless Chromium end to end (needs Playwright)
 npm run inspect -- file.ics      # diagnose a real export, titles hidden
 npm run rebrand -- "Name" domain.app
 npm run og                       # regenerate og.png
+npm run offline                  # after changing app files: regenerate sw.js and _headers (a test checks)
 npm run sample                   # regenerate samples and fixtures
 node tools/i18n-check.js nl      # check a translation
 ```
@@ -90,7 +91,14 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 
 ## Privacy model
 
+For IT and security teams, `security.html` sets this out with the data flows and how to check them.
+
+
 - Calendar data never leaves the device. The only exception is the plan text, and only when someone asks for it by email.
+- A Content Security Policy enforces it: the browser may only connect to the site itself, and Google or Microsoft for sign-in. One source in `js/security-headers.js`, written to `_headers` for static files and added in code to server-built pages. No inline scripts.
+- Results (which include names and titles) are kept in the browser for 30 days, or only in the tab with **Keep results on this device** off. Start over clears them. See `js/vault.js`.
+- A service worker keeps a copy of the app, so it works with the network off: the simplest proof nothing is sent.
+- Error reports carry the error's shape only, scrubbed in the browser and again on the server (`js/scrub.js`). Worker request logging is off.
 - Share links carry a card's numbers, without names or titles unless switched on. The server reads a link only to draw its preview image, and stores nothing.
 - Benchmarks receive a few rounded numbers, only after someone taps **Compare with others**.
 - Until someone unlocks, their share links carry a random invite code. When a friend makes their own Wrapped from a real calendar (demos don't count), the server stores a count against that code and a salted hash of the friend's random code. Videos are made on the device.

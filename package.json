@@ -11,7 +11,8 @@
     "inspect": "node tools/inspect.js",
     "rebrand": "node tools/rebrand.js",
     "og": "node tools/og.mjs",
-    "e2e": "node tests/e2e/run.mjs"
+    "e2e": "node tests/e2e/run.mjs",
+    "offline": "node tools/make-sw.js && node tools/make-headers.js"
   },
   "engines": {
     "node": ">=20"

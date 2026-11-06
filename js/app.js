@@ -24,6 +24,7 @@ import { createGlobe } from './globe.js';
 import { COUNTRIES, guessCountry } from './holidays.js';
 import { timeOffPanel, birthdayPanel, countryName } from './timeoff-ui.js';
 import { extrasBlock, loadExtras, highlightsPanel } from './extras.js';
+import { keep, recall, forgetAll, sweep, remembering, setRemembering, MAX_AGE_DAYS } from './vault.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
 import { openVideoModal, videoSupported } from './video-ui.js';
@@ -54,8 +55,8 @@ function show(id, { push = true, hash } = {}) {
 // ---------- persistence ----------
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 const revive = (k, v) => (typeof v === 'string' && ISO.test(v) ? new Date(v) : v);
-function saveStats(stats) { try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch { /* quota */ } }
-function loadStats() { try { const raw = localStorage.getItem(STATS_KEY); return raw ? JSON.parse(raw, revive) : null; } catch { return null; } }
+function saveStats(stats) { try { keep(STATS_KEY, JSON.stringify(stats)); } catch { /* quota */ } }
+function loadStats() { try { const raw = recall(STATS_KEY); return raw ? JSON.parse(raw, revive) : null; } catch { return null; } }
 const readFriend = () => { try { return JSON.parse(sessionStorage.getItem(FRIEND_KEY)); } catch { return null; } };
 const saveFriend = (m) => { try { sessionStorage.setItem(FRIEND_KEY, JSON.stringify(m)); } catch { /* private mode */ } };
 
@@ -269,11 +270,15 @@ function renderPrepOptions(inner, probe) {
     h('div', { class: 'row' }, h('label', { class: 'lbl', for: 'country' }, t('Public holidays')),
       h('div', { class: 'select-wrap' }, h('select', { id: 'country', onChange: (e) => { state.options.country = e.target.value; store(COUNTRY_KEY, e.target.value); } },
         COUNTRIES.map((c) => h('option', { value: c, selected: c === state.options.country }, countryName(c)))))),
+    h('div', { class: 'row' }, h('label', { class: 'lbl', for: 'remember' }, t('Keep results on this device')),
+      h('label', { class: 'switch' }, h('input', { type: 'checkbox', role: 'switch', id: 'remember', checked: remembering(), onChange: (e) => { setRemembering(e.target.checked); keepNote.textContent = keepText(); } }), h('span', { class: 'track', 'aria-hidden': 'true' }))),
   );
+  const keepText = () => (remembering() ? t('Kept in this browser for {n} days, then cleared. Turn it off and nothing outlives this tab.', { n: MAX_AGE_DAYS }) : t('Private: your results disappear when you close this tab.'));
+  const keepNote = h('p', { class: 'caption keep-note', 'data-reveal': '' }, keepText());
   const warn = !probe.attendeeInfoAvailable ? h('p', { class: 'prep-warn', 'data-reveal': '' }, t('This export has no attendee details, so every timed event is treated as a meeting. Outlook’s published calendars often leave them out.')) : null;
   const play = h('button', { class: 'btn btn-lg', 'data-reveal': '', onClick: () => { sound.prime(); startStory(); } }, t('Play my Wrapped'));
   const privacy = h('p', { class: 'caption', 'data-reveal': '' }, t('Still nothing has left your browser.'));
-  inner.append(...[group, extras.el, warn, play, privacy].filter(Boolean));
+  inner.append(...[group, keepNote, extras.el, warn, play, privacy].filter(Boolean));
   stagger(inner);
   play.focus({ preventScroll: true });
 }
@@ -396,6 +401,7 @@ async function showSummary({ push = true } = {}) {
       h('button', { class: 'link', onClick: () => openTeam() }, t('Do this for your team')),
       h('button', { class: 'link', onClick: startOver }, t('Start over')),
     ),
+    h('p', { class: 'caption keep-note', style: 'text-align:center' }, remembering() ? t('Kept in this browser for {n} days. Start over clears it now.', { n: MAX_AGE_DAYS }) : t('Private: your results disappear when you close this tab.')),
   ));
   stagger(host);
   draw();
@@ -648,7 +654,8 @@ function showTeamReport({ push = true } = {}) {
 async function startOver() {
   state.stats = null; state.team = null; state.summary = null;
   await clearTeam(engine);
-  try { localStorage.removeItem(STATS_KEY); } catch { /* ignore */ }
+  forgetAll();
+  toast(t('Cleared from this device.'));
   show('landing');
 }
 
@@ -674,6 +681,9 @@ async function boot() {
   translateDom();
   initLanguagePicker();
   initMonitoring();
+  sweep();
+  // Keep a copy of the app on this device, so it also works with the network off.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register(`${siteRoot()}sw.js`).catch(() => {});
   captureReferrer();
   initLanding();
   state.stats = loadStats();

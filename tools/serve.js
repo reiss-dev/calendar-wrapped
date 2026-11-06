@@ -6,16 +6,19 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SECURITY_HEADERS } from '../js/security-headers.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.argv[2]) || 4173;
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.mp4': 'video/mp4', '.woff2': 'font/woff2', '.css': 'text/css; charset=utf-8', '.ics': 'text/calendar', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.txt': 'text/plain', '.md': 'text/markdown' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.webmanifest': 'application/manifest+json', '.mp4': 'video/mp4', '.woff2': 'font/woff2', '.css': 'text/css; charset=utf-8', '.ics': 'text/calendar', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.txt': 'text/plain', '.md': 'text/markdown' };
 const json = (res, status, obj) => { res.writeHead(status, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
 const bench = { n: 0, hist: {} };
 const referrals = new Map(), credited = new Set();
 const readBody = (req) => new Promise((r) => { let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => { try { r(JSON.parse(b)); } catch { r({}); } }); });
 
 createServer(async (req, res) => {
+  // Same security headers as production, so the e2e suite runs under the real Content Security Policy.
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) if (k !== 'Strict-Transport-Security') res.setHeader(k, v);
   const url = new URL(req.url, 'http://localhost');
   const p0 = url.pathname;
   if (p0 === '/api/checkout' || p0 === '/api/subscribe' || p0 === '/api/portal') return json(res, 503, { error: 'not_configured' });

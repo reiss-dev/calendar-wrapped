@@ -13,6 +13,7 @@ import * as unsubscribe from '../functions/api/unsubscribe.js';
 import * as verify from '../functions/api/verify.js';
 import * as card from '../functions/c/[token].js';
 import * as og from '../functions/og/[token].js';
+import { withSecurityHeaders } from '../js/security-headers.js';
 
 const API = { bench, checkout, entitlement, hit, portal, referral, subscribe, unsubscribe, verify };
 
@@ -30,11 +31,11 @@ export default {
     const base = { request, env, params: {}, waitUntil: (p) => ctx.waitUntil(p), next: () => env.ASSETS.fetch(request) };
     try {
       let m = /^\/api\/([a-z]+)\/?$/.exec(url.pathname);
-      if (m && API[m[1]]) return await call(API[m[1]], base);
+      if (m && API[m[1]]) return withSecurityHeaders(await call(API[m[1]], base));
       m = /^\/c\/([^/]+)\/?$/.exec(url.pathname);
-      if (m) return await call(card, { ...base, params: { token: m[1] } });
+      if (m) return withSecurityHeaders(await call(card, { ...base, params: { token: m[1] } }));
       m = /^\/og\/([^/]+)$/.exec(url.pathname);
-      if (m) return await call(og, { ...base, params: { token: m[1] } });
+      if (m) return withSecurityHeaders(await call(og, { ...base, params: { token: m[1] } }));
     } catch (err) {
       console.error(err);
       return new Response(JSON.stringify({ error: 'server_error' }), { status: 500, headers: { 'content-type': 'application/json' } });

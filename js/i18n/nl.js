@@ -819,4 +819,12 @@ export default {
   "Something on {n} of {d} days.": "Iets gepland op {n} van de {d} dagen.",
   "A meeting on every single working day.": "Op elke werkdag een vergadering.",
   "Something on every single day.": "Elke dag iets gepland.",
+  "Keep results on this device": "Resultaten op dit apparaat bewaren",
+  "Kept in this browser for {n} days, then cleared. Turn it off and nothing outlives this tab.": "{n} dagen in deze browser bewaard, daarna gewist. Zet het uit en niets blijft langer dan dit tabblad.",
+  "Private: your results disappear when you close this tab.": "Privé: je resultaten verdwijnen als je dit tabblad sluit.",
+  "Kept in this browser for {n} days. Start over clears it now.": "{n} dagen in deze browser bewaard. Opnieuw beginnen wist het meteen.",
+  "Cleared from this device.": "Gewist van dit apparaat.",
+  "Copied": "Gekopieerd",
+  "Don’t take our word for it: open this page, switch off your Wi-Fi, then drop your calendar in.": "Geloof ons niet op ons woord: open deze pagina, zet je wifi uit en sleep dan je agenda erin.",
+  "Security": "Beveiliging",
 };

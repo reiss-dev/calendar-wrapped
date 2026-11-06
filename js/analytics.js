@@ -1,6 +1,7 @@
 // Funnel counters, front-end errors and Core Web Vitals without tracking:
 // no cookies, no IDs, no URLs, no calendar data. See functions/api/hit.js.
 import { CONFIG } from './config.js';
+import { scrubMessage } from './scrub.js';
 
 const sentOnce = new Set();
 const enabled = () => CONFIG.analytics && typeof location !== 'undefined' && location.protocol !== 'file:';
@@ -19,12 +20,13 @@ export function track(name, { once = false } = {}) {
   beacon(name);
 }
 
-// Errors: message and the first frame of our own code only. Capped per page.
+// Errors: the error's shape (never its quoted content) and the first frame of our own code. Capped per page.
 let errorCount = 0;
-function reportError(message, stack = '') {
+function reportError(message, stack = '', name = '') {
   if (!enabled() || errorCount++ >= 5) return;
   const frame = (String(stack).split('\n').find((l) => /\/js\/[\w-]+\.js/.test(l)) || '').replace(/.*\/(js\/[\w-]+\.js:\d+:\d+).*/, '$1').slice(0, 80);
-  beacon(JSON.stringify({ e: 'error', m: String(message).replace(/https?:\/\/\S+/g, '').slice(0, 160), f: frame }), 'application/json');
+  const kind = /^[A-Za-z]{1,40}$/.test(name) ? `${name}: ` : '';
+  beacon(JSON.stringify({ e: 'error', m: `${kind}${scrubMessage(message)}`.slice(0, 120), f: frame }), 'application/json');
 }
 
 // Core Web Vitals, sent once when the page is hidden.
@@ -44,7 +46,7 @@ function watchVitals() {
 
 export function initMonitoring() {
   if (!enabled()) return;
-  addEventListener('error', (e) => reportError(e.message, e.error?.stack));
-  addEventListener('unhandledrejection', (e) => reportError(e.reason?.message || String(e.reason), e.reason?.stack));
+  addEventListener('error', (e) => reportError(e.error?.message ?? e.message, e.error?.stack, e.error?.name));
+  addEventListener('unhandledrejection', (e) => reportError(e.reason?.message || String(e.reason), e.reason?.stack, e.reason?.name));
   watchVitals();
 }
