@@ -7,7 +7,7 @@ import { track } from './analytics.js';
 
 export const videoSupported = () => typeof VideoEncoder === 'function' || (typeof MediaRecorder === 'function' && !!HTMLCanvasElement.prototype.captureStream);
 
-export function openVideoModal(stats) {
+export function openVideoModal(stats, { music = true } = {}) {
   const root = h('div', { class: 'modal-root', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'video-title' });
   const opener = document.activeElement;
   let closed = false, url = null;
@@ -42,7 +42,7 @@ export function openVideoModal(stats) {
   (async () => {
     try {
       const { makeVideo } = await import('./video.js');
-      const out = await makeVideo(stats, {
+      const out = await makeVideo(stats, { music,
         onProgress: (p) => {
           const pct = Math.min(100, Math.round(p * 100));
           bar.style.transform = `scaleX(${pct / 100})`;
@@ -64,7 +64,8 @@ export function openVideoModal(stats) {
       video.muted = true;
       stage.replaceChildren(video);
       meter.classList.add('done');
-      status.textContent = t('{s} seconds, ready to post.', { s: out.seconds });
+      status.textContent = out.audio ? t('{s} seconds with music, ready to post.', { s: out.seconds }) : t('{s} seconds, ready to post.', { s: out.seconds });
+      root.dataset.audio = String(out.audio);
       root.dataset.ready = out.type;
       root.dataset.size = String(out.blob.size);
       track('video_made');
@@ -79,7 +80,9 @@ export function openVideoModal(stats) {
       const share = canShareFile ? h('button', { class: 'btn btn-secondary btn-lg btn-block', onClick: async () => {
         try { await navigator.share({ files: [file], text: t('Made with {brand}', { brand: CONFIG.brand.name }) }); track('video_shared'); } catch { /* cancelled */ }
       } }, t('Share')) : null;
-      buttons.replaceChildren(...[canShareFile ? share : save, canShareFile ? save : null].filter(Boolean));
+      // Some people add their own sound on Instagram or TikTok, so the music is optional.
+      const again = h('button', { class: 'link', id: 'video-music', onClick: () => { close(); setTimeout(() => openVideoModal(stats, { music: !music }), 320); } }, music ? t('Make it without music') : t('Make it with music'));
+      buttons.replaceChildren(...[canShareFile ? share : save, canShareFile ? save : null, again].filter(Boolean));
       cancel.textContent = t('Done');
       (canShareFile ? share : save).focus();
     } catch (err) {

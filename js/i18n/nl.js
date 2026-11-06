@@ -1019,4 +1019,7 @@ export default {
   "And {n} trips away.": "En {n} reizen weg.",
   "Kind": "Soort",
   "Customer": "Klant",
+  "Make it without music": "Maak hem zonder muziek",
+  "Make it with music": "Maak hem met muziek",
+  "{s} seconds with music, ready to post.": "{s} seconden met muziek, klaar om te posten.",
 };

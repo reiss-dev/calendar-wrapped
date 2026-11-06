@@ -1019,4 +1019,7 @@ export default {
   "And {n} trips away.": "Och {n} resor bort.",
   "Kind": "Typ",
   "Customer": "Kund",
+  "Make it without music": "Gör den utan musik",
+  "Make it with music": "Gör den med musik",
+  "{s} seconds with music, ready to post.": "{s} sekunder med musik, redo att publicera.",
 };

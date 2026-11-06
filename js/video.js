@@ -12,6 +12,7 @@ import { createGlobe } from './globe.js';
 import { hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlights, showHighlights } from './extras.js';
 import { hasAwards, awardCopy } from './awards-ui.js';
+import { renderSoundtrack, audioChunks, pickAudioCodec, SAMPLE_RATE } from './soundtrack.js';
 
 export const W = 1080, H = 1920, FPS = 30;
 const PAD = 96;
@@ -403,6 +404,7 @@ export function frameRenderer(scenes) {
   }
   return {
     total,
+    starts,
     frames: Math.round(total * FPS),
     draw(ctx, timeSec) {
       let i = starts.findIndex((st, k) => timeSec < st + scenes[k].dur);
@@ -428,11 +430,20 @@ async function pickEncoder() {
   return null;
 }
 
-async function encodeWithWebCodecs(renderer, canvas, ctx, enc, { onProgress, preview }) {
+async function encodeWithWebCodecs(renderer, canvas, ctx, enc, { onProgress, preview, music }) {
   const { Muxer, ArrayBufferTarget } = await import('../vendor/mp4-muxer.js');
   const target = new ArrayBufferTarget();
-  const muxer = new Muxer({ target, video: { codec: enc.mux, width: W, height: H, frameRate: FPS }, fastStart: 'in-memory' });
+  const sound = music ? await pickAudioCodec() : null;
+  const muxer = new Muxer({ target, video: { codec: enc.mux, width: W, height: H, frameRate: FPS }, ...(sound ? { audio: { codec: sound.mux, numberOfChannels: 2, sampleRate: SAMPLE_RATE } } : {}), fastStart: 'in-memory' });
   let failure = null;
+  // The soundtrack goes in first; the muxer interleaves it with the frames when it finishes.
+  if (sound) {
+    const audio = new AudioEncoder({ output: (chunk, meta) => muxer.addAudioChunk(chunk, meta), error: (e) => { failure = e; } });
+    audio.configure({ codec: sound.codec, sampleRate: SAMPLE_RATE, numberOfChannels: 2, bitrate: 128000 });
+    for (const data of audioChunks(music)) { audio.encode(data); data.close(); }
+    await audio.flush();
+    audio.close();
+  }
   const encoder = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => { failure = e; } });
   encoder.configure({ codec: enc.codec, width: W, height: H, bitrate: 8_000_000, framerate: FPS, latencyMode: 'quality' });
   for (let i = 0; i < renderer.frames; i++) {
@@ -448,19 +459,32 @@ async function encodeWithWebCodecs(renderer, canvas, ctx, enc, { onProgress, pre
   if (failure) throw failure;
   encoder.close();
   muxer.finalize();
-  return new Blob([target.buffer], { type: 'video/mp4' });
+  const blob = new Blob([target.buffer], { type: 'video/mp4' });
+  blob.hasAudio = !!sound;
+  return blob;
 }
 
-async function encodeWithRecorder(renderer, canvas, ctx, { onProgress, preview }) {
-  const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+async function encodeWithRecorder(renderer, canvas, ctx, { onProgress, preview, music }) {
+  const types = music ? ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'] : ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
   const type = types.find((x) => MediaRecorder.isTypeSupported?.(x));
   if (!type) throw new Error('unsupported');
   const stream = canvas.captureStream(FPS);
+  // Real time here, so the music plays into the recording as the frames are drawn.
+  let actx = null, source = null;
+  if (music && (window.AudioContext || window.webkitAudioContext)) {
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = actx.createMediaStreamDestination();
+      source = actx.createBufferSource(); source.buffer = music; source.connect(dest);
+      for (const tr of dest.stream.getAudioTracks()) stream.addTrack(tr);
+    } catch { actx = null; source = null; }
+  }
   const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 8_000_000 });
   const parts = [];
   rec.ondataavailable = (e) => { if (e.data.size) parts.push(e.data); };
   const done = new Promise((r) => { rec.onstop = r; });
   rec.start(250);
+  source?.start();
   const t0 = performance.now();
   await new Promise((resolve) => {
     const tick = () => {
@@ -472,24 +496,29 @@ async function encodeWithRecorder(renderer, canvas, ctx, { onProgress, preview }
     tick();
   });
   rec.stop(); await done;
-  return new Blob(parts, { type: type.split(';')[0] });
+  try { source?.stop(); actx?.close(); } catch { /* already stopped */ }
+  const blob = new Blob(parts, { type: type.split(';')[0] });
+  blob.hasAudio = !!source;
+  return blob;
 }
 
 /** Make the video. Returns { blob, type, ext, seconds }. */
-export async function makeVideo(stats, { onProgress, preview } = {}) {
+export async function makeVideo(stats, { onProgress, preview, music: withMusic = true } = {}) {
   try { await Promise.all(['800 200px', '750 80px'].map((f) => document.fonts.load(`${f} "Bricolage Grotesque"`))); } catch { /* falls back to system type */ }
   const { scenes, cleanup } = await buildScenes(stats);
   try {
     const renderer = frameRenderer(scenes);
+    let music = null;
+    if (withMusic) { try { music = await renderSoundtrack(renderer.total, renderer.starts); } catch { music = null; } }
     const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d', { alpha: false });
     const enc = await pickEncoder();
     let blob;
-    if (enc) blob = await encodeWithWebCodecs(renderer, canvas, ctx, enc, { onProgress, preview });
-    else if (typeof MediaRecorder === 'function' && canvas.captureStream) blob = await encodeWithRecorder(renderer, canvas, ctx, { onProgress, preview });
+    if (enc) blob = await encodeWithWebCodecs(renderer, canvas, ctx, enc, { onProgress, preview, music });
+    else if (typeof MediaRecorder === 'function' && canvas.captureStream) blob = await encodeWithRecorder(renderer, canvas, ctx, { onProgress, preview, music });
     else throw new Error('unsupported');
     onProgress?.(1);
-    return { blob, type: blob.type, ext: blob.type.includes('mp4') ? 'mp4' : 'webm', seconds: Math.round(renderer.total), codec: enc?.codec || 'recorder' };
+    return { blob, type: blob.type, ext: blob.type.includes('mp4') ? 'mp4' : 'webm', seconds: Math.round(renderer.total), codec: enc?.codec || 'recorder', audio: !!blob.hasAudio };
   } finally { cleanup(); }
 }
 

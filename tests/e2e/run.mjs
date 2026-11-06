@@ -582,7 +582,13 @@ await scenario('story video: renders a 9:16 video on the device, then saves it',
   await shot(page, '12-video-ready', false);
   const dl = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Save video' }).click();
-  assert.match((await dl).suggestedFilename(), /^calendar-wrapped-\d{4}\.(mp4|webm)$/);
+  const d = await dl;
+  assert.match(d.suggestedFilename(), /^calendar-wrapped-\d{4}\.(mp4|webm)$/);
+  const audio = await page.locator('.modal-root').getAttribute('data-audio');
+  const can = await page.evaluate(async () => typeof AudioEncoder === 'function' && (await AudioEncoder.isConfigSupported({ codec: 'opus', sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 })).supported);
+  if (can) assert.equal(audio, 'true', 'the video has music where the browser can encode audio');
+  if (process.env.SHOTS) await d.saveAs(join(process.env.SHOTS, `video.${d.suggestedFilename().split('.').pop()}`));
+  assert.ok(await page.locator('#video-music').count() === 1, 'music can be turned off');
   await c.close();
 });
 

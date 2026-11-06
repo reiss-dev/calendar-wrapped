@@ -63,7 +63,7 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 | Awards: the year's superlatives, in the story, summary and video | `js/awards.js`, `js/awards-ui.js` |
 | Meeting types (customers, internal, 1:1s, your own groups) | `js/meeting-mix.js`, `js/mix-ui.js` |
 | What shared things show: no names, hide customers, or everything | `js/privacy.js` |
-| Story video: 9:16 MP4 drawn and encoded on the device (WebCodecs, MediaRecorder fallback) | `js/video.js`, `js/video-ui.js` |
+| Story video: 9:16 MP4 drawn and encoded on the device (WebCodecs, MediaRecorder fallback), with an original soundtrack synthesised on the device (AAC, or Opus where AAC isn't available; optional) | `js/video.js`, `js/video-ui.js`, `js/soundtrack.js` |
 | Unlock by sharing: invite codes on share links, three friends unlock | `js/referral.js`, `functions/api/referral.js` |
 | Team mode | `js/team.js` |
 | Payments: one-off personal unlock, monthly team plan | `js/pay.js`, `functions/api/checkout.js`, `verify.js`, `entitlement.js`, `portal.js` |
