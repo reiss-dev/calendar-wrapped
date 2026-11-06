@@ -4,7 +4,8 @@
 import { personaCopy, suggestionCopy, categoryLabel } from './copy.js';
 import { flightLegs } from './geo.js';
 import { holidayMap, bestBreaks, TYPICAL_LEAVE, fromKey } from './holidays.js';
-import { meetingMix, homeTest, domainOf } from './meeting-mix.js';
+import { meetingMix, homeTest, domainOf, companyName } from './meeting-mix.js';
+import { whereStats } from './where.js';
 import { computeAwards } from './awards.js';
 
 const HOUR = 3600000;
@@ -532,7 +533,9 @@ function workStats(all, ctx) {
   const longOnes = meetings.filter((e) => e.durationH >= 4);
   const notInvited = meetings.filter(notInvitedTo);
   const mix = ctx.attendeeInfoAvailable ? meetingMix(meetings, { selfEmail: ctx.selfEmail, groups: ctx.groups }) : null;
-  if (mix) { const home = homeTest(mix.homes); for (const p of collaborators) p.ext = !!p.email && !home(domainOf(p.email)); }
+  const atHome = mix ? homeTest(mix.homes) : null;
+  if (mix) for (const p of collaborators) p.ext = !!p.email && !atHome(domainOf(p.email));
+  const where = whereStats(meetings, { company: mix ? companyName(mix.home) : '', isExternal: atHome ? (e) => e.others.some((a) => a.email && !atHome(domainOf(a.email))) : () => false });
   const oneToOnes = meetings.filter((e) => e.others.length === 1);
   const large = meetings.filter((e) => e.others.length >= 8);
   const earliest = [...meetings].sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))[0] || null;
@@ -581,6 +584,7 @@ function workStats(all, ctx) {
     collaborators: collaborators.slice(0, 8),
     colleagues: mix ? collaborators.filter((p) => !p.ext).slice(0, 8) : null,
     mix,
+    where,
     _check: {
       titleHours: [...titleHours.values()].sort((a, b) => b.hours - a.hours).slice(0, 6).map((x) => ({ ...x, hours: round1(x.hours) })),
       long: longOnes.length,

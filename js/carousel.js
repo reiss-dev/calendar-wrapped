@@ -8,6 +8,7 @@ import { persona as personaOf, categoryLabel } from './copy.js';
 import { imagesToPdf } from './pdf.js';
 import { hasMix, lead, headline, typeLabel } from './mix-ui.js';
 import { hasAwards, awardCopy } from './awards-ui.js';
+import { hasWhere, whereHeadline, whereLabel } from './where-ui.js';
 
 export const W = 1080, H = 1350;
 const PAD = 96;
@@ -115,6 +116,23 @@ export function carouselPages(s) {
           text(ctx, typeLabel(m), y - 4, { size: 38, weight: 600, colour: c.ink, x: PAD + 50 });
           font(ctx, 700, 38); ctx.textAlign = 'right'; ctx.fillStyle = c.ink; ctx.fillText(`${m.pct}%`, W - PAD, y + 34); ctx.textAlign = 'left';
           y += 62;
+        });
+      });
+    }
+    if (hasWhere(s)) {
+      const w = s.where, hd = whereHeadline(w);
+      page('c-orange', (ctx, c) => {
+        let y = text(ctx, t('Where you met'), 220, { size: 34, weight: 650, colour: c.mute });
+        y = big(ctx, hd.suffix === '%' ? `${hd.value}%` : fmt.int(hd.value), y + 10, c.ink, hd.suffix === '%' ? {} : { unit: hd.suffix });
+        y = text(ctx, hd.line, y, { size: 70, weight: 750, display: true, colour: c.ink, lh: 1.02 });
+        if (hd.note) y = text(ctx, hd.note, y + 10, { size: 38, colour: c.mute });
+        y += 40;
+        w.types.forEach((m, i) => {
+          const wd = Math.max(260, ((W - PAD * 2 - 160) * m.pct) / Math.max(1, ...w.types.map((x) => x.pct)));
+          ctx.fillStyle = hexA(c.ink, [1, 0.6, 0.35][i] ?? 0.25); ctx.beginPath(); ctx.roundRect(PAD, y, wd, 64, 14); ctx.fill();
+          text(ctx, whereLabel(m.key), y + 4, { size: 32, weight: 650, colour: i < 2 ? c.bg : c.ink, x: PAD + 20 });
+          font(ctx, 700, 36); ctx.textAlign = 'right'; ctx.fillStyle = c.ink; ctx.fillText(`${m.pct}%`, W - PAD, y + 46); ctx.textAlign = 'left';
+          y += 84;
         });
       });
     }

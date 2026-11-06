@@ -17,6 +17,7 @@ export function computeAwards(s) {
     if (s.longestFreeStreak?.length >= 5) add('escape', '🏝️', s.longestFreeStreak.length * 3, { n: s.longestFreeStreak.length });
     if (s.fridayPm >= 20) add('friday', '🍻', s.fridayPm, { n: s.fridayPm });
     if (s.travel?.trips >= 4) add('flyer', '✈️', s.travel.trips * 5, { n: s.travel.trips });
+    if (s.where?.onsite.days >= 15) add('boots', '🥾', s.where.onsite.days * 2, { n: s.where.onsite.days });
     if (s.mix?.customerShare >= 30) add('customer', '🏆', s.mix.customerShare, { p: s.mix.customerShare });
     if (s.organized >= 100) add('convener', '📣', s.organized / 5, { n: s.organized });
     if (s.meetings >= 200 && s.declined <= 3) add('yes', '👍', 35, { n: s.declined });

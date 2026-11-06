@@ -30,6 +30,7 @@ import { askYoursOrTeam, calendarsBlock, leaveOutRow, leaveOutPanel, loadFilters
 import { mixPanel, loadGroups } from './mix-ui.js';
 import { checksPanel } from './checks-ui.js';
 import { awardsPanel } from './awards-ui.js';
+import { wherePanel } from './where-ui.js';
 import { openCarouselModal } from './carousel-ui.js';
 import { maskStats, makeMasker, levelOf } from './privacy.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
@@ -502,6 +503,7 @@ async function showSummary({ push = true } = {}) {
         birthdayPanel(s),
         highlightsPanel(s, { onChange: () => saveStats(s) }),
         balancePanel(s),
+        wherePanel(s),
         mixPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
         leaveOutPanel(s, { canApply: !!state.summary, onApply: async () => { await recalc(); showSummary({ push: false }); toast(t('Updated.')); } }),
         comparePanel(s),

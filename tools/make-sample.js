@@ -65,23 +65,35 @@ function header(name) {
     'BEGIN:STANDARD', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0000', 'TZNAME:GMT', 'DTSTART:19701025T020000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'END:STANDARD', 'END:VTIMEZONE'].join('\r\n');
 }
 
+const MEET = (k) => `https://meet.google.com/nwl-${k}`;
+const HQ = 'Northwind HQ - 4.12 Fjord (12)';
 function workCalendar() {
   const ev = [];
   const team = PEOPLE.slice(0, 6);
   // Recurring
-  ev.push(vevent({ title: 'Daily standup', start: at(1, 5, 9, 30), end: at(1, 5, 9, 45), attendees: team, organizer: PEOPLE[0][1], rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR', description: 'Yesterday / today / blockers' }));
-  ev.push(vevent({ title: 'Weekly Sync', start: at(1, 6, 14, 0), end: at(1, 6, 15, 0), attendees: PEOPLE.slice(0, 9), organizer: PEOPLE[1][1], rrule: 'FREQ=WEEKLY;BYDAY=TU' }));
-  ev.push(vevent({ title: 'Priya / Alex 1:1', start: at(1, 7, 11, 0), end: at(1, 7, 11, 30), attendees: [PEOPLE[0]], organizer: PEOPLE[0][1], rrule: 'FREQ=WEEKLY;BYDAY=WE', description: 'Notes doc: go/alex-priya' }));
-  ev.push(vevent({ title: 'Tom / Alex 1:1', start: at(1, 8, 16, 0), end: at(1, 8, 16, 30), attendees: [PEOPLE[1]], rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=TH' }));
-  ev.push(vevent({ title: 'Pipeline review', start: at(1, 9, 10, 0), end: at(1, 9, 11, 0), attendees: PEOPLE.slice(0, 8), organizer: PEOPLE[2][1], rrule: 'FREQ=WEEKLY;BYDAY=FR' }));
-  ev.push(vevent({ title: 'All Hands', start: at(1, 15, 16, 0), end: at(1, 15, 17, 0), attendees: PEOPLE.slice(0, 10), organizer: PEOPLE[3][1], rrule: 'FREQ=MONTHLY;BYDAY=3TH', description: 'Company all hands. Recording shared after.' }));
-  ev.push(vevent({ title: 'Sprint planning', start: at(1, 12, 13, 0), end: at(1, 12, 15, 0), attendees: team, organizer: PEOPLE[1][1], rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=MO' }));
-  ev.push(vevent({ title: 'Retro', start: at(1, 16, 15, 0), end: at(1, 16, 16, 0), attendees: team, organizer: PEOPLE[1][1], rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=FR' }));
+  ev.push(vevent({ title: 'Daily standup', start: at(1, 5, 9, 30), end: at(1, 5, 9, 45), attendees: team, organizer: PEOPLE[0][1], rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR', description: 'Yesterday / today / blockers', location: MEET('stand-up') }));
+  ev.push(vevent({ title: 'Weekly Sync', start: at(1, 6, 14, 0), end: at(1, 6, 15, 0), attendees: PEOPLE.slice(0, 9), organizer: PEOPLE[1][1], rrule: 'FREQ=WEEKLY;BYDAY=TU', location: `${HQ}; ${MEET('weekly')}` }));
+  ev.push(vevent({ title: 'Priya / Alex 1:1', start: at(1, 7, 11, 0), end: at(1, 7, 11, 30), attendees: [PEOPLE[0]], organizer: PEOPLE[0][1], rrule: 'FREQ=WEEKLY;BYDAY=WE', description: 'Notes doc: go/alex-priya', location: 'Northwind HQ - Kitchen' }));
+  ev.push(vevent({ title: 'Tom / Alex 1:1', start: at(1, 8, 16, 0), end: at(1, 8, 16, 30), attendees: [PEOPLE[1]], rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=TH', location: MEET('tom-alex') }));
+  ev.push(vevent({ title: 'Pipeline review', start: at(1, 9, 10, 0), end: at(1, 9, 11, 0), attendees: PEOPLE.slice(0, 8), organizer: PEOPLE[2][1], rrule: 'FREQ=WEEKLY;BYDAY=FR', location: MEET('pipeline') }));
+  ev.push(vevent({ title: 'All Hands', start: at(1, 15, 16, 0), end: at(1, 15, 17, 0), attendees: PEOPLE.slice(0, 10), organizer: PEOPLE[3][1], rrule: 'FREQ=MONTHLY;BYDAY=3TH', description: 'Company all hands. Recording shared after.', location: `Northwind HQ - Atrium; ${MEET('all-hands')}` }));
+  ev.push(vevent({ title: 'Sprint planning', start: at(1, 12, 13, 0), end: at(1, 12, 15, 0), attendees: team, organizer: PEOPLE[1][1], rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=MO', location: 'Room 3.02 - Dock (8)' }));
+  ev.push(vevent({ title: 'Retro', start: at(1, 16, 15, 0), end: at(1, 16, 16, 0), attendees: team, organizer: PEOPLE[1][1], rrule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=FR', location: 'Room 3.02 - Dock (8)' }));
   ev.push(vevent({ title: 'Focus time', start: at(1, 5, 8, 0), end: at(1, 5, 9, 30), rrule: 'FREQ=WEEKLY;BYDAY=MO,WE' }));
   ev.push(vevent({ title: 'Lunch', start: at(1, 5, 12, 30), end: at(1, 5, 13, 15), rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR' }));
 
   // Ad-hoc meetings across the year
   const adhocTitles = ['Customer call: Acme', 'Contoso Bank - architecture review', 'Deal review', 'Quick chat', 'Demo prep', 'Interview: Senior SE', 'Q-planning', 'Proposal walkthrough', 'Sync', 'Partner catch up', 'Onboarding session', 'Escalation: prod alerts', 'Roadmap feedback', 'Catch up', 'Dashboard review', 'Sync', 'Pricing discussion', 'Offsite planning', 'Lunch & learn: SLOs'];
+  // Where each one happens is picked by a counter, not the random stream, so every other number stays put.
+  let k = 0;
+  const adhocWhere = (title) => {
+    k++;
+    if (/Contoso/.test(title)) return k % 2 ? 'Contoso Bank, 25 Canada Square, E14 5LQ London' : 'Microsoft Teams Meeting';
+    if (/Acme/.test(title)) return k % 3 === 0 ? 'Acme Customer, 1 Spinningfields, M3 3AP Manchester' : MEET('acme');
+    if (/Partner/.test(title)) return 'Origin Coffee, Charlotte Road, London';
+    if (/Offsite/.test(title)) return 'The Ned, 27 Poultry, London';
+    return k % 3 === 0 ? 'Room 4.12 - Fjord (8)' : MEET(`adhoc-${k % 40}`);
+  };
   for (let month = 1; month <= 12; month++) {
     const density = [10, 11, 12, 10, 12, 14, 9, 6, 14, 15, 13, 7][month - 1];
     for (let i = 0; i < density * 2; i++) {
@@ -92,7 +104,7 @@ function workCalendar() {
       const nAtt = pick([1, 1, 2, 3, 4, 6, 9, 12]);
       const attendees = [...PEOPLE].sort(() => rand() - 0.5).slice(0, nAtt);
       const title = pick(adhocTitles);
-      ev.push(vevent({ title, start: d, end: plus(d, len), attendees, organizer: chance(0.4) ? SELF : pick(attendees)[1], description: chance(0.55) ? '' : 'Agenda:\n1. Context\n2. Decisions\n3. Next steps', selfStatus: chance(0.12) ? 'NEEDS-ACTION' : chance(0.06) ? 'DECLINED' : 'ACCEPTED' }));
+      ev.push(vevent({ title, location: adhocWhere(title), start: d, end: plus(d, len), attendees, organizer: chance(0.4) ? SELF : pick(attendees)[1], description: chance(0.55) ? '' : 'Agenda:\n1. Context\n2. Decisions\n3. Next steps', selfStatus: chance(0.12) ? 'NEEDS-ACTION' : chance(0.06) ? 'DECLINED' : 'ACCEPTED' }));
     }
   }
   // Early / late calls (US & APAC)
@@ -100,7 +112,7 @@ function workCalendar() {
     const month = 1 + Math.floor(rand() * 12); const day = 1 + Math.floor(rand() * 28);
     const d = chance(0.5) ? at(month, day, 7, 30) : at(month, day, 18, 0);
     if (d.getDay() === 0 || d.getDay() === 6) continue;
-    ev.push(vevent({ title: chance(0.5) ? 'US sync' : 'APAC handover', start: d, end: plus(d, 45), attendees: PEOPLE.slice(6, 10), organizer: PEOPLE[7][1] }));
+    ev.push(vevent({ title: chance(0.5) ? 'US sync' : 'APAC handover', start: d, end: plus(d, 45), attendees: PEOPLE.slice(6, 10), organizer: PEOPLE[7][1], location: 'Microsoft Teams Meeting' }));
   }
   // Travel
   const trips = [[5, 18, 'New York', 'BA117'], [2, 10, 'Stockholm', 'BA778'], [3, 24, 'Amsterdam', 'KL1008'], [5, 12, 'Copenhagen', 'SK502'], [6, 17, 'Oslo', 'BA762'], [9, 8, 'Amsterdam', 'KL1012'], [10, 20, 'Helsinki', 'AY1332'], [11, 3, 'Stockholm', 'BA776']];
@@ -109,7 +121,7 @@ function workCalendar() {
     ev.push(vevent({ title: `✈ Flight to ${city} (${code})`, start: out, end: plus(out, 150), location: 'London Heathrow (LHR)' }));
     ev.push(vevent({ title: `Hotel: Scandic ${city}`, start: at(m, dday), end: at(m, dday + 2), allDay: true }));
     ev.push(vevent({ title: `✈ Flight to London (${code.slice(0, 2)}${Number(code.slice(2)) + 1})`, start: back, end: plus(back, 150), location: `${city} Airport` }));
-    ev.push(vevent({ title: `Customer workshop - ${city}`, start: at(m, dday + 1, 9, 30), end: at(m, dday + 1, 16, 0), attendees: [PEOPLE[10], PEOPLE[0]], organizer: PEOPLE[10][1] }));
+    ev.push(vevent({ title: `Customer workshop - ${city}`, start: at(m, dday + 1, 9, 30), end: at(m, dday + 1, 16, 0), attendees: [PEOPLE[10], PEOPLE[0]], organizer: PEOPLE[10][1], location: `Acme Customer ${city}, Central Station Plaza, ${city}` }));
   }
   ev.push(vevent({ title: 'Eurostar to Paris', start: at(4, 14, 8, 1), end: at(4, 14, 11, 20), location: 'London St Pancras' }));
   // OOO

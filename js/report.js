@@ -10,6 +10,7 @@ import { breakRows, birthdayRows, holidayLabel } from './timeoff-ui.js';
 import { persona as personaOf } from './copy.js';
 import { typeLabel, mixBar } from './mix-ui.js';
 import { awardCopy, hasAwards } from './awards-ui.js';
+import { hasWhere, whereLabel } from './where-ui.js';
 
 const stat = (v, l) => h('div', { class: 'stat' }, h('b', {}, v), h('span', {}, l));
 const sec = (title, intro, ...body) => h('section', { class: 'report-sec' }, h('h2', {}, title), intro ? h('p', { class: 'intro' }, intro) : null, ...body);
@@ -80,6 +81,13 @@ function mixSection(s) {
       table([[t('Kind')], [t('Meetings'), 1], [t('Hours'), 1], ['%', 1]], mix.types.map((x) => [typeLabel(x), fmt.int(x.count), fmt.hours(x.hours), `${x.pct}%`])),
       mix.customers.length ? table([[t('Customer')], [t('Meetings'), 1], [t('Hours'), 1]], mix.customers.slice(0, 10).map((c) => [c.name, fmt.int(c.count), fmt.hours(c.hours)])) : null));
 }
+function whereSection(s) {
+  if (!hasWhere(s)) return null;
+  const w = s.where;
+  return sec(t('Where you met'), t('{p}% of your meeting time was in person, with {d} days on site ({c} with customers).', { p: w.inPersonShare, d: fmt.int(w.onsite.days), c: fmt.int(w.customer.days) }),
+    h('div', { class: 'viz-light' }, mixBar(w.types.map((x) => ({ ...x, name: whereLabel(x.key) })))),
+    w.places.length ? h('div', { style: 'margin-top:20px' }, table([[t('Place')], [t('Meetings'), 1], [t('Hours'), 1]], w.places.map((p) => [p.name, fmt.int(p.count), fmt.hours(p.hours)]))) : null);
+}
 function awardsSection(s) {
   if (!hasAwards(s)) return null;
   return sec(t('Awards'), null, h('ol', { class: 'awards awards-light' }, s.awards.map((a) => {
@@ -106,6 +114,7 @@ function workBody(s, ctx) {
     awardsSection(s),
     sec(t('Reclaim'), null, reclaimPanel(s, ctx)),
     mixSection(s),
+    whereSection(s),
     sec(t('Through the year'), bi >= 0 ? (qi >= 0 ? t('{a} was the heaviest month, {b} the lightest.', { a: monthName(bi), b: monthName(qi) }) : t('{a} was the heaviest month.', { a: monthName(bi) })) : null,
       charts.monthChart(s.monthly, bi),
       h('div', { class: 'two', style: 'margin-top:20px' },

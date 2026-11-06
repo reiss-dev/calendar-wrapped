@@ -19,11 +19,11 @@ export const cardColours = (m) => CARD_THEMES[m.th] || (m.m === 'p' ? CARD_THEME
 
 /** Every tile a card can carry, by mode, in the order offered. */
 export const TILE_KEYS = {
-  w: ['h', 'c', 's', 'ws', 'pn', 'tt', 'b', 'r', 'd', 'cs', 'co', 'to', 'tr', 'fr', 'rc'],
+  w: ['h', 'c', 's', 'ws', 'pn', 'tt', 'b', 'r', 'd', 'cs', 'co', 'os', 'ip', 'to', 'tr', 'fr', 'rc'],
   p: ['e', 'h', 'cat', 'pn', 'fw', 'tr', 'bd', 'ls', 'to'],
 };
 const N_KEYS = {
-  w: ['h', 'c', 's', 'wh', 'b', 'r', 'd', 'pc', 'tc', 'cs', 'co', 'to', 'tr', 'fr', 'rc'],
+  w: ['h', 'c', 's', 'wh', 'b', 'r', 'd', 'pc', 'tc', 'cs', 'co', 'os', 'ip', 'to', 'tr', 'fr', 'rc'],
   p: ['e', 'h', 'cc', 'ls', 'fw', 'tw', 'tr', 'bd', 'pc', 'to'],
 };
 
@@ -39,6 +39,7 @@ export function cardModel(s, { hideNames = true, who = '', locale = 'en', tiles 
     ls: s.longestBusyStreak.length, fw: s.freeWeekends, tw: s.totalWeekends, tr: s.travel.trips, bd: s.birthdays, to: s.timeOff?.taken || 0,
   };
   if (work && s.mix) { n.cs = s.mix.customerShare; n.co = s.mix.companies; }
+  if (work && s.where) { n.os = s.where.onsite.days; n.ip = s.where.inPersonShare; }
   if (!hideNames) {
     const top = work ? s.collaborators[0] : s.people[0];
     if (top) { n.pn = clip(work ? top.name.split(' ')[0] : top.name, 24); n.pc = top.count; }
@@ -67,7 +68,7 @@ export function sanitizeModel(x) {
   if (!Number.isInteger(y) || y < 2000 || y > 2100) return null;
   if (!Array.isArray(x.mo) || x.mo.length !== 12 || typeof x.n !== 'object' || !x.n) return null;
   const n = {};
-  for (const k of N_KEYS[x.m]) if (x.n[k] != null) n[k] = num(x.n[k], k === 's' || k === 'r' || k === 'cs' ? 100 : 1e6);
+  for (const k of N_KEYS[x.m]) if (x.n[k] != null) n[k] = num(x.n[k], k === 's' || k === 'r' || k === 'cs' || k === 'ip' ? 100 : 1e6);
   if (x.m === 'w' && /^\d{4}-\d{2}-\d{2}$/.test(x.n.ws || '')) n.ws = x.n.ws;
   if (x.m === 'p' && CATS.includes(x.n.cat)) n.cat = x.n.cat;
   if (x.n.pn) n.pn = clip(x.n.pn, 24);
@@ -105,6 +106,8 @@ function tile(m, key) {
       case 'd': return n.d ? [fmt.num(n.d), t('meetings a day')] : null;
       case 'cs': return n.cs != null ? [`${fmt.int(n.cs)}%`, t('of meeting time with customers')] : null;
       case 'co': return n.co ? [fmt.int(n.co), t('companies met')] : null;
+      case 'os': return n.os ? [fmt.int(n.os), t('days on site')] : null;
+      case 'ip': return n.ip != null ? [`${fmt.int(n.ip)}%`, t('of meeting time in person')] : null;
       case 'to': return n.to ? [fmt.int(n.to), t('days off')] : null;
       case 'tr': return n.tr ? [fmt.int(n.tr), t('trips away')] : null;
       case 'fr': return n.fr ? [fmt.int(n.fr), t('days in a row without a meeting')] : null;

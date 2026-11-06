@@ -16,6 +16,7 @@ export function awardCopy(a) {
     case 'escape': return [t('The Escape Artist'), t('{n} working days in a row without a meeting.', { n: fmt.int(a.n) })];
     case 'friday': return [t('Friday Afternoon Hero'), t('{n} meetings after lunch on a Friday.', { n: fmt.int(a.n) })];
     case 'flyer': return [t('Frequent Flyer'), tn('{n} trip this year.', '{n} trips this year.', a.n)];
+    case 'boots': return [t('Boots on the Ground'), t('{n} days on site, face to face.', { n: fmt.int(a.n) })];
     case 'customer': return [t('Customer Champion'), t('{p}% of your meeting time with customers.', { p: fmt.int(a.p) })];
     case 'convener': return [t('The Convener'), t('You sent {n} invitations.', { n: fmt.int(a.n) })];
     case 'yes': return [t('Yes, And'), a.n ? t('Declined only {n} meetings all year.', { n: fmt.int(a.n) }) : t('Didn’t decline a single meeting all year.')];

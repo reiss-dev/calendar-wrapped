@@ -68,6 +68,8 @@ export function maskStats(s, level, extra = []) {
     out.topTitles = none ? [] : s.topTitles.map((x) => ({ ...x, key: mask(x.key) }));
     out.recurringSeries = s.recurringSeries.map((x) => ({ ...x, title: title(x.title), organizer: null }));
     for (const k of ['earliest', 'latest', 'longest']) if (s[k]) out[k] = { ...s[k], title: title(s[k].title) };
+    // Places can name a customer's office, so they follow the same rules as names.
+    if (s.where) out.where = { ...s.where, places: none ? [] : s.where.places.filter((p) => level === 'all' || !p.customer).map((p) => ({ ...p, name: mask(p.name) })) };
     if (s.mix) {
       out.mix = { ...s.mix, externalNames: [], groups: [],
         customers: level === 'all' ? s.mix.customers.map((c) => ({ ...c, name: mask(c.name) })) : s.mix.customers.map((c, i) => ({ ...c, name: t('Customer {x}', { x: letter(i) }), domain: '' })) };

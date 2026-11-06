@@ -590,7 +590,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   .awards-light .award-medal { background: var(--viz-base); }
   a { color: inherit; text-decoration: none; }
 }
-}
 
 /* ==========================================================================
    Visualisations. Colours come from three inherited variables, so the same SVG

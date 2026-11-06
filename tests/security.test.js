@@ -100,3 +100,15 @@ test('results on the device: 30 days, private mode, start over', async () => {
     assert.ok(local.m.has('cw:unlock'), 'a purchase is not a result');
   } finally { delete globalThis.window; }
 });
+
+test('the stylesheets are well formed: every brace closes, none too many', () => {
+  for (const file of ['styles.css']) {
+    const css = read(file).replace(/\/\*[\s\S]*?\*\//g, '').replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""');
+    let depth = 0;
+    css.split('\n').forEach((line, i) => {
+      for (const ch of line) { if (ch === '{') depth++; if (ch === '}') depth--; }
+      assert.ok(depth >= 0, `${file}: a stray } around line ${i + 1}`);
+    });
+    assert.equal(depth, 0, `${file}: unclosed {`);
+  }
+});

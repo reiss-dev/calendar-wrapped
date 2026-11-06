@@ -7,6 +7,7 @@ import { persona as personaOf, categoryLabel, equivalentLabel } from './copy.js'
 import { yoyChange, dayCoverage } from './stats.js';
 import { createGlobe } from './globe.js';
 import { hasMix, mixSlide } from './mix-ui.js';
+import { hasWhere, whereSlide } from './where-ui.js';
 import { hasAwards, awardsSlide } from './awards-ui.js';
 import { timeOffSlide, planSlide, birthdaySlide, hasTimeOff, hasBirthdays } from './timeoff-ui.js';
 import { highlightsSlide, showHighlights } from './extras.js';
@@ -202,6 +203,7 @@ function workSlides(s) {
   }
 
   if (hasMix(s)) out.push(mixSlide(s));
+  if (hasWhere(s)) out.push(whereSlide(s));
 
   if (s.recurringCount) {
     const r = s.recurringSeries[0];

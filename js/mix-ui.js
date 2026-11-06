@@ -1,6 +1,6 @@
 // Who meetings were with: the story slide, the summary panel, and the groups people define.
 import { h, fmt } from './ui.js';
-import { t } from './i18n.js';
+import { t, tn } from './i18n.js';
 import { keep, recall } from './vault.js';
 import { barRace } from './viz.js';
 import { cleanGroups } from './meeting-mix.js';
@@ -91,4 +91,4 @@ export function mixPanel(s, { canApply, onApply }) {
         canApply ? null : h('span', { class: 'caption' }, t('Add your calendar again to change this.')))));
   return panel;
 }
-const tnMeetings = (n) => t('{n} meetings', { n: fmt.int(n) });
+const tnMeetings = (n) => tn('{n} meeting', '{n} meetings', n);

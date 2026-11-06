@@ -123,7 +123,7 @@ await scenario('work demo: story with visuals, summary, actions, formats, link',
   await page.emulateMedia({ media: 'print' });
   assert.ok(await page.locator('.report-cover').isVisible(), 'printing starts with the cover');
   assert.ok(await page.locator('.report .awards .award').count() >= 3, 'awards in the report');
-  assert.ok(await page.locator('.report .mix').count() === 1, 'who you met with in the report');
+  assert.equal(await page.locator('.report .mix').count(), 2, 'who you met with, and where, in the report');
   await page.emulateMedia({ media: 'screen' });
   await c.close();
 });
@@ -482,6 +482,8 @@ await scenario('meeting types and hiding customers: groups recalculate, shared t
   await throughStory(page, async () => { caps.push(await page.locator('.slide.is-current .cap').first().textContent().catch(() => '')); });
   assert.ok(caps.includes('Who you met with'), 'the meeting-mix page appears');
   assert.ok(caps.includes('Awards'), 'the awards page appears');
+  assert.ok(caps.includes('Where you met'), 'the where-you-met page appears');
+  assert.ok(await page.locator('.where-panel .mixbar i').count() === 3, 'online, office and on site on the summary');
   assert.ok(await page.locator('.awards-panel .award').count() >= 3, 'awards on the summary');
   const panel = page.locator('.mix-panel');
   await panel.scrollIntoViewIfNeeded();
