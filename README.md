@@ -58,6 +58,7 @@ The year as a tear-off desk calendar. System text for reading, Bricolage Grotesq
 | Story, slides, sound and haptics, screen-reader narration | `js/slides.js`, `js/story.js`, `js/sound.js` |
 | One-tap actions: organiser messages, calendar blocks, settings steps | `js/actions.js`, `js/reclaim-ui.js` |
 | Share cards, links, comparisons; choose the card's colour and numbers | `js/card.js`, `js/model.js`, `js/share.js` |
+| LinkedIn carousel: the year as 1080×1350 pages in one PDF, made on the device | `js/carousel.js`, `js/carousel-ui.js`, `js/pdf.js` |
 | Awards: the year's superlatives, in the story, summary and video | `js/awards.js`, `js/awards-ui.js` |
 | Meeting types (customers, internal, 1:1s, your own groups) | `js/meeting-mix.js`, `js/mix-ui.js` |
 | What shared things show: no names, hide customers, or everything | `js/privacy.js` |

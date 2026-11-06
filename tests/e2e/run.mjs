@@ -537,6 +537,26 @@ await scenario('does this look right: odd numbers flagged, fixed in one tap', as
   await c.close();
 });
 
+await scenario('LinkedIn carousel: a PDF of the year, made on the device, names left out', async () => {
+  const { c, page } = await ctx('carousel');
+  await playDemo(page);
+  await page.keyboard.press('Escape');
+  await page.waitForSelector('.summary canvas');
+  await page.click('#carousel-open');
+  await page.waitForSelector('#carousel-save', { timeout: 20000 });
+  const pages = await page.locator('.carousel-page').count();
+  assert.ok(pages >= 7, `pages: ${pages}`);
+  const dl = page.waitForEvent('download');
+  await page.click('#carousel-save');
+  const file = join(tmpdir(), `carousel-${Date.now()}.pdf`);
+  await (await dl).saveAs(file);
+  const pdf = readFileSync(file, 'latin1');
+  assert.ok(pdf.startsWith('%PDF-1.4') && pdf.trimEnd().endsWith('%%EOF'));
+  assert.equal((pdf.match(/\/Type \/Page\b/g) || []).length, pages);
+  await shot(page, '21-carousel', false);
+  await c.close();
+});
+
 await scenario('story video: renders a 9:16 video on the device, then saves it', async () => {
   const { c, page } = await ctx('video');
   await playDemo(page);

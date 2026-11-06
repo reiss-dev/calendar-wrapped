@@ -61,3 +61,21 @@ test('awards: the year’s superlatives, rarest first, masked when shared', asyn
   const p = load('personal').awards.map((a) => a.id);
   assert.ok(p.includes('regular') && !p.includes('marathon'));
 });
+
+test('the carousel PDF is a valid file: header, one image per page, offsets that add up', async () => {
+  const { imagesToPdf } = await import('../js/pdf.js');
+  const fake = (n) => ({ jpeg: new Uint8Array([0xff, 0xd8, ...Array(n).fill(7), 0xff, 0xd9]), w: 1080, h: 1350 });
+  const pdf = imagesToPdf([fake(10), fake(2000), fake(5)], { title: 'My (2026) year' });
+  const text = new TextDecoder('latin1').decode(pdf);
+  assert.ok(text.startsWith('%PDF-1.4'));
+  assert.ok(text.trimEnd().endsWith('%%EOF'));
+  assert.equal((text.match(/\/Type \/Page\b/g) || []).length, 3);
+  assert.match(text, /\/Count 3/);
+  assert.match(text, /\/MediaBox \[0 0 540 675\]/);
+  assert.match(text, /\/Title \(My \\\(2026\\\) year\)/);
+  // Every xref entry points at the start of its object.
+  const start = Number(text.match(/startxref\n(\d+)/)[1]);
+  assert.ok(text.slice(start).startsWith('xref'));
+  const entries = text.slice(start).split('\n').slice(3).filter((l) => / 00000 n $/.test(l)).map((l) => Number(l.slice(0, 10)));
+  entries.forEach((off, i) => assert.ok(text.slice(off).startsWith(`${i + 1} 0 obj`), `object ${i + 1}`));
+});

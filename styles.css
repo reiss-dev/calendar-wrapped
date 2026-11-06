@@ -1056,3 +1056,11 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .awards-light .award-text b { font-size: 17px; color: var(--ink); }
 .awards-light .award-text span { color: var(--ink-2); opacity: 1; font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .slide .award[data-reveal] .award-medal { animation: none; } }
+/* LinkedIn carousel */
+.modal-carousel { text-align: center; }
+.modal-carousel p { margin-bottom: 14px; }
+.carousel-strip { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 14px; margin: 0 -4px 6px; min-height: 200px; }
+.carousel-page { flex: none; width: min(168px, 40vw); height: auto; aspect-ratio: 1080 / 1350; border-radius: 10px; scroll-snap-align: start; box-shadow: 0 8px 22px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.05); animation: page-in 0.5s var(--spring) both; }
+.carousel-page:nth-child(n) { animation-delay: calc(var(--k, 0) * 60ms); }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+.btn-carousel, .btn-video { flex-basis: calc(50% - 4px) !important; }

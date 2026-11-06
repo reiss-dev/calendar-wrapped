@@ -17,7 +17,7 @@ export function typeLabel(x) {
   if (x.name) return x.name;
   return { customer: t('Customers'), internal: t('Internal'), one: t('1:1s'), other: t('Just you') }[x.key] || x.key;
 }
-function headline(x) {
+export function headline(x) {
   if (x.name) return t('of your meeting time went on “{name}”.', { name: x.name });
   return { customer: t('of your meeting time was with customers.'), internal: t('of your meeting time was with colleagues.'), one: t('of your meeting time was in 1:1s.') }[x.key] || t('of your meeting time.');
 }
@@ -31,7 +31,7 @@ export function mixBar(types, { legend = true } = {}) {
       h('i', { 'aria-hidden': 'true' }), h('span', {}, typeLabel(x)), h('b', {}, `${fmt.int(x.pct)}%`)))) : null);
 }
 
-const lead = (mix) => mix.types.find((x) => x.key === 'customer' && x.pct >= 10) || mix.types.find((x) => x.key !== 'other') || mix.types[0];
+export const lead = (mix) => mix.types.find((x) => x.key === 'customer' && x.pct >= 10) || mix.types.find((x) => x.key !== 'other') || mix.types[0];
 
 export function mixSlide(s) {
   const mix = s.mix;

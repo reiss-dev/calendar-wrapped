@@ -30,6 +30,7 @@ import { askYoursOrTeam, calendarsBlock, leaveOutRow, leaveOutPanel, loadFilters
 import { mixPanel, loadGroups } from './mix-ui.js';
 import { checksPanel } from './checks-ui.js';
 import { awardsPanel } from './awards-ui.js';
+import { openCarouselModal } from './carousel-ui.js';
 import { maskStats, makeMasker, levelOf } from './privacy.js';
 import { h, fmt, toast, wait, stagger, storage, store } from './ui.js';
 import { renderShowcase } from './showcase.js';
@@ -440,6 +441,7 @@ async function showSummary({ push = true } = {}) {
     navigator.share ? h('button', { class: 'btn btn-secondary', onClick: () => shareCard(canvas, s) }, t('Share')) : null,
     h('button', { class: 'btn btn-secondary', onClick: () => copyLink(s) }, t('Copy link')),
     videoSupported() ? h('button', { class: 'btn btn-secondary btn-video', onClick: () => openVideoModal(forSharing(s)) }, h('span', { class: 'play', 'aria-hidden': 'true' }), t('Make a video')) : null,
+    h('button', { class: 'btn btn-secondary btn-carousel', id: 'carousel-open', onClick: () => openCarouselModal(forSharing(s)) }, t('LinkedIn carousel')),
   );
 
   const c = yoyChange(s);
